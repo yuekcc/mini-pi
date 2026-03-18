@@ -1,0 +1,8 @@
+{
+  "messages": {{messages}},
+  "tools": {{tools}},
+  "model": {{model_id}},
+  "tool_choice": true,
+  "stream": true,
+  "thinking": { "type": "enabled" }
+}
