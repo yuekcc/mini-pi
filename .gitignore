@@ -4,4 +4,5 @@ out/
 *.exe
 apikey.txt
 
-req_*.json
+/req_*.json
+/test*.txt
