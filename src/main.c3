@@ -59,11 +59,11 @@ fn void print_last_message(History* history)
 	if (try record = history.last())
 	{
 		io::printfn("# %s", record.role);
-		io::printfn("%s\n", record.content.trim());
-		if (record.tool_calls != null)
-		{
-			io::printfn("执行工具：%s", record.tool_calls);
-		}
+		io::printfn("%s\n\n", record.content.trim());
+		// if (record.tool_calls != null)
+		// {
+		// 	io::printfn("执行工具：%s", record.tool_calls);
+		// }
 	}
 }
 

@@ -34,3 +34,13 @@ fn String escape(Allocator allocator, String s, bool strip_quotes = true)
 fn String timestamp(Allocator allocator, TzDateTime dt) {
     return string::format(allocator, "%04d%02d%02d_%02d%02d%02d", dt.year, dt.month.ordinal + 1, dt.day, dt.hour, dt.min, dt.sec);
 }
+
+macro String error_message(String $format)
+{
+    return Ansi.RED +++ $format +++ Ansi.RESET;
+}
+
+macro String system_message(String $format)
+{
+    return Ansi.BRIGHT_BLACK +++ $format +++ Ansi.RESET;
+}
