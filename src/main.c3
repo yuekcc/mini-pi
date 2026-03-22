@@ -15,6 +15,7 @@ faultdef
 
 const String REQUEST_TPL = (String)$embed("request_template.json");
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
+const String TOOLS_SCHEMA = (String)$embed("tools_schema.json");
 
 struct InitOption
 {
@@ -111,7 +112,7 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
             messages.push(message);
 		}
 
-		String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", "[]")
+		String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", TOOLS_SCHEMA)
 		.replace(tmem, "{{model_id}}", util::escape(tmem, init_opt.model_id, false))
 		.replace(tmem, "{{messages}}", string::format(tmem, "%s", messages));
 
@@ -130,6 +131,8 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 		};
 
 		CommandResult curl_result = cmd::execute(tmem, cmd)!;
+		io::printfn("Execute curl\ncode = %d\nresult =%s \n\n", curl_result.code, curl_result.output);
+		
 		if (curl_result.code != 0)
 		{
 			io::printfn("Failed to run curl. Code = %d, message = %s", curl_result.code, curl_result.output);
