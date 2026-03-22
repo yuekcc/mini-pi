@@ -1,5 +1,7 @@
 module util;
 
+import std::time::datetime;
+
 fn String escape(Allocator allocator, String s, bool strip_quotes = true)
 {
     usz initial_capacity = s.len + s.len / 5 + 2;
@@ -27,4 +29,8 @@ fn String escape(Allocator allocator, String s, bool strip_quotes = true)
 
     if (!strip_quotes) result.append_char('"');
     return result.str_view().copy(allocator);
+}
+
+fn String timestamp(Allocator allocator, TzDateTime dt) {
+    return string::format(allocator, "%04d%02d%02d_%02d%02d%02d", dt.year, dt.month.ordinal + 1, dt.day, dt.hour, dt.min, dt.sec);
 }

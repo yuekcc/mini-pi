@@ -33,21 +33,6 @@ struct Message
 	String id;
 }
 
-fn Object* Message.to_obj(&self, Allocator allocator)
-{
-	Object* result = object::new_obj(allocator);
-	result.set("role", self.role.copy(allocator));
-	result.set("content", self.content.copy(allocator));
-
-	if (self.id != "")
-	{
-		result.set("id", self.id.copy(allocator));
-	}
-
-	return result;
-}
-
-
 struct HistoryRecord
 {
     String role;
@@ -88,7 +73,7 @@ fn HistoryRecord* read_input(Allocator allocator)
 	return result;
 }
 
-fn HistoryRecord? read_as_history_record(Allocator allocator, String json_doc)
+fn HistoryRecord? read_to_history_record(Allocator allocator, String json_doc)
 {
 	Object* res = json::parse_string(tmem, json_doc)!;
 	Object* choices = res.get("choices")!;
@@ -117,18 +102,30 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 {
 	@pool()
 	{
+		Object* messages = object::new_obj(tmem);
+		foreach (&record : history)
+		{
+            Object* message = object::new_obj(tmem);
+            message.set("role", record.role);
+            message.set("content", util::escape(tmem, record.content, true));
+            messages.push(message);
+		}
+
 		String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", "[]")
 		.replace(tmem, "{{model_id}}", util::escape(tmem, init_opt.model_id, false))
-		.replace(tmem, "{{messages}}", "[]");
+		.replace(tmem, "{{messages}}", string::format(tmem, "%s", messages));
 
-		file::save("req.json", request_body)!;
+		DateTime now = datetime::now();
+		String filename = string::format(tmem,"req_%s.json", util::timestamp(tmem, now.to_local()));
+		file::save(filename, request_body)!;
 
 		String[] cmd = {
 			"curl",
-			"-X", "POST", 
-			"-H", string::format(tmem, "Authorization: %s", init_opt.api_key),
+			"-s", // 不显示进度
+			"-X", "POST", // POST 方法调用
+			"-H", string::format(tmem, "Authorization: %s", init_opt.api_key), // APP KEY
 			"-H", "Content-Type: application/json",
-			"--data-binary", "@req.json",
+			"--data-binary", string::format(tmem, "@%s", filename), // 通过临时文件传入请求体
 			init_opt.url, 
 		};
 
@@ -139,7 +136,7 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 			return EXECUTE_COMMAND_ERROR~;
 		}
 		
-		return read_as_history_record(allocator, curl_result.output);
+		return read_to_history_record(allocator, curl_result.output);
 	};
 }
 

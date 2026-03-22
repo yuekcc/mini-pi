@@ -1,8 +1,0 @@
-{
-  "messages": [],
-  "tools": [],
-  "model": "LongCat-Flash-Chat",
-  "tool_choice": "auto",
-  "stream": false,
-  "thinking": { "type": "enabled" }
-}
