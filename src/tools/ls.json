@@ -8,8 +8,8 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "path": { "type": "String", "description": "Directory to list (default: current directory)" },
-        "limit": { "type": "Number", "description": "Maximum number of entries to return (default: 500)" }
+        "path": { "type": "string", "description": "Directory to list (default: current directory)" },
+        "limit": { "type": "number", "description": "Maximum number of entries to return (default: 500)" }
       },
       "required": [],
       "additionalProperties": false

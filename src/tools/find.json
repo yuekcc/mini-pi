@@ -8,9 +8,9 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "pattern": { "type": "String", "description": "Glob pattern to match files, e.g. '*.ts', '**/*.json', or 'src/**/*.spec.ts'" },
-        "path": { "type": "String", "description": "Directory to search in (default: current directory)" },
-        "limit": { "type": "Number", "description": "Maximum number of results (default: 1000)" }
+        "pattern": { "type": "string", "description": "Glob pattern to match files, e.g. '*.ts', '**/*.json', or 'src/**/*.spec.ts'" },
+        "path": { "type": "string", "description": "Directory to search in (default: current directory)" },
+        "limit": { "type": "number", "description": "Maximum number of results (default: 1000)" }
       },
       "required": ["pattern"],
       "additionalProperties": false

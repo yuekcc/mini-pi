@@ -8,8 +8,8 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "command": { "type": "String", "description": "Bash command to execute" },
-        "timeout": { "type": "Number", "description": "Timeout in seconds (optional, no default timeout)" }
+        "command": { "type": "string", "description": "Bash command to execute" },
+        "timeout": { "type": "number", "description": "Timeout in seconds (optional, no default timeout)" }
       },
       "required": ["command"],
       "additionalProperties": false
