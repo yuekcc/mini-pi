@@ -186,11 +186,7 @@ fn String dispatch(Allocator allocator, String name, Object* args)
             int context = args.get_int("context") ?? 0;
             return grep(allocator, pattern, file_path, glob, ignore_case, literal, context);
         case "ls":
-            String file_path = args.get_string("path") ?? "";
-            if (file_path == "")
-            {
-                return "ARGUMENT INVALID, REQUIRE 'path'";
-            }
+            String file_path = args.get_string("path") ?? ".";
             return ls(allocator, file_path);
         case "read":
             String file_path = args.get_string("path") ?? "";
