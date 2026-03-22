@@ -3,6 +3,7 @@ module tools;
 import std::io;
 import std::io::path;
 import std::collections::list;
+import std::collections::object;
 import cmd;
 
 alias StringList = List{String};
@@ -123,5 +124,84 @@ fn String write(Allocator allocator, String file_path, String content)
     else
     {
         return "WRITE FILE FAILED";
+    }
+}
+
+fn String dispatch(Allocator allocator, String name, Object* args)
+{
+    io::printfn("> tool dispatch, name = %s, args = %s", name, args);
+
+    switch (name)
+    {
+        case "bash":
+            String command = args.get_string("command") ?? "";
+            if (command != "")
+            {
+                return bash(allocator, command);
+            }
+            return "ARGUMENT INVALID, REQUIRE 'command'";
+        case "edit":
+            String file_path = args.get_string("path") ?? "";
+            String old_text = args.get_string("oldText") ?? "";
+            String new_text = args.get_string("newText") ?? "";
+            if (file_path == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'path'";
+            }
+            if (old_text == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'oldText'";
+            }
+            if (new_text == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'newText'";
+            }
+            return edit(allocator, file_path, old_text, new_text);
+        case "write":
+            String file_path = args.get_string("path") ?? "";
+            if (file_path == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'path'";
+            }
+            String content = args.get_string("content") ?? "";
+            return write(allocator, file_path, content);
+        case "find":
+            String pattern = args.get_string("pattern") ?? "";
+            if (pattern == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'pattern'";
+            }
+            String file_path = args.get_string("path") ?? "";
+            return find(allocator, pattern, file_path);
+        case "grep":
+            String pattern = args.get_string("pattern") ?? "";
+            if (pattern == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'pattern'";
+            }
+            String file_path = args.get_string("path") ?? "";
+            String glob = args.get_string("glob") ?? "";
+            bool ignore_case = args.get_bool("ignoreCase") ?? false;
+            bool literal = args.get_bool("literal") ?? false;
+            int context = args.get_int("context") ?? 0;
+            return grep(allocator, pattern, file_path, glob, ignore_case, literal, context);
+        case "ls":
+            String file_path = args.get_string("path") ?? "";
+            if (file_path == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'path'";
+            }
+            return ls(allocator, file_path);
+        case "read":
+            String file_path = args.get_string("path") ?? "";
+            if (file_path == "")
+            {
+                return "ARGUMENT INVALID, REQUIRE 'path'";
+            }
+            int offset = args.get_int("offset") ?? -1;
+            int limit = args.get_int("limit") ?? -1;
+            return read(allocator, file_path, offset, limit);
+        default:
+            return string::format(allocator, "UNKNOWN TOOL '%s', RECHECK YOUR TOOL LIST", name);
     }
 }

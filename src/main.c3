@@ -8,6 +8,7 @@ import std::encoding::json;
 
 import cmd;
 import util;
+import tools;
 
 faultdef
 	EXECUTE_COMMAND_ERROR,
@@ -57,8 +58,12 @@ fn void print_last_message(History* history)
 {
 	if (try record = history.last())
 	{
-	io::printfn("# %s", record.role);
-	io::printfn("%s\n", record.content.trim());
+		io::printfn("# %s", record.role);
+		io::printfn("%s\n", record.content.trim());
+		if (record.tool_calls != null)
+		{
+			io::printfn("执行工具：%s", record.tool_calls);
+		}
 	}
 }
 
@@ -84,6 +89,7 @@ fn HistoryRecord? read_to_history_record(Allocator allocator, String json_doc)
 	{
 		String role = message.get_string("role") ?? "assistant";
 		String content = message.get_string("content") ?? "";
+		String finish_reason = message.get_string("finish_reason") ?? "";
 		HistoryRecord result = {
 			.role = role.copy(allocator),
 			.content = content.copy(allocator),
@@ -109,6 +115,10 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
             Object* message = object::new_obj(tmem);
             message.set("role", record.role);
             message.set("content", util::escape(tmem, record.content, true));
+			// if (record.tool_calls != null)
+			// {
+			// 	message.set("tool_calls", string::format(tmem, "%s", *record.tool_calls));
+			// }
             messages.push(message);
 		}
 
@@ -141,6 +151,27 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 		
 		return read_to_history_record(allocator, curl_result.output);
 	};
+}
+
+fn HistoryRecord* dispatch_tool_calls(Allocator allocator, Object* tool_calls)
+{
+	Object* tool_call = tool_calls.get_at(0); // {"type":"function","function":{"name":"bash","arguments":{"command":"which python && python --version"}},"id":"NbWr7IEREHyuKkrZ7OWGGNwvdN9xfhCX"}]}}
+	String id = tool_call.get_string("id")!!;
+
+	Object* function = tool_call.get("function")!!;
+	String function_name = function.get_string("name")!!;
+	Object* arguments = function.get("arguments")!!;
+	if (arguments.is_string())
+	{
+		arguments = json::parse_string(tmem, function.get_string("arguments")!!)!!;
+	}
+	String call_tool_result = tools::dispatch(tmem, function_name, arguments);
+
+	HistoryRecord* result = allocator::new(allocator, HistoryRecord);
+	result.id = id.copy(allocator);
+	result.role = "tool";
+	result.content = call_tool_result.copy(allocator);
+	return result;
 }
 
 fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
@@ -177,7 +208,8 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 	{
 		if (calling_tools)
 		{
-			// 调用工具，将结果放入 history
+			HistoryRecord* tool_call_result = dispatch_tool_calls(allocator, history.last()!!.tool_calls);
+			history.push(*tool_call_result);
 			print_last_message(&history);
 		}
 		else if (!init_opt.headless)
@@ -190,6 +222,14 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 		{
 			history.push(message);
 			print_last_message(&history);
+			if (message.tool_calls != null)
+			{
+				calling_tools = true;
+			}
+			else
+			{
+				calling_tools = false;
+			}
 		}
 
 		continue AGENT_LOOP;
@@ -205,8 +245,8 @@ fn int main(String[] args)
 		.agent_name = "default",
 		.init_message = "",
 		.model_id = "LongCat-Flash-Chat",
-		// .url = "https://api.longcat.chat/openai/v1/chat/completions",
-		.url = "http://127.0.0.1:9981/chat/completions",
+		.url = "https://api.longcat.chat/openai/v1/chat/completions",
+		// .url = "http://127.0.0.1:9981/chat/completions",
 		.api_key = "sk-1234",
 		.headless = false,
 	};
