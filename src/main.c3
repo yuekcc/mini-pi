@@ -240,14 +240,15 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 fn int main(String[] args)
 {
 	Path cwd = path::cwd(mem)!!;
+	String api_key = (String)file::load(mem, "apikey.txt")!!;
 
 	InitOption init_opt = {
 		.agent_name = "default",
 		.init_message = "",
-		.model_id = "LongCat-Flash-Chat",
+		.model_id = "LongCat-Flash-Thinking",
 		.url = "https://api.longcat.chat/openai/v1/chat/completions",
 		// .url = "http://127.0.0.1:9981/chat/completions",
-		.api_key = "sk-1234",
+		.api_key = api_key,
 		.headless = false,
 	};
 
