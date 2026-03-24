@@ -1,0 +1,30 @@
+{
+  "id": "1471d8336a4c4854b6878b99d5f95eb8",
+  "object": "chat.completion",
+  "created": 1774359151,
+  "model": "longcat-flash-thinking-2601-platform",
+  "usage": {
+    "completion_tokens": 276,
+    "prompt_tokens": 3429,
+    "total_tokens": 3705,
+    "cache_write_tokens": 0,
+    "cache_read_tokens": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cached_tokens": 0
+  },
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "我已经查看了文件内容，现在将所有中文注释翻译成英文：<longcat_tool_call>",
+        "tool_calls": [],
+        "reasoning_content": "我已经查看了文件内容，现在需要将所有中文注释翻译成英文。让我逐一翻译每个注释：\n\n1. `// Print role and content` - 这个已经是英文了，不需要改\n2. `// 如果记录中有工具调用` - `// If the record has tool calls`\n3. `// {` - 保持不变\n4. `// \tio::printfn(\"执行工具：%s\", record.tool_calls);` - `// io::printfn(\"Execute tool: %s\", record.tool_calls);`\n5. `// }` - 保持不变\n6. `// 不显示进度` - `// Do not show progress`\n7. `// POST 方法调用` - `// POST method call`\n8. `// APP KEY` - `// APP KEY` (这个已经是英文了)\n9. `// 通过临时文件传入请求体` - `// Pass request body through temporary file`\n10. `// 等待用户录入第一条消息` - `// Wait for user to input the first message`\n11. `// 执行工具：%s` - `// Execute tool: %s` (这个已经在上面翻译过了)\n\n让我进行这些翻译：\n"
+      },
+      "finish_reason": "tool_calls",
+      "matched_stop": null,
+      "logprobs": null
+    }
+  ]
+}
