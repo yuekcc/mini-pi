@@ -25,7 +25,12 @@ fn String edit(Allocator allocator, String file_path, String old_text, String ne
     {
         if (try content = file::load_path(tmem, path_obj))
         {
-            String updated = ((String)content).replace(tmem, old_text, new_text).copy(allocator);
+            // Normalize line endings to handle CRLF/LF mismatch
+            String normalized_content = ((String)content).treplace("\r\n", "\n");
+            String normalized_old = old_text.treplace("\r\n", "\n");
+            String normalized_new = new_text.treplace("\r\n", "\n");
+            
+            String updated = normalized_content.replace(tmem, normalized_old, normalized_new).copy(allocator);
             return write(allocator, file_path, updated);
         }
         else
