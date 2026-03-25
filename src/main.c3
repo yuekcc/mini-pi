@@ -156,6 +156,7 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 fn HistoryRecord* dispatch_tool_calls(Allocator allocator, Object* tool_calls)
 {
 	Object* tool_call = tool_calls.get_at(0); // {"type":"function","function":{"name":"bash","arguments":{"command":"which python && python --version"}},"id":"NbWr7IEREHyuKkrZ7OWGGNwvdN9xfhCX"}]}}
+	if (tool_call == null) return null;
 	String id = tool_call.get_string("id")!!;
 
 	Object* function = tool_call.get("function")!!;
@@ -209,6 +210,11 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 		if (calling_tools)
 		{
 			HistoryRecord* tool_call_result = dispatch_tool_calls(allocator, history.last()!!.tool_calls);
+			if (tool_call_result == null)
+			{
+				calling_tools = false;
+				continue AGENT_LOOP;
+			}
 			history.push(*tool_call_result);
 			print_last_message(&history);
 		}
@@ -240,15 +246,13 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 fn int main(String[] args)
 {
 	Path cwd = path::cwd(mem)!!;
-	String api_key = (String)file::load(mem, "apikey.txt")!!;
 
 	InitOption init_opt = {
 		.agent_name = "default",
 		.init_message = "",
 		.model_id = "LongCat-Flash-Thinking",
-		.url = "https://api.longcat.chat/openai/v1/chat/completions",
-		// .url = "http://127.0.0.1:9981/chat/completions",
-		.api_key = api_key,
+		.url = "http://127.0.0.1:5678/chat/completions",
+		.api_key = "sk-1234",
 		.headless = false,
 	};
 
