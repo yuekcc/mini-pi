@@ -10,14 +10,25 @@ import cmd;
 import util;
 import tools;
 
+/** 故障定义：命令执行错误、空响应 */
 faultdef
 	EXECUTE_COMMAND_ERROR,
 	EMPTY_RESPONSE;
 
+/** 嵌入的模板文件内容 */
 const String REQUEST_TPL = (String)$embed("request_template.json");
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 const String TOOLS_SCHEMA = (String)$embed("tools_schema.json");
 
+/**
+ * Agent 初始化选项结构体
+ * @agent_name: Agent 名称
+ * @init_message: 初始化消息（headless 模式使用）
+ * @model_id: 模型标识符
+ * @url: API 端点 URL
+ * @api_key: API 密钥
+ * @headless: 是否为无头模式（自动执行）
+ */
 struct InitOption
 {
 	String agent_name;
@@ -28,6 +39,12 @@ struct InitOption
 	bool headless;
 }
 
+/**
+ * 消息结构体
+ * @role: 角色（user/assistant/system）
+ * @content: 消息内容
+ * @id: 消息 ID
+ */
 struct Message
 {
 	String role;
@@ -35,6 +52,13 @@ struct Message
 	String id;
 }
 
+/**
+ * 历史记录结构体
+ * @role: 角色
+ * @content: 内容
+ * @tool_calls: 工具调用列表（可选）
+ * @id: 记录 ID
+ */
 struct HistoryRecord
 {
     String role;
@@ -43,8 +67,13 @@ struct HistoryRecord
     String id;
 }
 
+/** 历史记录列表类型别名 */
 alias History = List{HistoryRecord};
 
+/**
+ * 打印完整的对话历史
+ * @history: 历史记录指针
+ */
 fn void print_history(History* history)
 {
     foreach (&record : history)
@@ -54,19 +83,24 @@ fn void print_history(History* history)
     }
 }
 
+/**
+ * 打印最近一条消息
+ * @history: 历史记录指针
+ */
 fn void print_last_message(History* history)
 {
 	if (try record = history.last())
 	{
 		io::printfn("# %s", record.role);
 		io::printfn("%s\n\n", record.content.trim());
-		// if (record.tool_calls != null)
-		// {
-		// 	io::printfn("执行工具：%s", record.tool_calls);
-		// }
 	}
 }
 
+/**
+ * 读取用户输入
+ * @allocator: 内存分配器
+ * @return: 用户输入构建的 HistoryRecord
+ */
 fn HistoryRecord* read_input(Allocator allocator)
 {
 	io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
@@ -79,6 +113,12 @@ fn HistoryRecord* read_input(Allocator allocator)
 	return result;
 }
 
+/**
+ * 解析 API 响应 JSON 为 HistoryRecord
+ * @allocator: 内存分配器
+ * @json_doc: API 返回的 JSON 文档
+ * @return: 解析出的 HistoryRecord，解析失败返回 null
+ */
 fn HistoryRecord? read_to_history_record(Allocator allocator, String json_doc)
 {
 	Object* res = json::parse_string(tmem, json_doc)!;
@@ -105,6 +145,13 @@ fn HistoryRecord? read_to_history_record(Allocator allocator, String json_doc)
 	return EMPTY_RESPONSE~;
 }
 
+/**
+ * 发送消息到 API 并获取响应
+ * @allocator: 内存分配器
+ * @history: 对话历史
+ * @init_opt: 初始化选项
+ * @return: API 响应转换的 HistoryRecord
+ */
 fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOption* init_opt) 
 {
 	@pool()
@@ -115,28 +162,27 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
             Object* message = object::new_obj(tmem);
             message.set("role", record.role);
             message.set("content", util::escape(tmem, record.content, true));
-			// if (record.tool_calls != null)
-			// {
-			// 	message.set("tool_calls", string::format(tmem, "%s", *record.tool_calls));
-			// }
             messages.push(message);
 		}
 
+		// 构建请求体，替换模板中的占位符
 		String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", TOOLS_SCHEMA)
 		.replace(tmem, "{{model_id}}", util::escape(tmem, init_opt.model_id, false))
 		.replace(tmem, "{{messages}}", string::format(tmem, "%s", messages));
 
+		// 保存请求体到临时文件
 		DateTime now = datetime::now();
 		String filename = string::format(tmem,"req_%s.json", util::timestamp(tmem, now.to_local()));
 		file::save(filename, request_body)!;
 
+		// 构建 curl 命令
 		String[] cmd = {
 			"curl",
-			"-s", // 不显示进度
-			"-X", "POST", // POST 方法调用
-			"-H", string::format(tmem, "Authorization: %s", init_opt.api_key), // APP KEY
+			"-s",                      // 不显示进度
+			"-X", "POST",              // POST 方法
+			"-H", string::format(tmem, "Authorization: %s", init_opt.api_key), // 认证头
 			"-H", "Content-Type: application/json",
-			"--data-binary", string::format(tmem, "@%s", filename), // 通过临时文件传入请求体
+			"--data-binary", string::format(tmem, "@%s", filename), // 通过文件传入请求体
 			init_opt.url, 
 		};
 
@@ -153,15 +199,22 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 	};
 }
 
+/**
+ * 执行工具调用
+ * @allocator: 内存分配器
+ * @tool_calls: 工具调用对象
+ * @return: 工具执行结果构建的 HistoryRecord
+ */
 fn HistoryRecord* dispatch_tool_calls(Allocator allocator, Object* tool_calls)
 {
-	Object* tool_call = tool_calls.get_at(0); // {"type":"function","function":{"name":"bash","arguments":{"command":"which python && python --version"}},"id":"NbWr7IEREHyuKkrZ7OWGGNwvdN9xfhCX"}]}}
+	Object* tool_call = tool_calls.get_at(0);
 	if (tool_call == null) return null;
 	String id = tool_call.get_string("id")!!;
 
 	Object* function = tool_call.get("function")!!;
 	String function_name = function.get_string("name")!!;
 	Object* arguments = function.get("arguments")!!;
+	// 如果参数是字符串则先解析为 JSON 对象
 	if (arguments.is_string())
 	{
 		arguments = json::parse_string(tmem, function.get_string("arguments")!!)!!;
@@ -175,11 +228,18 @@ fn HistoryRecord* dispatch_tool_calls(Allocator allocator, Object* tool_calls)
 	return result;
 }
 
+/**
+ * Agent 主循环：处理用户输入、调用 API、执行工具
+ * @allocator: 内存分配器
+ * @cwd: 当前工作目录
+ * @init_opt: 初始化选项
+ */
 fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 {
 	DateTime now = datetime::now();
 	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
 
+	// 填充系统提示模板
 	String final_system_prompt = SYSTEM_PROMPT_TPL
 		.replace(tmem, "{{cwd}}", cwd.str_view())
 		.replace(tmem, "{{date}}", now_str);
@@ -187,13 +247,14 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 	History history;
 	history.init(allocator);
 
+	// 添加系统消息
 	history.push({
 		.role = "system",
 		.content = final_system_prompt,
 	});
 	print_last_message(&history);
 	
-	// 等待用户录入第一条消息
+	// Headless 模式：使用初始化消息作为第一条用户消息
 	if (init_opt.headless)
 	{
 		history.push({
@@ -209,6 +270,7 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 	{
 		if (calling_tools)
 		{
+			// 执行工具调用
 			HistoryRecord* tool_call_result = dispatch_tool_calls(allocator, history.last()!!.tool_calls);
 			if (tool_call_result == null)
 			{
@@ -220,14 +282,17 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 		}
 		else if (!init_opt.headless)
 		{
+			// 读取用户输入
 			HistoryRecord* user_input = read_input(allocator);
 			history.push(*user_input);
 		}
 
+		// 发送消息并获取响应
 		if (try message = send_messages(allocator, &history, init_opt))
 		{
 			history.push(message);
 			print_last_message(&history);
+			// 检查是否需要继续调用工具
 			if (message.tool_calls != null)
 			{
 				calling_tools = true;
@@ -243,6 +308,11 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 }
 
 
+/**
+ * 程序入口点
+ * @args: 命令行参数
+ * @return: 退出码
+ */
 fn int main(String[] args)
 {
 	Path cwd = path::cwd(mem)!!;
