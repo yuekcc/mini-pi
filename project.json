@@ -1,22 +1,12 @@
 {
   "langrev": "1",
-  "warnings": [
-    "no-unused"
-  ],
-  "dependency-search-paths": [
-    "lib"
-  ],
-  "dependencies": [],
-  "authors": [
-    "Lefeng Zhan<yuekcc@qq.com>"
-  ],
+  "warnings": ["no-unused"],
+  "dependency-search-paths": ["lib"],
+  "dependencies": ["cjson"],
+  "authors": ["Lefeng Zhan<yuekcc@qq.com>"],
   "version": "0.1.0",
-  "sources": [
-    "src/**"
-  ],
-  "test-sources": [
-    "test/**"
-  ],
+  "sources": ["src/**"],
+  "test-sources": ["test/**"],
   "build-dir": "build",
   "output": "build",
   "targets": {
