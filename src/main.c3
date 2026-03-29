@@ -10,6 +10,10 @@ import core;
 import cmd;
 import util;
 import tools;
+import http;
+
+/** String 列表类型别名（避免与 tools 模块冲突） */
+alias HttpStringList = List{String};
 
 /** 故障定义：命令执行错误、空响应 */
 faultdef
@@ -131,27 +135,35 @@ fn Message? send_messages(Context* ctx)
 		String filename = string::format(tmem,"logs/req_%s.json", util::timestamp_id(tmem));
 		file::save(filename, request_body)!;
 
-		// 构建 curl 命令
-		String[] cmd = {
-			"curl",
-			"-s",                      // 不显示进度
-			"-X", "POST",              // POST 方法
-			"-H", string::format(tmem, "Authorization: Bearer %s", ctx.init_options.api_key), // 认证头
-			"-H", "Content-Type: application/json",
-			"--data-binary", string::format(tmem, "@%s", filename), // 通过文件传入请求体
-			ctx.init_options.url,
-		};
+		// 构建 HTTP 请求头
+		HttpStringList headers;
+		headers.init(tmem);
+		defer headers.free();
+		headers.push(string::format(tmem, "Authorization: Bearer %s", ctx.init_options.api_key));
+		headers.push("Content-Type: application/json");
 
-		CommandResult curl_result = cmd::execute(tmem, cmd)!;
-		io::printfn("Execute curl\ncode = %d\nresult =%s \n\n", curl_result.code, curl_result.output);
+		// 使用 HTTP 客户端发送请求
+		HttpClient client;
+		client.init();
+		defer client.free();
 
-		if (curl_result.code != 0)
+		if (try Response response = client.post(ctx.init_options.url, request_body, &headers))
 		{
-			io::printfn("Failed to run curl. Code = %d, message = %s", curl_result.code, curl_result.output);
+			io::printfn("HTTP Response\nstatus = %d\nbody =%s \n\n", response.status_code, response.body);
+
+			if (response.status_code != 200)
+			{
+				io::printfn("HTTP request failed with status code: %d", response.status_code);
+				return EXECUTE_COMMAND_ERROR~;
+			}
+
+			return read_to_message(ctx, response.body);
+		}
+		else
+		{
+			io::printfn("HTTP request failed");
 			return EXECUTE_COMMAND_ERROR~;
 		}
-
-		return read_to_message(ctx, curl_result.output);
 	};
 }
 

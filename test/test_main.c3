@@ -2,40 +2,30 @@ import mini_pi;
 
 import std::io;
 import std::collections::object;
+import std::collections::list;
 import std::encoding::json;
+import http;
+import core;
 
-fn void dispatch_tool_calls(Allocator allocator, Object* tool_calls)
+fn void test_http_request() @test
 {
-	Object* tool_call = tool_calls.get_at(0); // {"type":"function","function":{"name":"bash","arguments":{"command":"which python && python --version"}},"id":"NbWr7IEREHyuKkrZ7OWGGNwvdN9xfhCX"}]}}
-	String id = tool_call.get_string("id")!!;
+    HttpClient client;
+    client.init();
+    defer client.free();
 
-	Object* function = tool_call.get("function")!!;
-	String function_name = function.get_string("name")!!;
-	Object* arguments = function.get("arguments")!!;
-	if (arguments.is_string())
-	{
-		arguments = json::parse_string(tmem, function.get_string("arguments")!!)!!;
-	}
+    // 构建 HTTP 请求头
+    List{String} headers;
+    headers.init(tmem);
+    defer headers.free();
+    headers.push("Authorization: Bearer test-api-key");
+    headers.push("Content-Type: application/json");
 
-    io::printfn("parsed function_name is %s", function_name);
-    io::printfn("parsed arguments is %s", arguments);
-	// String call_tool_result = tools::dispatch(tmem, function_name, arguments);
+    String body = `{"messages":[{"role":"user","content":"Hello"}]}`;
 
-	// HistoryRecord* result = allocator::new(allocator, HistoryRecord);
-	// result.id = id.copy(allocator);
-	// result.role = "tool";
-	// result.content = call_tool_result.copy(allocator);
-	// return result;
-}
-
-fn void test_read_to_history_record() @test
-{
-    String content = (String)file::load(tmem, "response_test_data.json")!!;
-    // io::printfn("content -> %s", content);
-
-    HistoryRecord record =  mini_pi::read_to_history_record(tmem, content)!!;
-    io::printfn("record role = %s", record.role);
-    io::printfn("record content = %s", record.content);
-    io::printfn("record tool_calls = %s", record.tool_calls);
-    dispatch_tool_calls(tmem, record.tool_calls);
+    if (try Response response = client.post("https://httpbin.org/post", body, &headers))
+    {
+        io::printfn("Response status: %d", response.status_code);
+        io::printfn("Response body length: %d", response.body.len);
+        assert(response.status_code == 200, "Response should be 200");
+    }
 }
