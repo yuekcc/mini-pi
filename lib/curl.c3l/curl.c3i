@@ -1,0 +1,1394 @@
+// curl.c3i
+// Created 16/07/2023
+// Last updated 25/02/2026
+// Wrapper originally created Kenta @ https://github.com/Its-Kenta
+
+module curl;
+import libc, std::io;
+
+enum CurlSslBackendType : int
+{
+	NONE,
+	OPENSSL,
+	GNUTLS,
+	NSS,
+	OBSOLETE4,
+	GSKIT,
+	POLARSSL,
+	WOLFSSL,
+	SCHANNEL,
+	SECURETRANSPORT,
+	AXTLS,
+	MBEDTLS,
+	MESALINK,
+	BEARSSL,
+	RUSTLS
+}
+
+enum CurlStsResult : int
+{
+	OK,
+	DONE,
+	FAIL
+}
+
+enum CurlSockType : int
+{
+	IPCXN,
+	ACCEPT,
+	LAST
+}
+
+enum CurlIoResult : int
+{
+	OK,
+	UNKNOWNCMD,
+	FAILRESTART,
+	LAST
+}
+
+enum CurlDebugInfoType : int
+{
+	TEXT,
+	HEADER_IN,
+	HEADER_OUT,
+	DATA_IN,
+	DATA_OUT,
+	SSL_DATA_IN,
+	SSL_DATA_OUT,
+	END
+}
+
+constdef CurlHttpPostFlag : CLong
+{
+	FILENAME    = 1,
+	READFILE    = 2,
+	PTRNAME     = 4,
+	PTRCONTENTS = 8,
+	BUFFER      = 16,
+	PTRBUFFER   = 32,
+	CALLBACK    = 64,
+	LARGE       = 128,
+}
+
+enum CurlFileType : int
+{
+	FILE,
+	DIRECTORY,
+	SYMLINK,
+	DEVICE_BLOCK,
+	DEVICE_CHAR,
+	NAMEDPIPE,
+	SOCKET,
+	DOOR,
+	UNKNOWN
+}
+
+enum CurlResult : int
+{
+	OK,
+	UNSUPPORTED_PROTOCOL,
+	FAILED_INIT,
+	URL_MALFORMAT,
+	NOT_BUILT_IN,
+	COULDNT_RESOLVE_PROXY,
+	COULDNT_RESOLVE_HOST,
+	COULDNT_CONNECT,
+	WEIRD_SERVER_REPLY,
+	REMOTE_ACCESS_DENIED,
+	FTP_ACCEPT_FAILED,
+	FTP_WEIRD_PASS_REPLY,
+	FTP_ACCEPT_TIMEOUT,
+	FTP_WEIRD_PASV_REPLY,
+	FTP_WEIRD_227_FORMAT,
+	FTP_CANT_GET_HOST,
+	HTTP2,
+	FTP_COULDNT_SET_TYPE,
+	PARTIAL_FILE,
+	FTP_COULDNT_RETR_FILE,
+	OBSOLETE20,
+	QUOTE_ERROR,
+	HTTP_RETURNED_ERROR,
+	WRITE_ERROR,
+	OBSOLETE24,
+	UPLOAD_FAILED,
+	READ_ERROR,
+	OUT_OF_MEMORY,
+	OPERATION_TIMEDOUT,
+	OBSOLETE29,
+	FTP_PORT_FAILED,
+	FTP_COULDNT_USE_REST,
+	OBSOLETE32,
+	RANGE_ERROR,
+	HTTP_POST_ERROR,
+	SSL_CONNECT_ERROR,
+	BAD_DOWNLOAD_RESUME,
+	FILE_COULDNT_READ_FILE,
+	LDAP_CANNOT_BIND,
+	LDAP_SEARCH_FAILED,
+	OBSOLETE40,
+	NOT_FOUND,
+	ABORTED_BY_CALLBACK,
+	ARGUMENT,
+	OBSOLETE44,
+	INTERFACE_FAILED,
+	OBSOLETE46,
+	TOO_MANY_REDIRECTS,
+	UNKNOWN_OPTION,
+	SETOPT_OPTION_SYNTAX,
+	OBSOLETE50,
+	OBSOLETE51,
+	GOT_NOTHING,
+	SSL_ENGINE_NOTFOUND,
+	SSL_ENGINE_SETFAILED,
+	SEND_ERROR,
+	RECV_ERROR,
+	OBSOLETE57,
+	SSL_CERTPROBLEM,
+	SSL_CIPHER,
+	PEER_FAILED_VERIFICATION,
+	BAD_CONTENT_ENCODING,
+	OBSOLETE62,
+	FILESIZE_EXCEEDED,
+	USE_SSL_FAILED,
+	SEND_FAIL_REWIND,
+	SSL_ENGINE_INITFAILED,
+	LOGIN_DENIED,
+	TFTP_NOTFOUND,
+	TFTP_PERM,
+	REMOTE_DISK_FULL,
+	TFTP_ILLEGAL,
+	TFTP_UNKNOWNID,
+	REMOTE_FILE_EXISTS,
+	TFTP_NOSUCHUSER,
+	OBSOLETE75,
+	OBSOLETE76,
+	SSL_CACERT_BADFILE,
+	REMOTE_FILE_NOT_FOUND,
+	SSH,
+	SSL_SHUTDOWN_FAILED,
+	AGAIN,
+	SSL_CRL_BADFILE,
+	SSL_ISSUER_ERROR,
+	FTP_PRET_FAILED,
+	RTSP_CSEQ_ERROR,
+	RTSP_SESSION_ERROR,
+	FTP_BAD_FILE_LIST,
+	CHUNK_FAILED,
+	NO_CONNECTION_AVAILABLE,
+	SSL_PINNEDPUBKEYNOTMATCH,
+	SSL_INVALIDCERTSTATUS,
+	HTTP2_STREAM,
+	RECURSIVE_API_CALL,
+	AUTH_ERROR,
+	HTTP3,
+	QUIC_CONNECT_ERROR,
+	PROXY,
+	SSL_CLIENTCERT,
+	UNRECOVERABLE_POLL,
+	LAST
+}
+
+enum CurlKhType : int
+{
+	UNKNOWN,
+	RSA1,
+	RSA,
+	DSS,
+	ECDSA,
+	ED25519
+}
+
+enum CurlProxyType : int
+{
+	HTTP,
+	HTTP_1_0,
+	HTTPS,
+	HTTPS2,
+	SOCKS4,
+	SOCKS5,
+	SOCKS4A,
+	SOCKS5_HOSTNAME
+}
+
+enum CurlUseSslType : int
+{
+	NONE,
+	TRY,
+	CONTROL,
+	ALL,
+	LAST
+}
+
+enum CurlKhStatType : int
+{
+	FINE_ADD_TO_FILE,
+	FINE,
+	REJECT,
+	DEFER,
+	FINE_REPLACE,
+	LAST
+}
+
+enum CurlFtpAuthType : int
+{
+	DEFAULT,
+	SSL,
+	TLS,
+	LAST
+}
+
+enum CurlFtpCreateDirType : int
+{
+	DIR_NONE,
+	DIR,
+	DIR_RETRY,
+	DIR_LAST
+}
+
+enum CurlKhMatchType : int
+{
+	OK,
+	MISMATCH,
+	MISSING,
+	LAST
+}
+
+enum CurlFtpMethodType : int
+{
+	DEFAULT,
+	MULTICWD,
+	NOCWD,
+	SINGLECWD,
+	LAST
+}
+
+enum CurlFtpSslCccType : int
+{
+	NONE,
+	PASSIVE,
+	ACTIVE,
+	LAST
+}
+
+constdef CurlOption : int
+{
+	WRITEDATA = 10001,
+	URL = 10002,
+	PORT = 3,
+	PROXY = 10004,
+	USERPWD = 10005,
+	PROXYUSERPWD = 10006,
+	RANGE = 10007,
+	READDATA = 10009,
+	ERRORBUFFER = 10010,
+	WRITEFUNCTION = 20011,
+	READFUNCTION = 20012,
+	TIMEOUT = 13,
+	INFILESIZE = 14,
+	POSTFIELDS = 10015,
+	REFERER = 10016,
+	FTPPORT = 10017,
+	USERAGENT = 10018,
+	LOW_SPEED_LIMIT = 19,
+	LOW_SPEED_TIME = 20,
+	RESUME_FROM = 21,
+	COOKIE = 10022,
+	HTTPHEADER = 10023,
+	HTTPPOST = 10024,
+	SSLCERT = 10025,
+	KEYPASSWD = 10026,
+	CRLF = 27,
+	QUOTE = 10028,
+	HEADERDATA = 10029,
+	COOKIEFILE = 10031,
+	SSLVERSION = 32,
+	TIMECONDITION = 33,
+	TIMEVALUE = 34,
+	CUSTOMREQUEST = 10036,
+	STDERR = 10037,
+	POSTQUOTE = 10039,
+	OBSOLETE40 = 10040,
+	VERBOSE = 41,
+	HEADER = 42,
+	NOPROGRESS = 43,
+	NOBODY = 44,
+	FAILONERROR = 45,
+	UPLOAD = 46,
+	POST = 47,
+	DIRLISTONLY = 48,
+	APPEND = 50,
+	NETRC = 51,
+	FOLLOWLOCATION = 52,
+	TRANSFERTEXT = 53,
+	PUT = 54,
+	PROGRESSFUNCTION = 20056,
+	XFERINFODATA = 10057,
+	AUTOREFERER = 58,
+	PROXYPORT = 59,
+	POSTFIELDSIZE = 60,
+	HTTPPROXYTUNNEL = 61,
+	INTERFACE = 10062,
+	KRBLEVEL = 10063,
+	SSL_VERIFYPEER = 64,
+	CAINFO = 10065,
+	MAXREDIRS = 68,
+	FILETIME = 69,
+	TELNETOPTIONS = 10070,
+	MAXCONNECTS = 71,
+	OBSOLETE72 = 72,
+	FRESH_CONNECT = 74,
+	FORBID_REUSE = 75,
+	RANDOM_FILE = 10076,
+	EGDSOCKET = 10077,
+	CONNECTTIMEOUT = 78,
+	HEADERFUNCTION = 20079,
+	HTTPGET = 80,
+	SSL_VERIFYHOST = 81,
+	COOKIEJAR = 10082,
+	SSL_CIPHER_LIST = 10083,
+	HTTP_VERSION = 84,
+	FTP_USE_EPSV = 85,
+	SSLCERTTYPE = 10086,
+	SSLKEY = 10087,
+	SSLKEYTYPE = 10088,
+	SSLENGINE = 10089,
+	SSLENGINE_DEFAULT = 90,
+	DNS_USE_GLOBAL_CACHE = 91,
+	DNS_CACHE_TIMEOUT = 92,
+	PREQUOTE = 10093,
+	DEBUGFUNCTION = 20094,
+	DEBUGDATA = 10095,
+	COOKIESESSION = 96,
+	CAPATH = 10097,
+	BUFFERSIZE = 98,
+	NOSIGNAL = 99,
+	SHARE = 10100,
+	PROXYTYPE = 101,
+	ACCEPT_ENCODING = 10102,
+	PRIVATE = 10103,
+	HTTP200ALIASES = 10104,
+	UNRESTRICTED_AUTH = 105,
+	FTP_USE_EPRT = 106,
+	HTTPAUTH = 107,
+	SSL_CTX_FUNCTION = 20108,
+	SSL_CTX_DATA = 10109,
+	FTP_CREATE_MISSING_DIRS = 110,
+	PROXYAUTH = 111,
+	SERVER_RESPONSE_TIMEOUT = 112,
+	IPRESOLVE = 113,
+	MAXFILESIZE = 114,
+	INFILESIZE_LARGE = 30115,
+	RESUME_FROM_LARGE = 30116,
+	MAXFILESIZE_LARGE = 30117,
+	NETRC_FILE = 10118,
+	USE_SSL = 119,
+	POSTFIELDSIZE_LARGE = 30120,
+	TCP_NODELAY = 121,
+	FTPSSLAUTH = 129,
+	IOCTLFUNCTION = 20130,
+	IOCTLDATA = 10131,
+	FTP_ACCOUNT = 10134,
+	COOKIELIST = 10135,
+	IGNORE_CONTENT_LENGTH = 136,
+	FTP_SKIP_PASV_IP = 137,
+	FTP_FILEMETHOD = 138,
+	LOCALPORT = 139,
+	LOCALPORTRANGE = 140,
+	CONNECT_ONLY = 141,
+	CONV_FROM_NETWORK_FUNCTION = 20142,
+	CONV_TO_NETWORK_FUNCTION = 20143,
+	CONV_FROM_UTF8_FUNCTION = 20144,
+	MAX_SEND_SPEED_LARGE = 30145,
+	MAX_RECV_SPEED_LARGE = 30146,
+	FTP_ALTERNATIVE_TO_USER = 10147,
+	SOCKOPTFUNCTION = 20148,
+	SOCKOPTDATA = 10149,
+	SSL_SESSIONID_CACHE = 150,
+	SSH_AUTH_TYPES = 151,
+	SSH_PUBLIC_KEYFILE = 10152,
+	SSH_PRIVATE_KEYFILE = 10153,
+	FTP_SSL_CCC = 154,
+	TIMEOUT_MS = 155,
+	CONNECTTIMEOUT_MS = 156,
+	HTTP_TRANSFER_DECODING = 157,
+	HTTP_CONTENT_DECODING = 158,
+	NEW_FILE_PERMS = 159,
+	NEW_DIRECTORY_PERMS = 160,
+	POSTREDIR = 161,
+	SSH_HOST_PUBLIC_KEY_MD5 = 10162,
+	OPENSOCKETFUNCTION = 20163,
+	OPENSOCKETDATA = 10164,
+	COPYPOSTFIELDS = 10165,
+	PROXY_TRANSFER_MODE = 166,
+	SEEKFUNCTION = 20167,
+	SEEKDATA = 10168,
+	CRLFILE = 10169,
+	ISSUERCERT = 10170,
+	ADDRESS_SCOPE = 171,
+	CERTINFO = 172,
+	USERNAME = 10173,
+	PASSWORD = 10174,
+	PROXYUSERNAME = 10175,
+	PROXYPASSWORD = 10176,
+	NOPROXY = 10177,
+	TFTP_BLKSIZE = 178,
+	SOCKS5_GSSAPI_SERVICE = 10179,
+	SOCKS5_GSSAPI_NEC = 180,
+	PROTOCOLS = 181,
+	REDIR_PROTOCOLS = 182,
+	SSH_KNOWNHOSTS = 10183,
+	SSH_KEYFUNCTION = 20184,
+	SSH_KEYDATA = 10185,
+	MAIL_FROM = 10186,
+	MAIL_RCPT = 10187,
+	FTP_USE_PRET = 188,
+	RTSP_REQUEST = 189,
+	RTSP_SESSION_ID = 10190,
+	RTSP_STREAM_URI = 10191,
+	RTSP_TRANSPORT = 10192,
+	RTSP_CLIENT_CSEQ = 193,
+	RTSP_SERVER_CSEQ = 194,
+	INTERLEAVEDATA = 10195,
+	INTERLEAVEFUNCTION = 20196,
+	WILDCARDMATCH = 197,
+	CHUNK_BGN_FUNCTION = 20198,
+	CHUNK_END_FUNCTION = 20199,
+	FNMATCH_FUNCTION = 20200,
+	CHUNK_DATA = 10201,
+	FNMATCH_DATA = 10202,
+	RESOLVE = 10203,
+	TLSAUTH_USERNAME = 10204,
+	TLSAUTH_PASSWORD = 10205,
+	TLSAUTH_TYPE = 10206,
+	TRANSFER_ENCODING = 207,
+	CLOSESOCKETFUNCTION = 20208,
+	CLOSESOCKETDATA = 10209,
+	GSSAPI_DELEGATION = 210,
+	DNS_SERVERS = 10211,
+	ACCEPTTIMEOUT_MS = 212,
+	TCP_KEEPALIVE = 213,
+	TCP_KEEPIDLE = 214,
+	TCP_KEEPINTVL = 215,
+	SSL_OPTIONS = 216,
+	MAIL_AUTH = 10217,
+	SASL_IR = 218,
+	XFERINFOFUNCTION = 20219,
+	XOAUTH2_BEARER = 10220,
+	DNS_INTERFACE = 10221,
+	DNS_LOCAL_IP4 = 10222,
+	DNS_LOCAL_IP6 = 10223,
+	LOGIN_OPTIONS = 10224,
+	SSL_ENABLE_NPN = 225,
+	SSL_ENABLE_ALPN = 226,
+	EXPECT_100_TIMEOUT_MS = 227,
+	PROXYHEADER = 10228,
+	HEADEROPT = 229,
+	PINNEDPUBLICKEY = 10230,
+	UNIX_SOCKET_PATH = 10231,
+	SSL_VERIFYSTATUS = 232,
+	SSL_FALSESTART = 233,
+	PATH_AS_IS = 234,
+	PROXY_SERVICE_NAME = 10235,
+	SERVICE_NAME = 10236,
+	PIPEWAIT = 237,
+	DEFAULT_PROTOCOL = 10238,
+	STREAM_WEIGHT = 239,
+	STREAM_DEPENDS = 10240,
+	STREAM_DEPENDS_E = 10241,
+	TFTP_NO_OPTIONS = 242,
+	CONNECT_TO = 10243,
+	TCP_FASTOPEN = 244,
+	KEEP_SENDING_ON_ERROR = 245,
+	PROXY_CAINFO = 10246,
+	PROXY_CAPATH = 10247,
+	PROXY_SSL_VERIFYPEER = 248,
+	PROXY_SSL_VERIFYHOST = 249,
+	PROXY_SSLVERSION = 250,
+	PROXY_TLSAUTH_USERNAME = 10251,
+	PROXY_TLSAUTH_PASSWORD = 10252,
+	PROXY_TLSAUTH_TYPE = 10253,
+	PROXY_SSLCERT = 10254,
+	PROXY_SSLCERTTYPE = 10255,
+	PROXY_SSLKEY = 10256,
+	PROXY_SSLKEYTYPE = 10257,
+	PROXY_KEYPASSWD = 10258,
+	PROXY_SSL_CIPHER_LIST = 10259,
+	PROXY_CRLFILE = 10260,
+	PROXY_SSL_OPTIONS = 261,
+	PRE_PROXY = 10262,
+	PROXY_PINNEDPUBLICKEY = 10263,
+	ABSTRACT_UNIX_SOCKET = 10264,
+	SUPPRESS_CONNECT_HEADERS = 265,
+	REQUEST_TARGET = 10266,
+	SOCKS5_AUTH = 267,
+	SSH_COMPRESSION = 268,
+	MIMEPOST = 10269,
+	TIMEVALUE_LARGE = 30270,
+	HAPPY_EYEBALLS_TIMEOUT_MS = 271,
+	RESOLVER_START_FUNCTION = 20272,
+	RESOLVER_START_DATA = 10273,
+	HAPROXYPROTOCOL = 274,
+	DNS_SHUFFLE_ADDRESSES = 275,
+	TLS13_CIPHERS = 10276,
+	PROXY_TLS13_CIPHERS = 10277,
+	DISALLOW_USERNAME_IN_URL = 278,
+	DOH_URL = 10279,
+	UPLOAD_BUFFERSIZE = 280,
+	UPKEEP_INTERVAL_MS = 281,
+	CURLU = 10282,
+	TRAILERFUNCTION = 20283,
+	TRAILERDATA = 10284,
+	HTTP09_ALLOWED = 285,
+	ALTSVC_CTRL = 286,
+	ALTSVC = 10287,
+	MAXAGE_CONN = 288,
+	SASL_AUTHZID = 10289,
+	MAIL_RCPT_ALLLOWFAILS = 290,
+	SSLCERT_BLOB = 40291,
+	SSLKEY_BLOB = 40292,
+	PROXY_SSLCERT_BLOB = 40293,
+	PROXY_SSLKEY_BLOB = 40294,
+	ISSUERCERT_BLOB = 40295,
+	PROXY_ISSUERCERT = 10296,
+	PROXY_ISSUERCERT_BLOB = 40297,
+	SSL_EC_CURVES = 10298,
+	HSTS_CTRL = 299,
+	HSTS = 10300,
+	HSTSREADFUNCTION = 20301,
+	HSTSREADDATA = 10302,
+	HSTSWRITEFUNCTION = 20303,
+	HSTSWRITEDATA = 10304,
+	AWS_SIGV4 = 10305,
+	DOH_SSL_VERIFYPEER = 306,
+	DOH_SSL_VERIFYHOST = 307,
+	DOH_SSL_VERIFYSTATUS = 308,
+	CAINFO_BLOB = 40309,
+	PROXY_CAINFO_BLOB = 40310,
+	SSH_HOST_PUBLIC_KEY_SHA256 = 10311,
+	PREREQFUNCTION = 20312,
+	PREREQDATA = 10313,
+	MAXLIFETIME_CONN = 314,
+	MIME_OPTIONS = 315,
+	SSH_HOSTKEYFUNCTION = 20316,
+	SSH_HOSTKEYDATA = 10317,
+	PROTOCOLS_STR = 10318,
+	REDIR_PROTOCOLS_STR = 10319,
+	WS_OPTIONS = 320,
+	CA_CACHE_TIMEOUT = 321,
+	QUICK_EXIT = 322,
+	LASTENTRY = 323,
+}
+
+enum CurlTimeCondType : int
+{
+	NONE,
+	IFMODSINCE,
+	IFUNMODSINCE,
+	LASTMOD,
+	LAST
+}
+
+enum CurlTlsAuthType : int
+{
+	NONE,
+	SRP,
+	LAST
+}
+
+enum CurlNetrcOption : int
+{
+	IGNORED,
+	OPTIONAL,
+	REQUIRED,
+	LAST
+}
+
+enum CurlFormAddResult : int
+{
+	OK,
+	MEMORY,
+	OPTION_TWICE,
+	NULL,
+	UNKNOWN_OPTION,
+	INCOMPLETE,
+	ILLEGAL_ARRAY,
+	DISABLED,
+	LAST
+}
+
+enum CurlSslSetResult : int
+{
+	OK,
+	UNKNOWN_BACKEND,
+	TOO_LATE,
+	NO_BACKENDS
+}
+
+enum CurlFormOption : int
+{
+	NOTHING,
+	COPYNAME,
+	PTRNAME,
+	NAMELENGTH,
+	COPYCONTENTS,
+	PTRCONTENTS,
+	CONTENTSLENGTH,
+	FILECONTENT,
+	ARRAY,
+	OBSOLETE,
+	FILE,
+	BUFFER,
+	BUFFERPTR,
+	BUFFERLENGTH,
+	CONTENTTYPE,
+	CONTENTHEADER,
+	FILENAME,
+	END,
+	OBSOLETE2,
+	STREAM,
+	CONTENTLEN,
+	LASTENTRY
+}
+
+
+constdef CurlInfoType : int
+{
+	NONE = 0,
+	EFFECTIVE_URL = 1048577,
+	RESPONSE_CODE = 2097154,
+	TOTAL_TIME = 3145731,
+	NAMELOOKUP_TIME = 3145732,
+	CONNECT_TIME = 3145733,
+	PRETRANSFER_TIME = 3145734,
+	SIZE_UPLOAD = 3145735,
+	SIZE_UPLOAD_T = 6291463,
+	SIZE_DOWNLOAD = 3145736,
+	SIZE_DOWNLOAD_T = 6291464,
+	SPEED_DOWNLOAD = 3145737,
+	SPEED_DOWNLOAD_T = 6291465,
+	SPEED_UPLOAD = 3145738,
+	SPEED_UPLOAD_T = 6291466,
+	HEADER_SIZE = 2097163,
+	REQUEST_SIZE = 2097164,
+	SSL_VERIFYRESULT = 2097165,
+	FILETIME = 2097166,
+	FILETIME_T = 6291470,
+	CONTENT_LENGTH_DOWNLOAD = 3145743,
+	CONTENT_LENGTH_DOWNLOAD_T = 6291471,
+	CONTENT_LENGTH_UPLOAD = 3145744,
+	CONTENT_LENGTH_UPLOAD_T = 6291472,
+	STARTTRANSFER_TIME = 3145745,
+	CONTENT_TYPE = 1048594,
+	REDIRECT_TIME = 3145747,
+	REDIRECT_COUNT = 2097172,
+	PRIVATE = 1048597,
+	HTTP_CONNECTCODE = 2097174,
+	HTTPAUTH_AVAIL = 2097175,
+	PROXYAUTH_AVAIL = 2097176,
+	OS_ERRNO = 2097177,
+	NUM_CONNECTS = 2097178,
+	SSL_ENGINES = 4194331,
+	COOKIELIST = 4194332,
+	LASTSOCKET = 2097181,
+	FTP_ENTRY_PATH = 1048606,
+	REDIRECT_URL = 1048607,
+	PRIMARY_IP = 1048608,
+	APPCONNECT_TIME = 3145761,
+	CERTINFO = 4194338,
+	CONDITION_UNMET = 2097187,
+	RTSP_SESSION_ID = 1048612,
+	RTSP_CLIENT_CSEQ = 2097189,
+	RTSP_SERVER_CSEQ = 2097190,
+	RTSP_CSEQ_RECV = 2097191,
+	PRIMARY_PORT = 2097192,
+	LOCAL_IP = 1048617,
+	LOCAL_PORT = 2097194,
+	TLS_SESSION = 4194347,
+	ACTIVESOCKET = 5242924,
+	TLS_SSL_PTR = 4194349,
+	HTTP_VERSION = 2097198,
+	PROXY_SSL_VERIFYRESULT = 2097199,
+	PROTOCOL = 2097200,
+	SCHEME = 1048625,
+	TOTAL_TIME_T = 6291506,
+	NAMELOOKUP_TIME_T = 6291507,
+	CONNECT_TIME_T = 6291508,
+	PRETRANSFER_TIME_T = 6291509,
+	STARTTRANSFER_TIME_T = 6291510,
+	REDIRECT_TIME_T = 6291511,
+	APPCONNECT_TIME_T = 6291512,
+	RETRY_AFTER = 6291513,
+	EFFECTIVE_METHOD = 1048634,
+	PROXY_ERROR = 2097211,
+	REFERER = 1048636,
+	CAINFO = 1048637,
+	CAPATH = 1048638,
+	LASTONE = 62,
+}
+
+enum CurlClosePolicyType : int
+{
+	NONE,
+	OLDEST,
+	LEAST_RECENTLY_USED,
+	LEAST_TRAFFIC,
+	SLOWEST,
+	CALLBACK,
+	LAST
+}
+
+enum CurlShResult : int
+{
+	OK,
+	BAD_OPTION,
+	IN_USE,
+	INVALID,
+	NOMEM,
+	NOT_BUILT_IN,
+	LAST
+}
+
+enum CurlShOption : int
+{
+	NONE,
+	SHARE,
+	UNSHARE,
+	LOCKFUNC,
+	UNLOCKFUNC,
+	USERDATA,
+	LAST
+}
+
+enum CurlLockDataType : int
+{
+	NONE,
+	SHARE,
+	COOKIE,
+	DNS,
+	SSL_SESSION,
+	CONNECT,
+	PSL,
+	HSTS,
+	LAST
+}
+
+enum CurlLockAccessType : int
+{
+	NONE,
+	SHARED,
+	SINGLE,
+	LAST
+}
+
+enum CurlVersionType : int
+{
+	FIRST,
+	SECOND,
+	THIRD,
+	FOURTH,
+	FIFTH,
+	SIXTH,
+	SEVENTH,
+	EIGHTH,
+	NINTH,
+	TENTH,
+	ELEVENTH,
+	LAST
+}
+
+enum CurlMResult : int
+{
+	CALL_MULTI_PERFORM,
+	OK,
+	BAD_HANDLE,
+	BAD_EASY_HANDLE,
+	OUT_OF_MEMORY,
+	INTERNAL_ERROR,
+	BAD_SOCKET,
+	UNKNOWN_OPTION,
+	ADDED_ALREADY,
+	RECURSIVE_API_CALL,
+	WAKEUP_FAILURE,
+	ARGUMENT,
+	ABORTED_BY_CALLBACK,
+	UNRECOVERABLE_POLL,
+	LAST
+}
+enum CurlMsgType : int
+{
+	NONE,
+	DONE,
+	LAST
+}
+
+constdef CurlMOption : int
+{
+	SOCKETFUNCTION = 20001,
+	SOCKETDATA = 10002,
+	PIPELINING = 3,
+	TIMERFUNCTION = 20004,
+	TIMERDATA = 10005,
+	MAXCONNECTS = 6,
+	MAX_HOST_CONNECTIONS = 7,
+	MAX_PIPELINE_LENGTH = 8,
+	CONTENT_LENGTH_PENALTY_SIZE = 30009,
+	CHUNK_LENGTH_PENALTY_SIZE = 30010,
+	PIPELINING_SITE_BL = 10011,
+	PIPELINING_SERVER_BL = 10012,
+	MAX_TOTAL_CONNECTIONS = 13,
+	PUSHFUNCTION = 2001,
+	PUSHDATA = 10015,
+	MAX_CONCURRENT_STREAMS = 16,
+	LASTENTRY = 17,
+}
+
+enum CurlUResult : int
+{
+	OK,
+	BAD_HANDLE,
+	BAD_PARTPOINTER,
+	MALFORMED_INPUT,
+	BAD_PORT_NUMBER,
+	UNSUPPORTED_SCHEME,
+	URLDECODE,
+	OUT_OF_MEMORY,
+	USER_NOT_ALLOWED,
+	UNKNOWN_PART,
+	NO_SCHEME,
+	NO_USER,
+	NO_PASSWORD,
+	NO_OPTIONS,
+	NO_HOST,
+	NO_PORT,
+	NO_QUERY,
+	NO_FRAGMENT,
+	NO_ZONEID,
+	BAD_FILE_URL,
+	BAD_FRAGMENT,
+	BAD_HOSTNAME,
+	BAD_IPV6,
+	BAD_LOGIN,
+	BAD_PASSWORD,
+	BAD_PATH,
+	BAD_QUERY,
+	BAD_SCHEME,
+	BAD_SLASHES,
+	BAD_USER,
+	LACKS_IDN,
+	LAST
+}
+
+enum CurlEasyType : int
+{
+	LONG,
+	VALUES,
+	OFF_T,
+	OBJECT,
+	STRING,
+	SLIST,
+	CBPTR,
+	BLOB,
+	FUNCTION
+}
+
+enum CurlUPartType : int
+{
+	URL,
+	SCHEME,
+	USER,
+	PASSWORD,
+	OPTIONS,
+	HOST,
+	PORT,
+	PATH,
+	QUERY,
+	FRAGMENT,
+	ZONEID
+}
+
+enum CurlHResult : int
+{
+	OK,
+	BADINDEX,
+	MISSING,
+	NOHEADERS,
+	NOREQUEST,
+	OUT_OF_MEMORY,
+	BAD_ARGUMENT,
+	NOT_BUILT_IN
+}
+
+enum CurlMimeKind : int
+{
+	NONE,
+	DATA,
+	FILE,
+	CALLBACK,
+	MULTIPART,
+	LAST
+}
+
+enum CurlMimeStateType : int
+{
+	BEGIN,
+	CURLHEADERS,
+	USERHEADERS,
+	EOH,
+	BODY,
+	BOUNDARY1,
+	BOUNDARY2,
+	CONTENT,
+	END,
+	LAST
+}
+
+const int CURL_HTTP_VERSION_NONE = 0;
+const int CURL_HTTP_VERSION_1_0 = 1;
+const int CURL_HTTP_VERSION_1_1 = 2;
+const int CURL_HTTP_VERSION_2_0 = 3;
+const int CURL_HTTP_VERSION_2TLS = 4;
+const int CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE = 5;
+const int CURL_HTTP_VERSION_3 = 30;
+const int CURL_HTTP_VERSION_3ONLY = 31;
+const int CURL_HTTP_VERSION_LAST = 32;
+const int CURL_RTSPREQ_NONE = 0;
+const int CURL_RTSPREQ_OPTIONS = 1;
+const int CURL_RTSPREQ_DESCRIBE = 2;
+const int CURL_RTSPREQ_ANNOUNCE = 3;
+const int CURL_RTSPREQ_SETUP = 4;
+const int CURL_RTSPREQ_PLAY = 5;
+const int CURL_RTSPREQ_PAUSE = 6;
+const int CURL_RTSPREQ_TEARDOWN = 7;
+const int CURL_RTSPREQ_GET_PARAMETER = 8;
+const int CURL_RTSPREQ_SET_PARAMETER = 9;
+const int CURL_RTSPREQ_RECORD = 10;
+const int CURL_RTSPREQ_RECEIVE = 11;
+const int CURL_RTSPREQ_LAST = 12;
+
+const int CURL_SSLVERSION_DEFAULT = 0;
+const int CURL_SSLVERSION_TLSV1 = 1;
+const int CURL_SSLVERSION_SSLV2 = 2;
+const int CURL_SSLVERSION_SSLV3 = 3;
+const int CURL_SSLVERSION_TLSV1_0 = 4;
+const int CURL_SSLVERSION_TLSV1_1 = 5;
+const int CURL_SSLVERSION_TLSV1_2 = 6;
+const int CURL_SSLVERSION_TLSV1_3 = 7;
+const int CURL_SSLVERSION_LAST = 8;
+const int CURL_SSLVERSION_MAX_NONE = 0;
+const int CURL_SSLVERSION_MAX_DEFAULT = 65536;
+const int CURL_SSLVERSION_MAX_TLSV1_0 = 262144;
+const int CURL_SSLVERSION_MAX_TLSV1_1 = 327680;
+const int CURL_SSLVERSION_MAX_TLSV1_2 = 393216;
+const int CURL_SSLVERSION_MAX_TLSV1_3 = 458752;
+const int CURL_SSLVERSION_MAX_LAST = 524288;
+
+const MIME_BOUNDARY_DASHES = 24;
+const MIME_RAND_BOUNDARY_CHARS = 16;
+const MIME_BOUNDARY_LEN = (MIME_BOUNDARY_DASHES + MIME_RAND_BOUNDARY_CHARS);
+const ENCODING_BUFFER_SIZE = 256;
+
+alias Curl_formget_callback = fn usz(void* arg, char* buf, usz len);
+alias CurlProgressCallback = fn int(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow);
+alias CurlXferinfoCallback = fn int(void* clientp, CurlOff dltotal, CurlOff dlnow, CurlOff ultotal, CurlOff ulnow);
+alias CurlWriteCallback = fn usz(char* buffer, usz size, usz nitems, void* outstream);
+alias CurlResolverStartCallback = fn int(void* resolver_state, void* reserved, void* userdata);
+alias CurlChunkBgnCallback = fn long(void* transfer_info,void* ptr, int remains);
+alias CurlChunkEndCallback = fn long(void* ptr);
+alias CurlFnMatchCallback = fn int(void* ptr, char* pattern, char* string);
+alias CurlSeekCallback = fn int(void* instream, CurlOff offset, int origin);
+alias CurlReadCallback = fn usz(char* buffer, usz size, usz nitems, void* instream);
+alias CurlTrailerCallback = fn int(CurlSlist** list, void* userdata);
+alias CurlSockoptCallback = fn int(void* clientp, CurlSocket curlfd, CurlSockType purpose);
+alias CurlOpenSocketCallback = fn CurlSocket(void* clientp, CurlSockType purpose, CurlSockaddr* address);
+alias CurlCloseSocketCallback = fn int(void* clientp, CurlSocket item);
+alias CurlMallocCallback = fn void*(usz size);
+alias CurlFreeCallback = fn void(void* ptr);
+alias CurlReallocCallback = fn void*(void* ptr, usz size);
+alias CurlStrdupCallback = fn char*(char* str);
+alias CurlCallocCallback = fn void*(usz nmemb, usz size);
+alias CurlIoctlCallback = fn CurlIoResult(Curl* handle, int cmd, void* clientp);
+alias CurlDebugCallback = fn int(Curl* handle, CurlDebugInfoType type, char* data, usz size, void* userptr);
+alias CurlPrereqCallback = fn int(void* clientp, char* conn_primary_ip, char* conn_local_ip, int conn_primary_port, int conn_local_port);
+alias CurlConvCallback = fn CurlResult(char* buffer, usz length);
+alias CurlSslCtxCallback = fn CurlResult(Curl* curl, void* ssl_ctx, void* userptr);
+alias CurlSshKeyCallback = fn int(Curl* easy, CurlKhKey* knownkey, CurlKhKey* foundkey, CurlKhMatchType, void* clientp);
+alias CurlSshHostKeyCallback = fn int(void* clientp, int keytype, char* key, usz keylen);
+alias CurlHstsReadCallback = fn CurlStsResult(Curl* easy, CurlHstsEntry* e, void* userp);
+alias CurlHstsWriteCallback = fn CurlStsResult(Curl* easy, CurlHstsEntry* e, CurlIndex* i, void* userp);
+alias CurlLockFunction = fn void(Curl* handle, CurlLockDataType data, CurlLockAccessType locktype, void* userptr);
+alias CurlUnlockFunction = fn void(Curl* handle, CurlLockDataType data, void* userptr);
+alias CurlSocketCallback = fn int(Curl* easy, CurlSocket s, int what, void* userp, void* socketp);
+alias CurlMultiTimerCallback = fn int(CurlM* multi, long timeout_ms, void* userp);
+alias CurlEncodeFunc = fn usz(char* buffer, usz size, bool ateof, CurlMimePart* part);
+alias CurlSizeFunc = fn CurlOff(CurlMimePart* part);
+
+alias Curl = void;
+alias CurlSH = void;
+
+struct CurlFdSet
+{
+	long[16] __fds_bits;
+}
+
+struct _CurlSockaddr
+{
+	ushort sa_family;
+	char[14] sa_data;
+}
+
+alias CurlSocklen = uint;
+alias CurlOff = long;
+alias CurlSocket = int;
+
+struct CurlSlist
+{
+	char* data;
+	CurlSlist* next;
+}
+
+struct CurlHttpPost
+{
+	CurlHttpPost* next;
+	char* name;
+	long namelength;
+	char* contents;
+	long contentslength;
+
+	char* buffer;
+	long bufferlength;
+	char* contenttype;
+	CurlSlist* contentheader;
+	CurlHttpPost* more;
+	CurlHttpPostFlag flags;
+	char* showfilename;
+	void* userp;
+	CurlOff contentlen;
+}
+
+struct CurlFileInfo
+{
+	ZString filename;
+	CurlFileType filetype;
+	Time_t time;
+	uint perm;
+	int uid;
+	int gid;
+	CurlOff size;
+	long hardlinks;
+
+	struct strings
+	{
+		ZString time;
+		ZString perm;
+		ZString user;
+		ZString group;
+		ZString target;
+	}
+
+	uint flags;
+
+	char* b_data;
+	usz b_size;
+	usz b_used;
+}
+
+struct CurlSockaddr
+{
+	int family;
+	int socktype;
+	int protocol;
+	uint addrlen;
+
+	_CurlSockaddr addr;
+}
+
+struct CurlKhKey
+{
+	char* key;
+	usz len;
+	CurlKhType keytype;
+}
+
+struct CurlHstsEntry
+{
+	char* name;
+	usz namelen;
+	uint include_sub_domains;
+	char[18] expire;
+}
+
+struct CurlIndex
+{
+	usz index;
+	usz total;
+}
+
+// alias CurlMime = struct CurlMime;
+// alias CurlMimePart = struct CurlMimePart;
+
+struct CurlForms
+{
+	CurlFormOption option;
+	ZString value;
+}
+
+struct CurlSslBackend
+{
+	CurlSslBackendType id;
+	ZString name;
+}
+
+
+struct CurlCertinfo
+{
+	int num_of_certs;
+	CurlSlist* *certinfo;
+}
+
+struct CurlTlsSessionInfo
+{
+	CurlSslBackendType backend;
+	void* internals;
+}
+
+struct CurlVersionInfoData
+{
+	CurlVersionType age;
+	char* version;
+	uint version_num;
+	char* host;
+	int features;
+	char* ssl_version;
+	long ssl_version_num;
+	char* libz_version;
+	char* protocols;
+	char* ares;
+	int ares_num;
+	char* libidn;
+	int iconv_ver_num;
+	char* libssh_version;
+	uint brotli_ver_num;
+	char* brotli_version;
+	uint nghttp2_ver_num;
+	char* nghttp2_version;
+	char* quic_version;
+	char* cainfo;
+	char* capath;
+	uint zstd_ver_num;
+	char* zstd_version;
+	char* hyper_version;
+	char* gsasl_version;
+	char* feature_names;
+}
+
+struct CurlBlob
+{
+	void* data;
+	usz len;
+	int flags;
+}
+
+struct CurlMsg
+{
+	CurlMsgType msg;
+	void* easy_handle;
+	union data
+	{
+		void* whatever;
+		CurlResult result;
+	}
+}
+
+struct CurlWaitFd
+{
+	CurlSocket fd;
+	short events;
+	short revents;
+}
+
+alias CurlM = void;
+
+struct CurlUrl
+{
+	ZString scheme;
+	ZString user;
+	ZString password;
+	ZString options;
+	ZString host;
+	ZString zoneid;
+	ZString port;
+	ZString path;
+	ZString query;
+	ZString fragment;
+	long portnum;
+}
+
+alias CurlU = CurlUrl;
+
+struct CurlEasyOption
+{
+	char* name;
+	CurlOption id;
+	CurlEasyType type;
+	uint flags;
+}
+
+struct CurlHeader
+{
+	ZString name;
+	ZString value;
+	usz amount;
+	usz index;
+	uint origin;
+	void* anchor;
+}
+
+
+struct CurlWsFrame
+{
+	int age;
+	int flags;
+	CurlOff offset;
+	CurlOff bytesleft;
+	usz len;
+}
+
+struct CurlMimeState
+{
+	CurlMimeStateType state;
+	void* ptr;
+	CurlOff offset;
+}
+
+struct CurlMime
+{
+	CurlMimePart* parent;
+	CurlMimePart* firstpart;
+	CurlMimePart* lastpart;
+	char[MIME_BOUNDARY_LEN + 1] boundary;
+	CurlMimeState state;
+}
+
+struct CurlMimeEncoderState
+{
+	usz pos;
+	usz bufbeg;
+	usz bufend;
+	char[ENCODING_BUFFER_SIZE] buf;
+}
+
+struct CurlMimeEncoder
+{
+	char* name;
+	CurlEncodeFunc encodefunc;
+	CurlSizeFunc sizefunc;
+}
+
+struct CurlMimePart
+{
+	CurlMime* parent;
+	CurlMimePart* nextpart;
+	CurlMimeKind kind;
+	uint flags;
+	char* data;
+	CurlReadCallback readfunc;
+	CurlSeekCallback seekfunc;
+	CurlFreeCallback freefunc;
+	void* arg;
+	File *fp;
+	CurlSlist* curlheader;
+	CurlSlist* userheader;
+	char* mimetype;
+	char* filename;
+	char* name;
+	CurlOff datasize;
+	CurlMimeState state;
+	CurlMimeEncoder *encoder;
+	CurlMimeEncoderState encstate;
+	usz lastreadstatus;
+}
+
+typedef PushHeaders = void;
+
+extern fn int strequal(ZString s1, ZString s2) @cname("curl_strequal");
+extern fn int strnequal(ZString s1, ZString s2, usz n) @cname("curl_strnequal");
+extern fn CurlMime* mime_init(Curl* easy) @cname("curl_mime_init");
+extern fn void mime_free(CurlMime* mime) @cname("curl_mime_free");
+extern fn CurlMimePart* mime_addpart(CurlMime* mime) @cname("curl_mime_addpart");
+extern fn CurlResult mime_name(CurlMimePart* part, ZString name) @cname("curl_mime_name");
+extern fn CurlResult mime_filename(CurlMimePart* part, ZString filename) @cname("curl_mime_filename");
+extern fn CurlResult mime_type(CurlMimePart* part, ZString mimetype) @cname("curl_mime_type");
+extern fn CurlResult mime_encoder(CurlMimePart* part, ZString encoding) @cname("curl_mime_encoder");
+extern fn CurlResult mime_data(CurlMimePart* part, char* data, usz datasize) @cname("curl_mime_data");
+extern fn CurlResult mime_filedata(CurlMimePart* part, ZString filename) @cname("curl_mime_filedata");
+extern fn CurlResult mime_data_cb(CurlMimePart* part, CurlOff datasize, CurlReadCallback readfunc, CurlSeekCallback seekfunc, CurlFreeCallback freefunc, void* arg) @cname("curl_mime_data_cb");
+extern fn CurlResult mime_subparts(CurlMimePart* part, CurlMime* subparts) @cname("curl_mime_subparts");
+extern fn CurlResult mime_headers(CurlMimePart* part, CurlSlist* headers, int take_ownership) @cname("curl_mime_headers");
+extern fn CurlFormAddResult formadd(CurlHttpPost **httppost, CurlHttpPost **last_post, ...) @cname("curl_formadd");
+extern fn usz formget(CurlHttpPost *form, void* arg, Curl_formget_callback append) @cname("curl_formget");
+extern fn void formfree(CurlHttpPost* form) @cname("curl_formfree");
+extern fn ZString getenv(char* variable) @cname("curl_getenv");
+extern fn ZString version() @cname("curl_version");
+extern fn ZString easy_escape(Curl* handle, char* string, int length) @cname("curl_easy_escape");
+extern fn ZString escape(char* string, int length) @cname("curl_escape");
+extern fn char* easy_unescape(Curl* handle, char* string, int length, int* outlength) @cname("curl_easy_unescape");
+extern fn ZString unescape(char* string, int length) @cname("curl_unescape");
+extern fn void free(void* p) @cname("curl_free");
+extern fn CurlResult global_init(long flags) @cname("curl_global_init");
+extern fn CurlResult global_init_mem(long flags, CurlMallocCallback m, CurlFreeCallback f, CurlReallocCallback r, CurlStrdupCallback s, CurlCallocCallback c) @cname("curl_global_init_mem");
+extern fn void global_cleanup() @cname("curl_global_cleanup");
+extern fn CurlSslSetResult global_sslset(CurlSslBackendType id, char* name, CurlSslBackend ***avail) @cname("curl_global_sslset");
+extern fn CurlSlist* slist_append(CurlSlist* list, char* data) @cname("curl_slist_append");
+extern fn void slist_free_all(CurlSlist* list) @cname("curl_slist_free_all");
+extern fn Time_t getdate(char* p, libc::Time_t *unused) @cname("curl_getdate");
+extern fn void* share_init() @cname("curl_share_init");
+extern fn CurlShResult share_setopt(void* share, CurlShOption option, ...) @cname("curl_share_setopt");
+extern fn CurlShResult share_cleanup(void* share) @cname("curl_share_cleanup");
+extern fn CurlVersionInfoData* version_info(CurlVersionType) @cname("curl_version_info");
+extern fn char* easy_strerror(CurlResult) @cname("curl_easy_strerror");
+extern fn char* share_strerror(CurlShResult) @cname("curl_share_strerror");
+extern fn CurlResult easy_pause(Curl* handle, int bitmask) @cname("curl_easy_pause");
+extern fn Curl* easy_init() @cname("curl_easy_init");
+extern fn CurlResult easy_setopt(Curl* curl, CurlOption option, ...) @cname("curl_easy_setopt");
+extern fn CurlResult easy_perform(Curl* curl) @cname("curl_easy_perform");
+extern fn void easy_cleanup(Curl* curl) @cname("curl_easy_cleanup");
+extern fn CurlResult easy_getinfo(Curl* curl, CurlInfoType info, ...) @cname("curl_easy_getinfo");
+extern fn Curl* easy_duphandle(Curl* curl) @cname("curl_easy_duphandle");
+extern fn void easy_reset(Curl* curl) @cname("curl_easy_reset");
+extern fn CurlResult easy_recv(Curl* curl, void* buffer, usz buflen, usz* n) @cname("curl_easy_recv");
+extern fn CurlResult easy_send(Curl* curl, void* buffer, usz buflen, usz* n) @cname("curl_easy_send");
+extern fn CurlResult easy_upkeep(Curl* curl) @cname("curl_easy_upkeep");
+extern fn CurlM* multi_init() @cname("curl_multi_init");
+extern fn CurlMResult multi_add_handle(CurlM* multi_handle, Curl* curl_handle) @cname("curl_multi_add_handle");
+extern fn CurlMResult multi_remove_handle(CurlM* multi_handle, Curl* curl_handle) @cname("curl_multi_remove_handle");
+extern fn CurlMResult multi_fdset(CurlM* multi_handle,CurlFdSet *read_fd_set, CurlFdSet *write_fd_set, CurlFdSet *exc_fd_set, int* max_fd) @cname("curl_multi_fdset");
+extern fn CurlMResult multi_wait(CurlM* multi_handle, CurlWaitFd* extra_fds, uint extra_nfds, int timeout_ms, int* ret) @cname("curl_multi_wait");
+extern fn CurlMResult multi_poll(CurlM* multi_handle, CurlWaitFd* extra_fds, uint extra_nfds, int timeout_ms, int* ret) @cname("curl_multi_poll");
+extern fn CurlMResult multi_wakeup(CurlM* multi_handle) @cname("curl_multi_wakeup");
+extern fn CurlMResult multi_perform(CurlM* multi_handle, int* running_handles) @cname("curl_multi_perform");
+extern fn CurlMResult multi_cleanup(CurlM* multi_handle) @cname("curl_multi_cleanup");
+extern fn CurlMsg *multi_info_read(CurlM* multi_handle, int* msgs_in_queue) @cname("curl_multi_info_read");
+extern fn char* multi_strerror(CurlMResult) @cname("curl_multi_strerror");
+extern fn CurlMResult multi_socket(CurlM* multi_handle, CurlSocket s, int* running_handles) @cname("curl_multi_socket");
+extern fn CurlMResult multi_socket_action(CurlM* multi_handle, CurlSocket s, int ev_bitmask, int* running_handles) @cname("curl_multi_socket_action");
+extern fn CurlMResult multi_socket_all(CurlM* multi_handle, int* running_handles) @cname("curl_multi_socket_all");
+extern fn CurlMResult multi_timeout(CurlM* multi_handle, CLong* milliseconds) @cname("curl_multi_timeout");
+extern fn CurlMResult multi_setopt(CurlM* multi_handle, CurlMOption option, ...) @cname("curl_multi_setopt");
+extern fn CurlMResult multi_assign(CurlM* multi_handle, CurlSocket sockfd, void* sockp) @cname("curl_multi_assign");
+extern fn char* pushheader_bynum(PushHeaders* h, usz num) @cname("curl_pushheader_bynum");
+extern fn char* pushheader_byname(PushHeaders* h, char *name) @cname("curl_pushheader_byname");
+extern fn CurlU* url() @cname("curl_url");
+extern fn void url_cleanup(CurlU* handle) @cname("curl_url_cleanup");
+extern fn CurlU* url_dup(CurlU* in) @cname("curl_url_dup");
+extern fn CurlUResult url_get(CurlU* handle, CurlUPartType what, char** part, uint flags) @cname("curl_url_get");
+extern fn CurlUResult url_set(CurlU* handle, CurlUPartType what, char* part, uint flags) @cname("curl_url_set");
+extern fn char* url_strerror(CurlUResult a1) @cname("curl_url_strerror");
+extern fn CurlEasyOption* easy_option_by_name(char *name) @cname("curl_easy_option_by_name");
+extern fn CurlEasyOption* easy_option_by_id(CurlOption id) @cname("curl_easy_option_by_id");
+extern fn CurlEasyOption* easy_option_next(CurlEasyOption* prev) @cname("curl_easy_option_next");
+extern fn CurlHResult easy_header(Curl* easy, char* name, usz index, uint origin, int request, CurlHeader **hout) @cname("curl_easy_header");
+extern fn CurlHeader *easy_nextheader(Curl* easy, uint origin, int request, CurlHeader *prev) @cname("curl_easy_nextheader");
+extern fn CurlResult ws_recv(Curl* curl, void* buffer, usz buflen, usz* recv, CurlWsFrame **metap) @cname("curl_ws_recv");
+extern fn CurlResult ws_send(Curl* curl, void* buffer, usz buflen, usz* sent, CurlOff framesize, uint sendflags) @cname("curl_ws_send");
+extern fn CurlWsFrame *ws_meta(Curl* curl) @cname("curl_ws_meta");

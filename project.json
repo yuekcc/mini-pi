@@ -2,7 +2,7 @@
   "langrev": "1",
   "warnings": ["no-unused"],
   "dependency-search-paths": ["lib"],
-  "dependencies": ["cjson"],
+  "dependencies": ["cjson", "curl"],
   "authors": ["Lefeng Zhan<yuekcc@qq.com>"],
   "version": "0.1.0",
   "sources": ["src/**"],
