@@ -10,7 +10,7 @@
   "build-dir": "build",
   "output": "build",
   "targets": {
-    "mini_pi": {
+    "mp": {
       "type": "executable"
     }
   },
