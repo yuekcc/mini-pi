@@ -136,7 +136,7 @@ fn Message? send_messages(Context* ctx)
 			"curl",
 			"-s",                      // 不显示进度
 			"-X", "POST",              // POST 方法
-			"-H", string::format(tmem, "Authorization: %s", ctx.init_options.api_key), // 认证头
+			"-H", string::format(tmem, "Authorization: Bearer %s", ctx.init_options.api_key), // 认证头
 			"-H", "Content-Type: application/json",
 			"--data-binary", string::format(tmem, "@%s", filename), // 通过文件传入请求体
 			ctx.init_options.url,

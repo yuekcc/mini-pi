@@ -6,3 +6,5 @@ apikey.txt
 
 /req_*.json
 /test*.txt
+/logs/*.log
+/logs/req_*.json
