@@ -48,6 +48,12 @@ fn String timestamp(Allocator allocator, TzDateTime dt) {
     return string::format(allocator, "%04d%02d%02d_%02d%02d%02d", dt.year, dt.month.ordinal + 1, dt.day, dt.hour, dt.min, dt.sec);
 }
 
+fn String timestamp_id(Allocator allocator)
+{
+    DateTime now = datetime::now();
+    return timestamp(allocator, now.to_local());
+}
+
 /**
  * 生成红色错误消息字符串（带 ANSI 颜色代码）
  */

@@ -125,7 +125,7 @@ fn HistoryRecord? read_to_history_record(Allocator allocator, String json_doc)
 	Object* choices = res.get("choices")!;
 	Object* last_choice = choices.get_at(0);
 
-	if (try Object* message = last_choice.get("message")) 
+	if (try Object* message = last_choice.get("message"))
 	{
 		String role = message.get_string("role") ?? "assistant";
 		String content = message.get_string("content") ?? "";
@@ -152,7 +152,7 @@ fn HistoryRecord? read_to_history_record(Allocator allocator, String json_doc)
  * @init_opt: 初始化选项
  * @return: API 响应转换的 HistoryRecord
  */
-fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOption* init_opt) 
+fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOption* init_opt)
 {
 	@pool()
 	{
@@ -183,18 +183,18 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 			"-H", string::format(tmem, "Authorization: %s", init_opt.api_key), // 认证头
 			"-H", "Content-Type: application/json",
 			"--data-binary", string::format(tmem, "@%s", filename), // 通过文件传入请求体
-			init_opt.url, 
+			init_opt.url,
 		};
 
 		CommandResult curl_result = cmd::execute(tmem, cmd)!;
 		io::printfn("Execute curl\ncode = %d\nresult =%s \n\n", curl_result.code, curl_result.output);
-		
+
 		if (curl_result.code != 0)
 		{
 			io::printfn("Failed to run curl. Code = %d, message = %s", curl_result.code, curl_result.output);
 			return EXECUTE_COMMAND_ERROR~;
 		}
-		
+
 		return read_to_history_record(allocator, curl_result.output);
 	};
 }
@@ -246,6 +246,7 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 
 	History history;
 	history.init(allocator);
+	defer history.free();
 
 	// 添加系统消息
 	history.push({
@@ -253,7 +254,7 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 		.content = final_system_prompt,
 	});
 	print_last_message(&history);
-	
+
 	// Headless 模式：使用初始化消息作为第一条用户消息
 	if (init_opt.headless)
 	{
@@ -265,7 +266,7 @@ fn void agent_loop(Allocator allocator, Path cwd, InitOption* init_opt)
 	}
 
 	bool calling_tools = false;
-	
+
 	while AGENT_LOOP: (true) @pool()
 	{
 		if (calling_tools)
