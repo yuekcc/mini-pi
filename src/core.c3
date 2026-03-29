@@ -1,6 +1,7 @@
 module core;
 
 import std::io;
+import std::io::path;
 import std::collections::list;
 
 import util;
@@ -48,6 +49,7 @@ struct Context
     Allocator allocator;
     InitOptions init_options;
     MessageList messages;
+    Path cwd;
 }
 
 fn Context* Context.init(&self, Allocator allocator, InitOptions init_options)
@@ -58,6 +60,7 @@ fn Context* Context.init(&self, Allocator allocator, InitOptions init_options)
     self.init_options = init_options;
     self.messages = {};
     self.messages.init(allocator);
+    self.cwd = path::cwd(allocator)!!;
 
     return self;
 }
