@@ -94,8 +94,9 @@ flowchart TB
     ls --> cmd_exec
     
     cmd_exec --> subprocess
-    
-    context -.->|tool 结果| send_req
+    dispatcher -.->|执行结果| dispatch_tool
+    dispatch_tool -->|"ctx.push_message(tool_result)"| context
+    context -->|"ctx.messages (含 tool_result)"| send_req
     
     parse_resp -.->|使用| cjson
     http_client -.->|封装| curl
