@@ -171,8 +171,7 @@ fn HistoryRecord? send_messages(Allocator allocator, History* history, InitOptio
 		.replace(tmem, "{{messages}}", string::format(tmem, "%s", messages));
 
 		// 保存请求体到临时文件
-		DateTime now = datetime::now();
-		String filename = string::format(tmem,"logs/req_%s.json", util::timestamp(tmem, now.to_local()));
+		String filename = string::format(tmem,"logs/req_%s.json", util::timestamp_id(tmem));
 		file::save(filename, request_body)!;
 
 		// 构建 curl 命令
