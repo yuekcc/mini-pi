@@ -4,7 +4,9 @@ import std::io;
 import std::io::path;
 import std::collections::list;
 import std::collections::object;
+import std::encoding::json;
 import cmd;
+import core;
 
 /** String 列表类型别名 */
 alias StringList = List{String};
@@ -271,4 +273,22 @@ fn String dispatch(Allocator allocator, String name, Object* args)
         default:
             return string::format(allocator, "UNKNOWN TOOL '%s', RECHECK YOUR TOOL LIST", name);
     }
+}
+
+/**
+ * 执行工具调用（统一入口）
+ * @ctx: Context 指针
+ * @tool_call: 工具调用信息
+ * @return: 工具执行结果构建的 Message
+ */
+fn Message* dispatch_tool_call(Context* ctx, ToolCall* tool_call)
+{
+    Object* args = json::parse_string(tmem, tool_call.arguments)!!;
+    String result = dispatch(ctx.allocator, tool_call.name, args);
+
+    Message* msg = allocator::new(ctx.allocator, Message);
+    msg.id = tool_call.id.copy(ctx.allocator);
+    msg.role = "tool";
+    msg.content = result.copy(ctx.allocator);
+    return msg;
 }

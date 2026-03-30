@@ -5,7 +5,6 @@ import std::io::path;
 import std::time::datetime;
 import std::collections::object;
 import std::collections::list;
-import std::encoding::json;
 
 import core;
 import cmd;
@@ -61,24 +60,6 @@ fn Message* read_input(Context* ctx)
 }
 
 /**
- * 执行工具调用
- * @ctx: Context 指针
- * @tool_call: 工具调用信息
- * @return: 工具执行结果构建的 Message
- */
-fn Message* dispatch_tool_calls(Context* ctx, ToolCall* tool_call)
-{
-	Object* arguments = json::parse_string(tmem, tool_call.arguments)!!;
-	String call_tool_result = tools::dispatch(tmem, tool_call.name, arguments);
-
-	Message* result = allocator::new(ctx.allocator, Message);
-	result.id = tool_call.id.copy(ctx.allocator);
-	result.role = "tool";
-	result.content = call_tool_result.copy(ctx.allocator);
-	return result;
-}
-
-/**
  * Agent 主循环：处理用户输入、调用 API、执行工具
  * @ctx: Context 指针
  */
@@ -121,7 +102,7 @@ fn void agent_loop(Context* ctx)
 			Message* last_msg = ctx.last_message(ctx.allocator);
 			if (last_msg != null && last_msg.tool_call != null)
 			{
-				Message* tool_result = dispatch_tool_calls(ctx, last_msg.tool_call);
+				Message* tool_result = tools::dispatch_tool_call(ctx, last_msg.tool_call);
 				ctx.push_message(tool_result);
 				print_last_message(ctx);
 			}
