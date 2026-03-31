@@ -61,3 +61,11 @@ fn void test_bash() @test
     String content = tools::bash(tmem,"ls -alh src");
     assert(content.count("main.c3") == 1);
 }
+
+fn void test_tool_pool() @test
+{
+    ToolPool tool_pool;
+    tool_pool.init(tmem, null);
+
+    io::printfn("Tools Schema:\n%s", tool_pool.schema(tmem));
+}
