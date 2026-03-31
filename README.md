@@ -2,106 +2,94 @@
 
 ## 架构图
 
-```plantuml
-@startuml mini-pi-architecture
-!theme plain
+```mermaid
+flowchart TB
+    subgraph Entry["入口层 (main.c3)"]
+        main["main()"]
+        init["InitOptions 配置"]
+        loop["agent_loop()"]
+    end
 
-title mini-pi 架构图
+    subgraph Core["核心层 (core.c3)"]
+        ctx["Context\n上下文结构体"]
+        msg["Message\n消息结构体"]
+        tc["ToolCall\n工具调用"]
+        push["push_message()"]
+    end
 
-package "入口层 (main.c3)" {
-    [main()\n程序入口] as Entry
-    [agent_loop()\nAgent 主循环] as AgentLoop
-    [InitOptions\n初始化配置] as InitOpts
-}
+    subgraph API["API 层 (openai-completions.c3)"]
+        send["send_completion_request()"]
+        build["build_request()"]
+        parse["read_response_to_message()"]
+    end
 
-package "核心层 (core.c3)" {
-    [Context\n上下文结构体] as Context
-    [Message\n消息结构体] as Message
-    [ToolCall\n工具调用结构体] as ToolCall
-    [push_message()\n添加消息] as PushMsg
-}
+    subgraph HTTP["HTTP 层 (http_client.c3)"]
+        client["HttpClient"]
+        curl["libcurl"]
+    end
 
-package "API 层 (openai-completions.c3)" {
-    [send_completion_request()\n发送请求] as SendReq
-    [build_request()\n构建请求体] as BuildReq
-    [read_response_to_message()\n解析响应] as ParseResp
-}
+    subgraph Tools["工具系统 (tools.c3 / tool_core.c3)"]
+        pool["ToolPool 调度中心"]
+        
+        bash["bash 执行Shell"]
+        edit["edit 编辑文件"]
+        write["write 写入文件"]
+        read["read 读取文件"]
+        grep["grep 搜索内容"]
+        find["find 查找文件"]
+        ls["ls 列出目录"]
+    end
 
-package "HTTP 层 (http_client.c3)" {
-    [HttpClient\nHTTP 客户端] as HttpClient
-    [libcurl\nC URL 库] as LibCurl
-}
+    subgraph Cmd["命令层 (cmd.c3)"]
+        exec["execute()"]
+        subproc["process::SubProcess"]
+    end
 
-package "工具系统" {
-    [tools.c3] {
-        [ToolPool\n工具调度中心] as ToolPool
-        [tool_core.c3] {
-            [bash\n执行 Shell] as Bash
-            [edit\n编辑文件] as Edit
-            [write\n写入文件] as Write
-            [read\n读取文件] as Read
-            [grep\n搜索内容] as Grep
-            [find\n查找文件] as Find
-            [ls\n列出目录] as Ls
-        }
-    }
-}
+    subgraph Utils["工具函数 (util.c3)"]
+        esc["escape() JSON转义"]
+        ts["timestamp_id() 时间戳"]
+    end
 
-package "命令层 (cmd.c3)" {
-    [execute()\n执行命令] as Execute
-    [process::SubProcess\n子进程] as SubProcess
-}
+    subgraph External["外部依赖 (lib/)"]
+        cl["curl.c3l HTTP绑定"]
+        cj["cjson.c3l JSON解析"]
+    end
 
-package "工具函数 (util.c3)" {
-    [escape()\nJSON 转义] as Escape
-    [timestamp_id()\n时间戳] as Timestamp
-}
-
-package "外部依赖 (lib/)" {
-    [curl.c3l\nHTTP 绑定] as CurlLib
-    [cjson.c3l\nJSON 解析] as CJson
-}
-
-' 数据流关系
-Entry --> InitOpts : 配置
-Entry --> Context : 初始化
-Context --> AgentLoop : 运行
-
-AgentLoop --> SendReq : 发送请求
-SendReq --> BuildReq : 构建请求
-BuildReq --> HttpClient : HTTP POST
-HttpClient --> LibCurl : 调用 curl
-BuildReq <-- ParseResp : 解析响应
-ParseResp --> Context : 更新消息
-
-AgentLoop --> PushMsg : 添加消息
-PushMsg --> Context
-
-' 工具调用流程
-AgentLoop --> ToolPool : 分发工具
-ToolPool --> Bash
-ToolPool --> Edit
-ToolPool --> Write
-ToolPool --> Read
-ToolPool --> Grep
-ToolPool --> Find
-ToolPool --> Ls
-
-Bash --> Execute
-Edit --> Execute
-Write --> Execute
-Read --> Execute
-Grep --> Execute
-Find --> Execute
-Ls --> Execute
-
-Execute --> SubProcess : 创建进程
-
-' 外部依赖
-ParseResp --> CJson : JSON 解析
-HttpClient --> CurlLib : HTTP 请求
-
-@enduml
+    main --> init
+    init --> ctx
+    ctx --> loop
+    
+    loop --> send
+    send --> build
+    build --> client
+    client --> curl
+    build <--> parse
+    parse --> ctx
+    
+    loop --> push
+    push --> ctx
+    
+    loop --> pool
+    pool --> bash
+    pool --> edit
+    pool --> write
+    pool --> read
+    pool --> grep
+    pool --> find
+    pool --> ls
+    
+    bash --> exec
+    edit --> exec
+    write --> exec
+    read --> exec
+    grep --> exec
+    find --> exec
+    ls --> exec
+    
+    exec --> subproc
+    
+    parse --> cj
+    client --> cl
 ```
 
 ## 模块说明
