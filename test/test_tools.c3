@@ -34,9 +34,9 @@ fn void test_edit() @test
 
 fn void test_find() @test
 {
-    String result = tools::find(tmem, "edit", "src");
+    String result = tools::find(tmem, "main", "src");
     io::printfn("result -> \n%s", result);
-    assert(result.count("edit.json") == 1);
+    assert(result.count("main.c3") == 1);
 }
 
 fn void test_grep() @test
