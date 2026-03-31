@@ -10,39 +10,12 @@ import core;
 
 faultdef UNKNOWN_TOOL;
 
-
-
-
-
-// ============================================================================
-// Phase 1: Tool Interface
-// ============================================================================
-
-/**
- * 工具接口
- * 所有工具必须实现此接口
- */
 interface Tool
 {
-    /** 获取工具名称 */
     fn String name();
-
-    /** 获取工具的 JSON Schema */
     fn String schema();
-
-    /** 执行工具
-     * @allocator: 内存分配器
-     * @args: 工具参数对象
-     * @return: 工具执行结果字符串
-     */
     fn String execute(Allocator allocator, Object* args);
 }
-
-// ============================================================================
-// Phase 3 & 5: Tool Implementations with Schema
-// ============================================================================
-
-// --- BashTool ---
 
 const String BASH_SCHEMA = `{
     "name": "bash",
@@ -79,8 +52,6 @@ fn String BashTool.execute(&self, Allocator allocator, Object* args) @dynamic
     if (command == "") return "ARGUMENT INVALID, REQUIRE 'command'";
     return tools::bash(allocator, command);
 }
-
-// --- EditTool ---
 
 const String EDIT_SCHEMA = `{
     "name": "edit",
@@ -128,8 +99,6 @@ fn String EditTool.execute(&self, Allocator allocator, Object* args) @dynamic
     return tools::edit(allocator, file_path, old_text, new_text);
 }
 
-// --- WriteTool ---
-
 const String WRITE_SCHEMA = `{
     "name": "write",
     "description": "Write content to a file",
@@ -170,8 +139,6 @@ fn String WriteTool.execute(&self, Allocator allocator, Object* args) @dynamic
     String content = args.get_string("content") ?? "";
     return tools::write(allocator, file_path, content);
 }
-
-// --- FindTool ---
 
 const String FIND_SCHEMA = `{
     "name": "find",
@@ -218,8 +185,6 @@ fn String FindTool.execute(&self, Allocator allocator, Object* args) @dynamic
     String file_path = args.get_string("path") ?? "";
     return tools::find(allocator, pattern, file_path);
 }
-
-// --- GrepTool ---
 
 const String GREP_SCHEMA = `{
     "name": "grep",
@@ -289,8 +254,6 @@ fn String GrepTool.execute(&self, Allocator allocator, Object* args) @dynamic
     return tools::grep(allocator, pattern, file_path, glob, ignore_case, literal, context);
 }
 
-// --- LsTool ---
-
 const String LS_SCHEMA = `{
     "name": "ls",
     "description": "List directory contents",
@@ -331,8 +294,6 @@ fn String LsTool.execute(&self, Allocator allocator, Object* args) @dynamic
     String file_path = args.get_string("path") ?? ".";
     return tools::ls(allocator, file_path);
 }
-
-// --- ReadTool ---
 
 const String READ_SCHEMA = `{
     "name": "read",
@@ -381,11 +342,6 @@ fn String ReadTool.execute(&self, Allocator allocator, Object* args) @dynamic
     return tools::read(allocator, file_path, offset, limit);
 }
 
-// ============================================================================
-// Phase 6: Simplified Dispatch (using Tool interface)
-// ============================================================================
-
-
 struct ToolPool
 {
     Allocator allocator;
@@ -411,7 +367,6 @@ fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options
 
 fn void ToolPool.free(&self)
 {
-    // TODO 清理内存
 }
 
 fn String ToolPool.schema(&self, Allocator allocator)

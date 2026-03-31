@@ -6,15 +6,6 @@ import std::collections::list;
 
 import util;
 
-/**
- * Agent 初始化选项结构体
- * @agent_name: Agent 名称
- * @init_message: 初始化消息（headless 模式使用）
- * @model_id: 模型标识符
- * @url: API 端点 URL
- * @api_key: API 密钥
- * @headless: 是否为无头模式（自动执行）
- */
 struct InitOptions
 {
 	String agent_name;

@@ -12,13 +12,8 @@ import util;
 import tools;
 import http;
 
-/** 嵌入的模板文件内容 */
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 
-/**
- * 打印完整的对话历史
- * @ctx: Context 指针
- */
 fn void print_history(Context* ctx)
 {
     foreach (&msg : &ctx.messages)
@@ -28,10 +23,6 @@ fn void print_history(Context* ctx)
     }
 }
 
-/**
- * 打印最近一条消息
- * @ctx: Context 指针
- */
 fn void print_last_message(Context* ctx)
 {
 	if (try msg = ctx.messages.last())
@@ -41,11 +32,6 @@ fn void print_last_message(Context* ctx)
 	}
 }
 
-/**
- * 读取用户输入
- * @ctx: Context 指针
- * @return: 用户输入构建的 Message
- */
 fn Message* read_input(Context* ctx)
 {
 	io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
@@ -58,21 +44,15 @@ fn Message* read_input(Context* ctx)
 	return result;
 }
 
-/**
- * Agent 主循环：处理用户输入、调用 API、执行工具
- * @ctx: Context 指针
- */
 fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 {
 	DateTime now = datetime::now();
 	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
 
-	// 填充系统提示模板
 	String final_system_prompt = SYSTEM_PROMPT_TPL
 		.replace(tmem, "{{cwd}}", ctx.cwd.str_view())
 		.replace(tmem, "{{date}}", now_str);
 
-	// 添加系统消息
 	Message system_msg = {
 		.role = "system",
 		.content = final_system_prompt,
@@ -80,7 +60,6 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 	ctx.push_message(&system_msg);
 	print_last_message(ctx);
 
-	// Headless 模式：使用初始化消息作为第一条用户消息
 	if (ctx.init_options.headless)
 	{
 		Message user_msg = {
@@ -97,7 +76,6 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 	{
 		if (calling_tools)
 		{
-			// 执行工具调用
 			Message* last_msg = ctx.last_message(ctx.allocator);
 			if (last_msg != null && last_msg.tool_call != null)
 			{
@@ -109,17 +87,14 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 		}
 		else if (!ctx.init_options.headless)
 		{
-			// 读取用户输入
 			Message* user_input = read_input(ctx);
 			ctx.push_message(user_input);
 		}
 
-		// 发送消息并获取响应
 		if (try Message message = http::send_completion_request(ctx, tool_pool.schema(tmem)))
 		{
 			ctx.push_message(&message);
 			print_last_message(ctx);
-			// 检查是否需要继续调用工具
 			calling_tools = (message.tool_call != null);
 		}
 
@@ -127,12 +102,6 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 	};
 }
 
-
-/**
- * 程序入口点
- * @args: 命令行参数
- * @return: 退出码
- */
 fn int main(String[] args)
 {
 	InitOptions init_options = {
