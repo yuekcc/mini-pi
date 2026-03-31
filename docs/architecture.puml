@@ -1,0 +1,110 @@
+@startuml mini-pi-architecture
+!theme plain
+
+title mini-pi 架构图
+
+package "入口层 (Entry Layer)" {
+    [main.c3\n程序入口 & Agent 循环] as Entry
+}
+
+package "核心层 (Core Layer)" {
+    [core.c3\nContext 结构体] as Context
+    [Message / ToolCall\n消息与工具调用] as Message
+    [InitOptions\n初始化配置] as InitOpts
+}
+
+package "Agent 循环 (Agent Loop)" {
+    [read_input()\n读取用户输入] as ReadInput
+    [dispatch_tool_calls()\n分发工具调用] as DispatchTool
+    [send_completion_request()\n发送 API 请求] as SendReq
+    [check_tool_call()\n检查 tool_call] as CheckTool
+}
+
+package "API 层 (API Layer)" {
+    [openai-completions.c3\nOpenAI Completions API] as API
+    [build_request()\n构建请求体\nREQUEST_TPL + tools_schema] as BuildReq
+    [read_response_to_message()\n解析 API 响应] as ParseResp
+}
+
+package "HTTP 层 (HTTP Layer)" {
+    [http_client.c3\nHttpClient] as HttpClient
+    [libcurl\nHTTP 客户端库] as LibCurl
+}
+
+package "工具系统 (Tool System)" {
+    [tools.c3\nTool Interface] as ToolIF
+    [tool_core.c3\n工具实现] as ToolImpl
+
+    together {
+        [bash\n执行 Shell 命令] as BashTool
+        [edit\n编辑文件] as EditTool
+        [write\n写入文件] as WriteTool
+        [read\n读取文件] as ReadTool
+        [grep\n搜索内容] as GrepTool
+        [find\n查找文件] as FindTool
+        [ls\n列出目录] as LsTool
+    }
+}
+
+package "命令执行层 (Command Layer)" {
+    [cmd.c3\nexecute()] as CmdExec
+    [process::SubProcess\n子进程管理] as SubProcess
+}
+
+package "工具函数 (Utils Layer)" {
+    [util.c3\nescape() - JSON 转义] as Escape
+    [timestamp_id()\n生成时间戳] as Timestamp
+}
+
+package "外部依赖 (External Dependencies)" {
+    [cjson.c3l\nJSON 解析库] as CJson
+    [curl.c3l\nHTTP 客户端绑定] as CurlLib
+}
+
+' 入口层关系
+Entry --> InitOpts : 初始化
+Entry --> Context : 创建 Context
+Entry --> ReadInput : 启动 Agent 循环
+
+' Agent 循环关系
+ReadInput --> Context : 用户输入\npush_message()
+CheckTool --> DispatchTool : 有 tool_call
+DispatchTool --> ToolIF : 分发工具
+SendReq --> Context : push_message(result)
+Context --> SendReq : 获取 messages
+
+' API 层关系
+SendReq --> BuildReq : 构建请求
+BuildReq --> HttpClient : 发送请求
+HttpClient --> LibCurl : 调用 libcurl
+BuildReq <-- ParseResp : 解析响应
+ParseResp --> Context : 返回 Message
+
+' 工具系统关系
+ToolIF --> ToolImpl : 调度
+ToolImpl --> BashTool
+ToolImpl --> EditTool
+ToolImpl --> WriteTool
+ToolImpl --> ReadTool
+ToolImpl --> GrepTool
+ToolImpl --> FindTool
+ToolImpl --> LsTool
+
+BashTool --> CmdExec
+EditTool --> CmdExec
+WriteTool --> CmdExec
+ReadTool --> CmdExec
+GrepTool --> CmdExec
+FindTool --> CmdExec
+LsTool --> CmdExec
+
+CmdExec --> SubProcess : 执行命令
+
+' 外部依赖关系
+ParseResp --> CJson : JSON 解析
+HttpClient --> CurlLib : HTTP 请求
+
+' 布局优化
+hide empty description
+
+@enduml
