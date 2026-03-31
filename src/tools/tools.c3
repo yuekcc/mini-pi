@@ -18,18 +18,28 @@ interface Tool
 }
 
 const String BASH_SCHEMA = `{
+  "type": "function",
+  "function": {
     "name": "bash",
-    "description": "Execute a bash command",
+    "label": "bash",
+    "strict": true,
+    "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "command": {
-                "type": "string",
-                "description": "The shell command to execute"
-            }
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Bash command to execute"
         },
-        "required": ["command"]
+        "timeout": {
+          "type": "number",
+          "description": "Timeout in seconds (optional, no default timeout)"
+        }
+      },
+      "required": ["command"],
+      "additionalProperties": false
     }
+  }
 }`;
 
 struct BashTool (Tool)
@@ -54,26 +64,32 @@ fn String BashTool.execute(&self, Allocator allocator, Object* args) @dynamic
 }
 
 const String EDIT_SCHEMA = `{
+  "type": "function",
+  "function": {
     "name": "edit",
-    "description": "Edit file content by replacing text",
+    "label": "edit",
+    "strict": true,
+    "description": "Edit a file by replacing exact text. The oldText must match exactly (including whitespace). Use this for precise, surgical edits.",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "The file path to edit"
-            },
-            "oldText": {
-                "type": "string",
-                "description": "The text to replace"
-            },
-            "newText": {
-                "type": "string",
-                "description": "The replacement text"
-            }
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the file to edit (relative or absolute)"
         },
-        "required": ["path", "oldText", "newText"]
+        "oldText": {
+          "type": "string",
+          "description": "Exact text to find and replace (must match exactly)"
+        },
+        "newText": {
+          "type": "string",
+          "description": "New text to replace the old text with"
+        }
+      },
+      "required": ["path", "oldText", "newText"],
+      "additionalProperties": false
     }
+  }
 }`;
 
 struct EditTool (Tool)
@@ -100,22 +116,28 @@ fn String EditTool.execute(&self, Allocator allocator, Object* args) @dynamic
 }
 
 const String WRITE_SCHEMA = `{
+  "type": "function",
+  "function": {
     "name": "write",
-    "description": "Write content to a file",
+    "label": "write",
+    "strict": true,
+    "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "The target file path"
-            },
-            "content": {
-                "type": "string",
-                "description": "The content to write"
-            }
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the file to write (relative or absolute)"
         },
-        "required": ["path", "content"]
+        "content": {
+          "type": "string",
+          "description": "Content to write to the file"
+        }
+      },
+      "required": ["path", "content"],
+      "additionalProperties": false
     }
+  }
 }`;
 
 struct WriteTool (Tool)
@@ -141,27 +163,32 @@ fn String WriteTool.execute(&self, Allocator allocator, Object* args) @dynamic
 }
 
 const String FIND_SCHEMA = `{
+  "type": "function",
+  "function": {
     "name": "find",
-    "description": "Find files using fd pattern matching",
+    "label": "find",
+    "strict": true,
+    "description": "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to 500 results or 50KB (whichever is hit first).",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "pattern": {
-                "type": "string",
-                "description": "File name pattern to match"
-            },
-            "path": {
-                "type": "string",
-                "description": "Starting directory for search (optional)"
-            },
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of results",
-                "default": 1000
-            }
+      "type": "object",
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "Glob pattern to match files, e.g. '*.ts', '**/*.json', or 'src/**/*.spec.ts'"
         },
-        "required": ["pattern"]
+        "path": {
+          "type": "string",
+          "description": "Directory to search in (default: current directory)"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum number of results (default: 1000)"
+        }
+      },
+      "required": ["pattern"],
+      "additionalProperties": false
     }
+  }
 }`;
 
 struct FindTool (Tool)
@@ -187,46 +214,48 @@ fn String FindTool.execute(&self, Allocator allocator, Object* args) @dynamic
 }
 
 const String GREP_SCHEMA = `{
+  "type": "function",
+  "function": {
     "name": "grep",
-    "description": "Search file contents using ripgrep",
+    "label": "grep",
+    "strict": true,
+    "description": "Search file contents for a pattern. Returns matching lines with file paths and line numbers. Respects .gitignore. Output is truncated to 100 matches or 50KB (whichever is hit first). Long lines are truncated to 500 chars.",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "pattern": {
-                "type": "string",
-                "description": "Search pattern (regex)"
-            },
-            "path": {
-                "type": "string",
-                "description": "File or directory to search in (optional)"
-            },
-            "glob": {
-                "type": "string",
-                "description": "File name filter glob pattern (optional)"
-            },
-            "ignoreCase": {
-                "type": "boolean",
-                "description": "Ignore case sensitivity",
-                "default": false
-            },
-            "literal": {
-                "type": "boolean",
-                "description": "Treat pattern as literal string (not regex)",
-                "default": false
-            },
-            "context": {
-                "type": "integer",
-                "description": "Lines of context before and after match",
-                "default": 0
-            },
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of results",
-                "default": 100
-            }
+      "type": "object",
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "Search pattern (regex or literal string)"
         },
-        "required": ["pattern"]
+        "path": {
+          "type": "string",
+          "description": "Directory or file to search (default: current directory)"
+        },
+        "glob": {
+          "type": "string",
+          "description": "Filter files by glob pattern, e.g. '*.ts' or '**/*.spec.ts'"
+        },
+        "ignoreCase": {
+          "type": "boolean",
+          "description": "Case-insensitive search (default: false)"
+        },
+        "literal": {
+          "type": "boolean",
+          "description": "Treat pattern as literal string instead of regex (default: false)"
+        },
+        "context": {
+          "type": "number",
+          "description": "Number of lines to show before and after each match (default: 0)"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum number of matches to return (default: 100)"
+        }
+      },
+      "required": ["pattern"],
+      "additionalProperties": false
     }
+  }
 }`;
 
 struct GrepTool (Tool)
@@ -255,23 +284,28 @@ fn String GrepTool.execute(&self, Allocator allocator, Object* args) @dynamic
 }
 
 const String LS_SCHEMA = `{
+  "type": "function",
+  "function": {
     "name": "ls",
-    "description": "List directory contents",
+    "label": "ls",
+    "strict": true,
+    "description": "List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles. Output is truncated to 500 entries or 50KB (whichever is hit first).",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "Directory path to list",
-                "default": "."
-            },
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of entries",
-                "default": 500
-            }
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to list (default: current directory)"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum number of entries to return (default: 500)"
         }
+      },
+      "required": [],
+      "additionalProperties": false
     }
+  }
 }`;
 
 struct LsTool (Tool)
@@ -296,28 +330,32 @@ fn String LsTool.execute(&self, Allocator allocator, Object* args) @dynamic
 }
 
 const String READ_SCHEMA = `{
+  "type": "function",
+  "function": {
     "name": "read",
-    "description": "Read file content",
+    "label": "read",
+    "strict": true,
+    "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "File path to read"
-            },
-            "offset": {
-                "type": "integer",
-                "description": "Starting line number (1-indexed)",
-                "default": 1
-            },
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of lines (-1 for all)",
-                "default": -1
-            }
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the file to read (relative or absolute)"
         },
-        "required": ["path"]
+        "offset": {
+          "type": "number",
+          "description": "Line number to start reading from (1-indexed)"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum number of lines to read"
+        }
+      },
+      "required": ["path"],
+      "additionalProperties": false
     }
+  }
 }`;
 
 struct ReadTool (Tool)
@@ -351,8 +389,7 @@ struct ToolPool
 
 fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options)
 {
-    self.allocator = allocator;
-    self.tools = {
+    Tool[*] tmp_tools = {
         (Tool) allocator::new(allocator, BashTool),
         (Tool) allocator::new(allocator, EditTool),
         (Tool) allocator::new(allocator, WriteTool),
@@ -360,6 +397,9 @@ fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options
         (Tool) allocator::new(allocator, LsTool),
         (Tool) allocator::new(allocator, ReadTool),
     };
+
+    self.allocator = allocator;
+    self.tools = allocator::clone_slice(allocator, tmp_tools);
     self.schema_cache = "";
 
     return self;
@@ -379,7 +419,7 @@ fn String ToolPool.schema(&self, Allocator allocator)
     DString buf = dstring::new(tmem);
     bool tool_added = false;
     buf.append("[");
-    foreach (Tool tool: self.tools)
+    foreach (tool: self.tools)
     {
         if (tool_added)
         {
@@ -398,7 +438,7 @@ fn String? ToolPool.do_dispatch(&self, Allocator allocator, String name, Object*
 {
     io::printfn("> tool dispatch, name = %s, args = %s", name, args);
 
-    foreach (Tool tool: self.tools)
+    foreach (&tool: self.tools)
     {
         if (tool.name() == name)
         {
