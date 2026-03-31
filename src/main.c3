@@ -11,7 +11,6 @@ import cmd;
 import util;
 import tools;
 import http;
-import openai_completions;
 
 /** 嵌入的模板文件内容 */
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
@@ -63,7 +62,7 @@ fn Message* read_input(Context* ctx)
  * Agent 主循环：处理用户输入、调用 API、执行工具
  * @ctx: Context 指针
  */
-fn void agent_loop(Context* ctx)
+fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 {
 	DateTime now = datetime::now();
 	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
@@ -102,7 +101,7 @@ fn void agent_loop(Context* ctx)
 			Message* last_msg = ctx.last_message(ctx.allocator);
 			if (last_msg != null && last_msg.tool_call != null)
 			{
-				Message* tool_result = tools::dispatch_tool_call(ctx, last_msg.tool_call);
+				Message* tool_result = tool_pool.dispatch(ctx.allocator, last_msg.tool_call);
 				ctx.push_message(tool_result);
 				print_last_message(ctx);
 			}
@@ -116,7 +115,7 @@ fn void agent_loop(Context* ctx)
 		}
 
 		// 发送消息并获取响应
-		if (try Message message = openai_completions::send_completion_request(ctx))
+		if (try Message message = http::send_completion_request(ctx, tool_pool.schema(tmem)))
 		{
 			ctx.push_message(&message);
 			print_last_message(ctx);
@@ -145,10 +144,14 @@ fn int main(String[] args)
 		.headless = false,
 	};
 
+	ToolPool tool_pool;
+	tool_pool.init(mem, &init_options);
+	defer tool_pool.free();
+
 	Context ctx;
 	ctx.init(mem, init_options);
 	defer ctx.free();
 
-	agent_loop(&ctx);
+	agent_loop(&ctx, &tool_pool);
 	return 0;
 }

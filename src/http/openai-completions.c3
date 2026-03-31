@@ -1,4 +1,4 @@
-module openai_completions;
+module http;
 
 import std::io;
 import std::encoding::json;
@@ -6,7 +6,6 @@ import std::collections::object;
 import std::collections::list;
 
 import core;
-import http;
 import util;
 
 /** String 列表类型别名 */
@@ -14,7 +13,6 @@ alias HttpStringList = List{String};
 
 /** 嵌入的模板文件内容 */
 const String REQUEST_TPL = (String)$embed("request_template.json");
-const String TOOLS_SCHEMA = (String)$embed("tools_schema.json");
 
 /** 故障定义：API 错误、空响应 */
 faultdef
@@ -66,7 +64,7 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
  * @ctx: Context 指针
  * @return: API 响应转换的 Message
  */
-fn Message? send_completion_request(Context* ctx)
+fn Message? send_completion_request(Context* ctx, String tool_schemas)
 {
 	@pool()
 	{
@@ -80,7 +78,7 @@ fn Message? send_completion_request(Context* ctx)
 		}
 
 		// 构建请求体，替换模板中的占位符
-		String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", TOOLS_SCHEMA)
+		String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", tool_schemas)
 		.replace(tmem, "{{model_id}}", util::escape(tmem, ctx.init_options.model_id, false))
 		.replace(tmem, "{{messages}}", string::format(tmem, "%s", messages));
 
