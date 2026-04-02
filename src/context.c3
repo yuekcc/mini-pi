@@ -28,6 +28,8 @@ struct Message
     String id;
     String role;
     String content;
+    String tool_call_id;
+    String tool_call_raw;
     ToolCall* tool_call;
 }
 
@@ -74,9 +76,11 @@ fn Message* Context.last_message(&self, Allocator allocator)
 fn void Context.push_message(&self, Message* message)
 {
     Message* result = allocator::new(self.allocator, Message);
+    result.id = util::timestamp_id(self.allocator);
     result.role = message.role.copy(self.allocator);
     result.content = message.content.copy(self.allocator);
-    result.id = util::timestamp_id(self.allocator);
+    result.tool_call_raw = message.tool_call_raw.copy(self.allocator);
+    result.tool_call_id = message.tool_call_id.copy(self.allocator);
     if (message.tool_call != null)
     {
         result.tool_call = allocator::clone(self.allocator, *message.tool_call);

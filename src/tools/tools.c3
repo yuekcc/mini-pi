@@ -7,6 +7,7 @@ import std::collections::object;
 import std::encoding::json;
 
 import cmd;
+import util;
 import core;
 
 faultdef
@@ -87,9 +88,9 @@ fn String ToolPool.schema(&self, Allocator allocator)
     return self.schema_cache.copy(allocator);
 }
 
-fn String? ToolPool.do_dispatch(&self, Allocator allocator, String name, Object* args)
+fn String? ToolPool.do_dispatch(&self, Allocator allocator, String id, String name, Object* args)
 {
-    io::printfn("> tool dispatch, name = %s, args = %s", name, args);
+    io::printfn(util::system_message("> tool dispatch, id = %s, name = %s, args = %s"), id, name, args);
 
     foreach (&tool: self.tools)
     {
@@ -108,10 +109,10 @@ fn Message* ToolPool.dispatch(&self, Allocator allocator, ToolCall* tool_call)
     {
         Object* args = json::parse_string(tmem, tool_call.arguments)!!;
         Message* msg = allocator::new(allocator, Message);
-        msg.id = tool_call.id.copy(allocator);
+        msg.tool_call_id = tool_call.id.copy(allocator);
         msg.role = "tool";
 
-        String? result = self.do_dispatch(tmem, tool_call.name, args);
+        String? result = self.do_dispatch(tmem, tool_call.id, tool_call.name, args);
         if (catch excuse = result)
         {
             msg.content = string::format(allocator, "Execute %s tool failed, %s. You should retry carefully", tool_call.name, excuse);

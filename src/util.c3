@@ -1,6 +1,8 @@
 module util;
 
 import std::time::datetime;
+import std::io;
+import std::io::path;
 
 fn String escape(Allocator allocator, String s, bool strip_quotes = true)
 {
@@ -49,4 +51,22 @@ macro String error_message(String $format)
 macro String system_message(String $format)
 {
     return Ansi.BRIGHT_BLACK +++ $format +++ Ansi.RESET;
+}
+
+macro void? do_dump(String $file_name_template, String content) @private
+{
+    String file_name = string::format(tmem, $file_name_template, timestamp_id(tmem));
+    Path file_path = path::new(tmem, file_name)!;
+    Path dir = file_path.parent()!;
+    if (!path::exists(dir))
+    {
+        path::mkdir(dir, true)!;
+    }
+
+    file::save(file_path.str_view(), content)!;
+}
+
+macro bool dump(String $file_name_template, String content)
+{
+    return @ok(do_dump($file_name_template, content));
 }

@@ -21,7 +21,7 @@ fn String? write_file(Allocator allocator, String file_path, String content) {
 
 fn String? edit(Allocator allocator, String file_path, String old_text,
                  String new_text) {
-  Path? path_obj = path::new (tmem, file_path);
+  Path? path_obj = path::new(tmem, file_path);
   if (try path_obj) {
     if (try content = file::load_path(tmem, path_obj)) {
       String normalized_content = ((String)content).treplace("\r\n", "\n");

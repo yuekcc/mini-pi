@@ -33,6 +33,9 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 		};
 		if (try Object* tool_calls = message.get("tool_calls"))
 		{
+		    // 保存工具调用的原文件（字符串方式）
+		    result.tool_call_raw = string::format(ctx.allocator, "%s", tool_calls);
+			io::printfn("----\ncall_calls = %s\n----", result.tool_call_raw);
 			Object* tool_call = tool_calls.get_at(0);
 			if (tool_call != null)
 			{
@@ -60,6 +63,18 @@ fn Message? send_completion_request(Context* ctx, String tool_schemas)
             Object* message = object::new_obj(tmem);
             message.set("role", msg.role);
             message.set("content", util::escape(tmem, msg.content, true));
+
+            if (msg.tool_call_id != "")
+            {
+                message.set("tool_call_id", util::escape(tmem, msg.tool_call_id, true));
+            }
+
+            if (msg.tool_call_raw != "")
+            {
+                Object* tool_calls = json::parse_string(tmem, msg.tool_call_raw)!!;
+                message.set("tool_calls", string::format(tmem, "%s", tool_calls));
+            }
+
             messages.push(message);
 		}
 
@@ -67,8 +82,7 @@ fn Message? send_completion_request(Context* ctx, String tool_schemas)
 		.replace(tmem, "{{model_id}}", util::escape(tmem, ctx.init_options.model_id, false))
 		.replace(tmem, "{{messages}}", string::format(tmem, "%s", messages));
 
-		String filename = string::format(tmem,"logs/req_%s.json", util::timestamp_id(tmem));
-		file::save(filename, request_body)!;
+		util::dump("logs/req_%s.json", request_body);
 
 		HttpStringList headers;
 		headers.init(tmem);
@@ -90,6 +104,7 @@ fn Message? send_completion_request(Context* ctx, String tool_schemas)
 				return API_ERROR~;
 			}
 
+			util::dump("logs/resp_%s.json", response.body);
 			return read_response_to_message(ctx, response.body);
 		}
 		else
