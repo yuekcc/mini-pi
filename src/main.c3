@@ -38,7 +38,7 @@ fn Message* read_input(Context* ctx)
 	String input = io::readline(tmem)!!;
 	io::print(Ansi.RESET);
 
-	Message* result = allocator::new(ctx.allocator, Message);
+	Message* result = alloc::new(ctx.allocator, Message);
 	result.role = "user";
 	result.content = input.copy(ctx.allocator);
 	return result;
@@ -107,7 +107,7 @@ fn int main(String[] args)
 	InitOptions init_options = {
 		.agent_name = "default",
 		.init_message = "",
-		.model_id = "LongCat-Flash-Thinking",
+		.model_id = "MiniMax-M2.7",
 		.url = "http://127.0.0.1:5678/chat/completions",
 		.api_key = "sk-1234",
 		.headless = false,

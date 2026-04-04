@@ -40,16 +40,16 @@ struct ToolPool
 fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options)
 {
     Tool[*] tmp_tools = {
-        (Tool) allocator::new(allocator, BashTool),
-        (Tool) allocator::new(allocator, EditTool),
-        (Tool) allocator::new(allocator, WriteTool),
-        (Tool) allocator::new(allocator, GrepTool),
-        (Tool) allocator::new(allocator, LsTool),
-        (Tool) allocator::new(allocator, ReadTool),
+        (Tool) alloc::new(allocator, BashTool),
+        (Tool) alloc::new(allocator, EditTool),
+        (Tool) alloc::new(allocator, WriteTool),
+        (Tool) alloc::new(allocator, GrepTool),
+        (Tool) alloc::new(allocator, LsTool),
+        (Tool) alloc::new(allocator, ReadTool),
     };
 
     self.allocator = allocator;
-    self.tools = allocator::clone_slice(allocator, tmp_tools);
+    self.tools = alloc::clone_slice(allocator, tmp_tools);
     self.schema_cache = "";
 
     return self;
@@ -59,7 +59,7 @@ fn void ToolPool.free(&self)
 {
     foreach (&tool: self.tools)
     {
-        allocator::free(self.allocator, tool);
+        alloc::free(self.allocator, tool);
     }
 }
 
@@ -108,7 +108,7 @@ fn Message* ToolPool.dispatch(&self, Allocator allocator, ToolCall* tool_call)
     @pool()
     {
         Object* args = json::parse_string(tmem, tool_call.arguments)!!;
-        Message* msg = allocator::new(allocator, Message);
+        Message* msg = alloc::new(allocator, Message);
         msg.tool_call_id = tool_call.id.copy(allocator);
         msg.role = "tool";
 

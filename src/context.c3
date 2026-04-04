@@ -67,15 +67,15 @@ fn Message* Context.last_message(&self, Allocator allocator)
 {
     if (try Message message = self.messages.last())
     {
-        return allocator::clone(allocator, message);
+        return alloc::clone(allocator, message);
     }
-
+ 
     return null;
 }
 
 fn void Context.push_message(&self, Message* message)
 {
-    Message* result = allocator::new(self.allocator, Message);
+    Message* result = alloc::new(self.allocator, Message);
     result.id = util::timestamp_id(self.allocator);
     result.role = message.role.copy(self.allocator);
     result.content = message.content.copy(self.allocator);
@@ -83,7 +83,7 @@ fn void Context.push_message(&self, Message* message)
     result.tool_call_id = message.tool_call_id.copy(self.allocator);
     if (message.tool_call != null)
     {
-        result.tool_call = allocator::clone(self.allocator, *message.tool_call);
+        result.tool_call = alloc::clone(self.allocator, *message.tool_call);
     }
 
     self.messages.push(*result);

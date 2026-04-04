@@ -39,7 +39,7 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 			Object* tool_call = tool_calls.get_at(0);
 			if (tool_call != null)
 			{
-				result.tool_call = allocator::new(ctx.allocator, ToolCall);
+				result.tool_call = alloc::new(ctx.allocator, ToolCall);
 				result.tool_call.id = tool_call.get_string("id")!!.copy(ctx.allocator);
 				Object* function = tool_call.get("function")!!;
 				result.tool_call.name = function.get_string("name")!!.copy(ctx.allocator);
