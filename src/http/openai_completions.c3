@@ -1,11 +1,10 @@
 module http;
 
 import std::io;
-import std::encoding::json;
-import std::collections::object;
 import std::collections::list;
 
-import core;
+import c3x::object;
+import context;
 import util;
 
 alias HttpStringList = List{String};
@@ -18,7 +17,7 @@ faultdef
 
 fn Message? read_response_to_message(Context* ctx, String json_doc)
 {
-	Object* res = json::parse_string(tmem, json_doc)!;
+	Object* res = object::parse_string(tmem, json_doc)!;
 	Object* choices = res.get("choices")!;
 	Object* last_choice = choices.get_at(0);
 
@@ -99,47 +98,52 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 {
 	@pool()
 	{
-	    MessageViewList messages;
-		messages.init(tmem);
+		Object* messages = object::new_obj(tmem);
 
 		foreach (&msg : &ctx.messages)
 		{
-            MessageView mv;
-            mv.role = msg.role.copy(tmem);
-            mv.content = msg.content.copy(tmem);
+            Object* message = object::new_obj(tmem);
+            messages.push(message);
+
+            message.set("role", msg.role.copy(tmem));
+            message.set("content", msg.content.copy(tmem));
 
             if (msg.tool_call_id != "")
             {
-                mv.tool_call_id = msg.tool_call_id.copy(tmem);
+                message.set("tool_call_id", msg.tool_call_id.copy(tmem));
 
                 if (msg.tool_call != null)
                 {
-                    List{ToolCallView} tc_list;
-                    tc_list.init(tmem);
-                    ToolCallView tcv;
-                    tcv.id = msg.tool_call_id.copy(tmem);
-                    tcv.function.name = msg.tool_call.name.copy(tmem);
-                    tcv.function.arguments = msg.tool_call.arguments.copy(tmem);
-                    tcv.index = 0;
-                    tc_list.push(tcv);
-                    mv.tool_calls = tc_list.to_array(tmem);
+                    Object* tool_calls = object::new_obj(tmem);
+                    message.set("tool_calls", tool_calls);
+
+                    Object* tool_call = object::new_obj(tmem);
+                    tool_calls.push(tool_call);
+
+                    tool_call.set("id",  msg.tool_call_id.copy(tmem));
+                    tool_call.set("index",  0);
+                    Object* function = object::new_obj(tmem);
+                    tool_call.set("function",  function);
+
+                    function.set("name", msg.tool_call.name.copy(tmem));
+                    function.set("arguments", msg.tool_call.arguments.copy(tmem));
                 }
             }
-
-            messages.push(mv);
 		}
 
-		RequestBody request_body;
-		request_body.model = ctx.init_options.model_id;
-		request_body.tools = "{{tools_schema}}";
-		request_body.tool_choice = "auto";
-		request_body.stream = false;
-		request_body.thinking.type = "enabled";
-		request_body.messages = messages.to_array(tmem);
+		Object* request_body = object::new_obj(tmem);
+		request_body.set("model", ctx.init_options.model_id);
+		request_body.set("tools", "{{tools_schema}}"); // 设置为模板
+		request_body.set("tool_choice", "auto");
+		request_body.set("stream", false);
 
-		String request_body_json = json::marshal(tmem, request_body);
+		Object* thinking_config = object::new_obj(tmem);
+		thinking_config.set("type", "enabled");
+		request_body.set("thinking", thinking_config);
+		request_body.set("messages", messages);
+
+		String request_body_json = request_body.to_json(tmem);
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", tools_schema);
-
 		util::dump("logs/req_%s.json", request_body_json);
 
 		HttpStringList headers;

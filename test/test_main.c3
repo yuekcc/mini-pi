@@ -1,11 +1,9 @@
-import mini_pi;
-
 import std::io;
 import std::collections::object;
 import std::collections::list;
 import std::encoding::json;
 import http;
-import core;
+import context;
 
 fn void test_http_request() @test
 {

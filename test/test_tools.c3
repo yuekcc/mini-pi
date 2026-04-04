@@ -1,5 +1,5 @@
-import tools;
 import std::io;
+import tools;
 
 fn void test_ls() @test
 {

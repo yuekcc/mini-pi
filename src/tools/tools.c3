@@ -3,12 +3,11 @@ module tools;
 import std::io;
 import std::io::path;
 import std::collections::list;
-import std::collections::object;
-import std::encoding::json;
 
+import c3x::object;
 import cmd;
 import util;
-import core;
+import context;
 
 faultdef
     INVALID_ARGUMENT,
@@ -107,7 +106,7 @@ fn Message* ToolPool.dispatch(&self, Allocator allocator, String tool_call_id, T
 {
     @pool()
     {
-        Object* args = json::parse_string(tmem, tool_call.arguments)!!;
+        Object* args = object::parse_string(tmem, tool_call.arguments)!!;
         Message* msg = alloc::new(allocator, Message);
         msg.tool_call_id = tool_call_id;
         msg.role = "tool";

@@ -1,4 +1,3 @@
-module test;
 import std::io;
 import std::collections::list;
 import curl;

@@ -3,10 +3,10 @@ module mini_pi;
 import std::io;
 import std::io::path;
 import std::time::datetime;
-import std::collections::object;
 import std::collections::list;
 
-import core;
+import c3x::object;
+import context;
 import cmd;
 import util;
 import tools;
@@ -107,7 +107,8 @@ fn int main(String[] args)
 	InitOptions init_options = {
 		.agent_name = "default",
 		.init_message = "",
-		.model_id = "minimax.com/MiniMax-M2.7",
+		// .model_id = "minimax.com/MiniMax-M2.7",
+		.model_id = "Bailian/Qwen3.6-plus",
 		.url = "http://127.0.0.1:5678/chat/completions",
 		.api_key = "sk-1234",
 		.headless = false,

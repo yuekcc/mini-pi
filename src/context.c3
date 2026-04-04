@@ -1,4 +1,4 @@
-module core;
+module context;
 
 import std::io;
 import std::io::path;

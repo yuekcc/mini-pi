@@ -3,9 +3,8 @@ module tools;
 import std::io;
 import std::io::path;
 import std::collections::list;
-import std::collections::object;
-import std::encoding::json;
 
+import c3x::object;
 import cmd;
 
 fn String? bash(Allocator allocator, String command, int timeout_s = -1)

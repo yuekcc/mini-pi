@@ -1,4 +1,4 @@
-import core;
+import context;
 
 fn void test_create_context() @test
 {

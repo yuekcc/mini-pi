@@ -3,9 +3,8 @@ module tools;
 import std::io;
 import std::io::path;
 import std::collections::list;
-import std::collections::object;
-import std::encoding::json;
 
+import c3x::object;
 import cmd;
 
 fn String? find(Allocator allocator, String pattern, String file_path = "", int limit = 1000)
