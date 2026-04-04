@@ -1,0 +1,42 @@
+{
+  "id": "061c7850400964138a15942fe585bb24",
+  "choices": [
+    {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "message": {
+        "content": "<think>\n用户想检查电脑上Python的版本。我可以使用bash命令来查看。\n</think>\n\n\n",
+        "role": "assistant",
+        "name": "MiniMax AI",
+        "tool_calls": [
+          {
+            "id": "call_function_7oi920dnborm_1",
+            "type": "function",
+            "function": {
+              "name": "bash",
+              "arguments": "{\"command\": \"python --version\"}"
+            },
+            "index": 0
+          }
+        ],
+        "audio_content": ""
+      }
+    }
+  ],
+  "created": 1775060304,
+  "model": "MiniMax-M2.7",
+  "object": "chat.completion",
+  "usage": {
+    "total_tokens": 1433,
+    "total_characters": 0,
+    "prompt_tokens": 1391,
+    "completion_tokens": 42,
+    "completion_tokens_details": { "reasoning_tokens": 18 }
+  },
+  "input_sensitive": false,
+  "output_sensitive": false,
+  "input_sensitive_type": 0,
+  "output_sensitive_type": 0,
+  "output_sensitive_int": 0,
+  "base_resp": { "status_code": 0, "status_msg": "" }
+}

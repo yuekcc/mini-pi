@@ -1,0 +1,17 @@
+{
+  "content": "<think>\n用户想检查电脑上Python的版本。我可以使用bash命令来查看。\n</think>\n\n\n",
+  "role": "assistant",
+  "name": "MiniMax AI",
+  "tool_calls": [
+    {
+      "id": "call_function_7oi920dnborm_1",
+      "type": "function",
+      "function": {
+        "name": "bash",
+        "arguments": "{\"command\": \"python --version\"}"
+      },
+      "index": 0
+    }
+  ],
+  "audio_content": ""
+}
