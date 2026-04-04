@@ -77,7 +77,6 @@ fn void Context.push_message(&self, Message* message)
     result.id = util::timestamp_id(self.allocator);
     result.role = message.role.copy(self.allocator);
     result.content = message.content.copy(self.allocator);
-    // result.tool_call_raw = message.tool_call_raw.copy(self.allocator);
     result.tool_call_id = message.tool_call_id.copy(self.allocator);
     if (message.tool_call != null)
     {

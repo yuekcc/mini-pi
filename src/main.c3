@@ -14,21 +14,12 @@ import http;
 
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 
-fn void print_history(Context* ctx)
-{
-    foreach (&msg : &ctx.messages)
-    {
-        io::printfn("# %s", msg.role);
-        io::printfn("%s\n", msg.content.trim());
-    }
-}
-
 fn void print_last_message(Context* ctx)
 {
 	if (try msg = ctx.messages.last())
 	{
-		io::printfn("# %s", msg.role);
-		io::printfn("%s\n\n", msg.content.trim());
+		io::printfn(util::bold("# %s"), msg.role);
+		io::printfn("%s\n", msg.content.trim());
 	}
 }
 

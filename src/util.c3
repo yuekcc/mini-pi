@@ -25,6 +25,11 @@ fn String timestamp_id(Allocator allocator)
     return timestamp(allocator, now.to_local());
 }
 
+macro String bold(String $format)
+{
+    return Ansi.BOLD +++ $format +++ Ansi.RESET;
+}
+
 macro String error_message(String $format)
 {
     return Ansi.RED +++ $format +++ Ansi.RESET;
