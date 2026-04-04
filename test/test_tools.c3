@@ -48,12 +48,9 @@ fn void test_grep() @test
 
 fn void test_read() @test
 {
-    String demo_data = "xxxxyyyy";
-    String result = tools::write(tmem, "test_read.txt", demo_data)!!;
-
-    String content = tools::read(tmem,"test_read.txt")!!;
+    String content = tools::read(tmem,"src/main.c3")!!;
     io::printfn("content -> \n%s", content);
-    assert(content.count("xxxx") == 1);
+    assert(content.count("fn int main(String[] args)") == 1);
 }
 
 fn void test_bash() @test

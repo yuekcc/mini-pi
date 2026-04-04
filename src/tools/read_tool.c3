@@ -6,6 +6,26 @@ import std::collections::list;
 
 import c3x::object;
 import cmd;
+import util;
+
+fn String padding_line_numbers(Allocator allocator, String content)
+{
+    io::printfn("padding_line_numbers, content = %s", content);
+
+    String[] lines = content.split(tmem, "\n");
+    usz width = (usz)string::format(tmem, "%d", lines.len).len;
+    io::printfn("padding_line_numbers, lines count = %d", lines.len);
+
+    DString buf = dstring::new(tmem);
+    foreach (i, &line : lines)
+    {
+        String line_num = string::format(tmem, "%d", i+1);
+        buf.appendf("%s%s: %s\n", util::pad_start(tmem, width - line_num.len, "0"), line_num, *line);
+    }
+
+    buf.appendf("\n(End of file, total %d lines)", lines.len);
+    return buf.copy_str(allocator);
+}
 
 
 fn String? read(Allocator allocator, String file_path, int offset = 1, int limit = -1)
@@ -13,9 +33,10 @@ fn String? read(Allocator allocator, String file_path, int offset = 1, int limit
     Path? path_obj = path::new(tmem, file_path);
     if (try path_obj)
     {
-        if (try content = file::load_path(tmem, path_obj))
+        if (try content = (String)file::load_path(tmem, path_obj))
         {
-            return ((String)content).copy(allocator);
+            String normalized_content = content.replace(tmem, "\r\n", "\n");
+            return padding_line_numbers(allocator, normalized_content);
         }
         return READ_FILE_ERROR~;
     }

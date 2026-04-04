@@ -4,33 +4,15 @@ import std::time::datetime;
 import std::io;
 import std::io::path;
 
-fn String escape(Allocator allocator, String s, bool strip_quotes = true)
+fn String pad_start(Allocator allocator, usz target_length, String pad_str)
 {
-    usz initial_capacity = s.len + s.len / 5 + 2;
-    DString result = dstring::new_with_capacity(tmem, initial_capacity);
-
-    if (!strip_quotes) result.append_char('"');
-
-    foreach (char c : s)
+    DString buf = dstring::new(tmem);
+    for(usz i = 0; i < target_length; i++)
     {
-        switch (c)
-        {
-            case '"':  result.append(`\"`);
-            case '\\': result.append(`\\`);
-            case '\b': result.append(`\b`);
-            case '\f': result.append(`\f`);
-            case '\n': result.append(`\n`);
-            case '\r': result.append(`\r`);
-            case '\t': result.append(`\t`);
-            case '\v': result.append(`\v`);
-            case '\0': result.append(`\0`);
-            default:
-                result.append_char(c);
-        }
+        buf.append(pad_str);
     }
 
-    if (!strip_quotes) result.append_char('"');
-    return result.str_view().copy(allocator);
+    return buf.copy_str(allocator);
 }
 
 fn String timestamp(Allocator allocator, TzDateTime dt) {
