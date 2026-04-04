@@ -13,7 +13,7 @@ fn CommandResult? execute(Allocator allocator, String[] command_line)
 {
     Process process = process::spawn(
         command_line,
-        STDERR_TO_STDOUT & INHERIT_ENV & NO_WINDOW
+        STDERR_TO_STDOUT | INHERIT_ENV | NO_WINDOW
     )!;
 
     @pool()

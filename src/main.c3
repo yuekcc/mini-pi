@@ -107,7 +107,7 @@ fn int main(String[] args)
 	InitOptions init_options = {
 		.agent_name = "default",
 		.init_message = "",
-		.model_id = "MiniMax-M2.7",
+		.model_id = "minimax.com/MiniMax-M2.7",
 		.url = "http://127.0.0.1:5678/chat/completions",
 		.api_key = "sk-1234",
 		.headless = false,

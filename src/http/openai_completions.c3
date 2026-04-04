@@ -53,36 +53,108 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 	return EMPTY_RESPONSE~;
 }
 
-fn Message? send_completion_request(Context* ctx, String tool_schemas)
+struct FunctionCallView
+{
+    String name;
+    String arguments;
+}
+
+struct ToolCallView
+{
+    String id;
+    String type;
+    FunctionCallView function;
+    int index;
+}
+
+struct MessageView
+{
+    String role;
+    String content;
+    String tool_call_id;
+    ToolCallView[] tool_calls;
+}
+
+struct ThinkingConfig
+{
+    String type;
+}
+
+struct RequestBody
+{
+    String model;
+    String tools;
+    String tool_choice;
+    bool stream;
+    ThinkingConfig thinking;
+    MessageView[] messages;
+}
+
+
+alias MessageViewList = List{MessageView};
+
+fn Message? send_completion_request(Context* ctx, String tools_schema)
 {
 	@pool()
 	{
-		Object* messages = object::new_obj(tmem);
+	    MessageViewList messages;
+		messages.init(tmem);
+
+		// Object* messages = object::new_obj(tmem);
 		foreach (&msg : &ctx.messages)
 		{
-            Object* message = object::new_obj(tmem);
-            message.set("role", msg.role);
-            message.set("content", util::escape(tmem, msg.content, true));
+            MessageView mv;
+            mv.role = msg.role;
+            mv.content = msg.content;
 
-            if (msg.tool_call_id != "")
+            if (msg.tool_call_id != "") mv.tool_call_id = msg.tool_call_id;
+            if (msg.tool_call != null)
             {
-                message.set("tool_call_id", util::escape(tmem, msg.tool_call_id, true));
+                ToolCallView tcv;
+                tcv.id = msg.tool_call.id;
+                tcv.function.name = msg.tool_call.name;
+                tcv.function.arguments = msg.tool_call.arguments;
+                tcv.index = 0;
+
+                mv.tool_calls = {tcv};
             }
 
-            if (msg.tool_call_raw != "")
-            {
-                Object* tool_calls = json::parse_string(tmem, msg.tool_call_raw)!!;
-                message.set("tool_calls", string::format(tmem, "%s", tool_calls));
-            }
+            messages.push(mv);
 
-            messages.push(message);
+            // Object* message = object::new_obj(tmem);
+            // message.set("role", msg.role);
+            // message.set("content", util::escape(tmem, msg.content, true));
+
+            // if (msg.tool_call_id != "")
+            // {
+            //     message.set("tool_call_id", util::escape(tmem, msg.tool_call_id, true));
+            // }
+
+            // if (msg.tool_call_raw != "")
+            // {
+            //     Object* tool_calls = json::parse_string(tmem, msg.tool_call_raw)!!;
+            //     message.set("tool_calls", string::format(tmem, "%s", tool_calls));
+            // }
+
+            // messages.push(message);
 		}
 
-		String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", tool_schemas)
-		.replace(tmem, "{{model_id}}", util::escape(tmem, ctx.init_options.model_id, false))
-		.replace(tmem, "{{messages}}", string::format(tmem, "%s", messages));
+		RequestBody request_body;
+		request_body.model = ctx.init_options.model_id;
+		request_body.tools = "{{tools_schema}}";
+		request_body.tool_choice = "auto";
+		request_body.stream = false;
+		request_body.thinking.type = "enabled";
+		request_body.messages = messages.to_array(tmem);
 
-		util::dump("logs/req_%s.json", request_body);
+		String request_body_json = json::marshal(tmem, request_body);
+		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", tools_schema);
+
+		// String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", tool_schemas)
+		// .replace(tmem, "{{model_id}}", util::escape(tmem, ctx.init_options.model_id, false))
+		// .replace(tmem, "{{messages}}", json::marshal(tmem, messages.to_array(tmem)));
+
+		util::dump("logs/req_%s.json", request_body_json);
 
 		HttpStringList headers;
 		headers.init(tmem);
@@ -94,7 +166,7 @@ fn Message? send_completion_request(Context* ctx, String tool_schemas)
 		client.init();
 		defer client.free();
 
-		if (try Response response = client.post(ctx.init_options.url, request_body, &headers))
+		if (try Response response = client.post(ctx.init_options.url, request_body_json, &headers))
 		{
 			io::printfn("HTTP Response\nstatus = %d\nbody =%s \n\n", response.status_code, response.body);
 
