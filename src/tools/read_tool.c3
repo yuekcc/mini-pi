@@ -8,13 +8,10 @@ import c3x::object;
 import cmd;
 import util;
 
-fn String padding_line_numbers(Allocator allocator, String content)
+fn String pad_line_numbers(Allocator allocator, String content)
 {
-    io::printfn("padding_line_numbers, content = %s", content);
-
     String[] lines = content.split(tmem, "\n");
     usz width = (usz)string::format(tmem, "%d", lines.len).len;
-    io::printfn("padding_line_numbers, lines count = %d", lines.len);
 
     DString buf = dstring::new(tmem);
     foreach (i, &line : lines)
@@ -36,7 +33,7 @@ fn String? read(Allocator allocator, String file_path, int offset = 1, int limit
         if (try content = (String)file::load_path(tmem, path_obj))
         {
             String normalized_content = content.replace(tmem, "\r\n", "\n");
-            return padding_line_numbers(allocator, normalized_content);
+            return pad_line_numbers(allocator, normalized_content);
         }
         return READ_FILE_ERROR~;
     }
