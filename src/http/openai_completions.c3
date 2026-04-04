@@ -36,7 +36,7 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 		{
 		    // 保存工具调用的原文件（字符串方式）
 		    // result.tool_call_raw = string::format(ctx.allocator, "%s", tool_calls);
-			io::printfn("----\ncall_calls = %s\n----", string::format(ctx.allocator, "%s", tool_calls));
+			io::printfn(util::system_message("> Found tool calls = %s\n"), string::format(ctx.allocator, "%s", tool_calls));
 			Object* tool_call = tool_calls.get_at(0);
 			if (tool_call != null)
 			{
@@ -158,7 +158,7 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 
 		if (try Response response = client.post(ctx.init_options.url, request_body_json, &headers))
 		{
-			io::printfn("HTTP Response\nstatus = %d\nbody =%s \n\n", response.status_code, response.body);
+			io::printfn(util::system_message("> Remote reply:\nstatus = %d\nbody = %s\n"), response.status_code, response.body);
 
 			if (response.status_code != 200)
 			{
