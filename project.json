@@ -6,7 +6,7 @@
   "dependency-search-paths": [
     "lib"
   ],
-  "dependencies": ["curl", "cjson"],
+  "dependencies": ["curl", "c3x"],
   "authors": [
     "Lefeng Zhan<yuekcc@qq.com>"
   ],
