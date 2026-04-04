@@ -114,13 +114,15 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 
                 if (msg.tool_call != null)
                 {
+                    List{ToolCallView} tc_list;
+                    tc_list.init(tmem);
                     ToolCallView tcv;
                     tcv.id = msg.tool_call_id.copy(tmem);
                     tcv.function.name = msg.tool_call.name.copy(tmem);
                     tcv.function.arguments = msg.tool_call.arguments.copy(tmem);
                     tcv.index = 0;
-
-                    mv.tool_calls = {tcv};
+                    tc_list.push(tcv);
+                    mv.tool_calls = tc_list.to_array(tmem);
                 }
             }
 
