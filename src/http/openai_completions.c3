@@ -7,10 +7,6 @@ import c3x::object;
 import context;
 import util;
 
-alias HttpStringList = List{String};
-
-const String REQUEST_TPL = (String)$embed("request_template.json");
-
 faultdef
 	API_ERROR,
 	EMPTY_RESPONSE;
@@ -53,46 +49,6 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 
 	return EMPTY_RESPONSE~;
 }
-
-struct FunctionCallView
-{
-    String name;
-    String arguments;
-}
-
-struct ToolCallView
-{
-    String id;
-    String type;
-    FunctionCallView function;
-    int index;
-}
-
-struct MessageView
-{
-    String role;
-    String content;
-    String tool_call_id;
-    ToolCallView[] tool_calls;
-}
-
-struct ThinkingConfig
-{
-    String type;
-}
-
-struct RequestBody
-{
-    String model;
-    String tools;
-    String tool_choice;
-    bool stream;
-    ThinkingConfig thinking;
-    MessageView[] messages;
-}
-
-
-alias MessageViewList = List{MessageView};
 
 fn Message? send_completion_request(Context* ctx, String tools_schema)
 {
@@ -146,7 +102,7 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", tools_schema);
 		util::dump("logs/req_%s.json", request_body_json);
 
-		HttpStringList headers;
+		List{String} headers;
 		headers.init(tmem);
 		defer headers.free();
 		headers.push(string::format(tmem, "Authorization: Bearer %s", ctx.init_options.api_key));
