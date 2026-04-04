@@ -79,7 +79,7 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 			Message* last_msg = ctx.last_message(ctx.allocator);
 			if (last_msg != null && last_msg.tool_call != null)
 			{
-				Message* tool_result = tool_pool.dispatch(ctx.allocator, last_msg.tool_call);
+				Message* tool_result = tool_pool.dispatch(ctx.allocator, last_msg.tool_call_id, last_msg.tool_call);
 				ctx.push_message(tool_result);
 				print_last_message(ctx);
 			}

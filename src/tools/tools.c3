@@ -103,16 +103,16 @@ fn String? ToolPool.do_dispatch(&self, Allocator allocator, String id, String na
     return UNKNOWN_TOOL~;
 }
 
-fn Message* ToolPool.dispatch(&self, Allocator allocator, ToolCall* tool_call)
+fn Message* ToolPool.dispatch(&self, Allocator allocator, String tool_call_id, ToolCall* tool_call)
 {
     @pool()
     {
         Object* args = json::parse_string(tmem, tool_call.arguments)!!;
         Message* msg = alloc::new(allocator, Message);
-        msg.tool_call_id = tool_call.id.copy(allocator);
+        msg.tool_call_id = tool_call_id;
         msg.role = "tool";
 
-        String? result = self.do_dispatch(tmem, tool_call.id, tool_call.name, args);
+        String? result = self.do_dispatch(tmem, tool_call_id, tool_call.name, args);
         if (catch excuse = result)
         {
             msg.content = string::format(allocator, "Execute %s tool failed, %s. You should retry carefully", tool_call.name, excuse);

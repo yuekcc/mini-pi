@@ -30,17 +30,19 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 			.id = util::timestamp_id(ctx.allocator),
 			.role = role.copy(ctx.allocator),
 			.content = content.copy(ctx.allocator),
+			.tool_call_id = "",
+			.tool_call = null,
 		};
 		if (try Object* tool_calls = message.get("tool_calls"))
 		{
 		    // 保存工具调用的原文件（字符串方式）
-		    result.tool_call_raw = string::format(ctx.allocator, "%s", tool_calls);
-			io::printfn("----\ncall_calls = %s\n----", result.tool_call_raw);
+		    // result.tool_call_raw = string::format(ctx.allocator, "%s", tool_calls);
+			io::printfn("----\ncall_calls = %s\n----", string::format(ctx.allocator, "%s", tool_calls));
 			Object* tool_call = tool_calls.get_at(0);
 			if (tool_call != null)
 			{
+			    result.tool_call_id = tool_call.get_string("id")!!.copy(ctx.allocator);
 				result.tool_call = alloc::new(ctx.allocator, ToolCall);
-				result.tool_call.id = tool_call.get_string("id")!!.copy(ctx.allocator);
 				Object* function = tool_call.get("function")!!;
 				result.tool_call.name = function.get_string("name")!!.copy(ctx.allocator);
 				result.tool_call.arguments = function.get_string("arguments")!!.copy(ctx.allocator);
@@ -111,7 +113,7 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
             if (msg.tool_call != null)
             {
                 ToolCallView tcv;
-                tcv.id = msg.tool_call.id;
+                tcv.id = msg.tool_call_id;
                 tcv.function.name = msg.tool_call.name;
                 tcv.function.arguments = msg.tool_call.arguments;
                 tcv.index = 0;
