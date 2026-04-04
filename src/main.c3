@@ -19,7 +19,23 @@ fn void print_last_message(Context* ctx)
 	if (try msg = ctx.messages.last())
 	{
 		io::printfn(util::bold("# %s"), msg.role);
-		io::printfn("%s\n", msg.content.trim());
+
+		String content = msg.content.trim();
+		if (content == "")
+		{
+		    io::printfn("");
+			return;
+
+		}
+
+		if (msg.role == "tool")
+		{
+		    io::printfn(util::system_message("%s\n"), content);
+		}
+		else
+		{
+		    io::printfn("%s\n", content);
+		}
 	}
 }
 
