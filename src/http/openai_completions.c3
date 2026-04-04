@@ -102,43 +102,29 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 	    MessageViewList messages;
 		messages.init(tmem);
 
-		// Object* messages = object::new_obj(tmem);
 		foreach (&msg : &ctx.messages)
 		{
             MessageView mv;
-            mv.role = msg.role;
-            mv.content = msg.content;
+            mv.role = msg.role.copy(tmem);
+            mv.content = msg.content.copy(tmem);
 
-            if (msg.tool_call_id != "") mv.tool_call_id = msg.tool_call_id;
-            if (msg.tool_call != null)
+            if (msg.tool_call_id != "")
             {
-                ToolCallView tcv;
-                tcv.id = msg.tool_call_id;
-                tcv.function.name = msg.tool_call.name;
-                tcv.function.arguments = msg.tool_call.arguments;
-                tcv.index = 0;
+                mv.tool_call_id = msg.tool_call_id.copy(tmem);
 
-                mv.tool_calls = {tcv};
+                if (msg.tool_call != null)
+                {
+                    ToolCallView tcv;
+                    tcv.id = msg.tool_call_id.copy(tmem);
+                    tcv.function.name = msg.tool_call.name.copy(tmem);
+                    tcv.function.arguments = msg.tool_call.arguments.copy(tmem);
+                    tcv.index = 0;
+
+                    mv.tool_calls = {tcv};
+                }
             }
 
             messages.push(mv);
-
-            // Object* message = object::new_obj(tmem);
-            // message.set("role", msg.role);
-            // message.set("content", util::escape(tmem, msg.content, true));
-
-            // if (msg.tool_call_id != "")
-            // {
-            //     message.set("tool_call_id", util::escape(tmem, msg.tool_call_id, true));
-            // }
-
-            // if (msg.tool_call_raw != "")
-            // {
-            //     Object* tool_calls = json::parse_string(tmem, msg.tool_call_raw)!!;
-            //     message.set("tool_calls", string::format(tmem, "%s", tool_calls));
-            // }
-
-            // messages.push(message);
 		}
 
 		RequestBody request_body;
@@ -151,10 +137,6 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 
 		String request_body_json = json::marshal(tmem, request_body);
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", tools_schema);
-
-		// String request_body = REQUEST_TPL.replace(tmem, "{{tools}}", tool_schemas)
-		// .replace(tmem, "{{model_id}}", util::escape(tmem, ctx.init_options.model_id, false))
-		// .replace(tmem, "{{messages}}", json::marshal(tmem, messages.to_array(tmem)));
 
 		util::dump("logs/req_%s.json", request_body_json);
 

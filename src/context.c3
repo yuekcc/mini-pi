@@ -3,7 +3,6 @@ module core;
 import std::io;
 import std::io::path;
 import std::collections::list;
-
 import util;
 
 struct InitOptions
@@ -35,9 +34,10 @@ alias MessageList = List{Message};
 
 struct Context
 {
+    Allocator allocator;
+
     String id;
     String topic;
-    Allocator allocator;
     InitOptions init_options;
     MessageList messages;
     Path cwd;
