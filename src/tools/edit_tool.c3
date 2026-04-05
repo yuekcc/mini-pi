@@ -6,7 +6,20 @@ import std::collections::list;
 
 import c3x::object;
 import cmd;
+import util;
 
+fn String? edit(Allocator allocator, String file_path, String old_text, String new_text) {
+  Path path_obj = path::new(tmem, file_path)!;
+
+  String content = (String)file::load_path(tmem, path_obj)!;
+  String normalized_content = util::normalize_line_endings(tmem, content);
+  String normalized_old = util::normalize_line_endings(tmem, old_text);
+  String normalized_new = util::normalize_line_endings(tmem, new_text);
+  String updated = normalized_content.replace(tmem, normalized_old, normalized_new);
+
+  file::save(path_obj.str_view(), updated)!;
+  return string::format(allocator, "(Saved to %s)", path_obj.str_view());
+}
 
 const String EDIT_SCHEMA = `{
   "type": "function",

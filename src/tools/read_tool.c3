@@ -27,17 +27,10 @@ fn String pad_line_numbers(Allocator allocator, String content)
 
 fn String? read(Allocator allocator, String file_path, int offset = 1, int limit = -1)
 {
-    Path? path_obj = path::new(tmem, file_path);
-    if (try path_obj)
-    {
-        if (try content = (String)file::load_path(tmem, path_obj))
-        {
-            String normalized_content = content.replace(tmem, "\r\n", "\n");
-            return pad_line_numbers(allocator, normalized_content);
-        }
-        return READ_FILE_ERROR~;
-    }
-    return INVALIDE_FILE_PATH~;
+    Path path_obj = path::new(tmem, file_path)!;
+    String content = (String)file::load_path(tmem, path_obj)!;
+    String normalized_content = util::normalize_line_endings(tmem, content);
+    return pad_line_numbers(allocator, normalized_content);
 }
 
 const String READ_SCHEMA = `{

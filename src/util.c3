@@ -4,6 +4,11 @@ import std::time::datetime;
 import std::io;
 import std::io::path;
 
+fn String normalize_line_endings(Allocator allocator, String str)
+{
+    return str.replace(allocator, "\r\n", "\n");
+}
+
 fn String pad_start(Allocator allocator, usz target_length, String pad_str)
 {
     DString buf = dstring::new(tmem);
