@@ -59,7 +59,8 @@ fn void init_context(Context* ctx)
 
 	String final_system_prompt = SYSTEM_PROMPT_TPL
 		.replace(tmem, "{{cwd}}", ctx.cwd.str_view())
-		.replace(tmem, "{{date}}", now_str);
+		.replace(tmem, "{{date}}", now_str)
+        .replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)");
 
 	Message system_msg = {
 		.role = "system",

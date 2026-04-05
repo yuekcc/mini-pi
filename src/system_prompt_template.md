@@ -24,4 +24,4 @@ Guidelines:
 
 Current date: {{date}}
 Current working directory: {{cwd}}
-Current environment: Windows 11 + Msys2 with GNU Bash 5.2 (x86_64-pc-msys)
+Current environment: {{os}}
