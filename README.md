@@ -111,6 +111,21 @@ flowchart TB
     ts --> dump
 ```
 
+## 命令行用法
+
+```bash
+mini-pi [选项]
+```
+
+### 选项
+
+| 开关 | 说明 | 默认值 |
+|------|------|--------|
+| `--agent <name>` | Agent 名称 | `default` |
+| `--model <model_id>` | 模型 ID | `minimax.com/MiniMax-M2.7` |
+| `--headless` | 无头模式，不打印 AI 响应 | - |
+| `--init-message <msg>` | 启动时发送的初始消息 | `""` |
+
 ## 模块说明
 
 | 模块 | 文件 | 职责 |
