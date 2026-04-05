@@ -67,22 +67,13 @@ fn void init_context(Context* ctx)
 	};
 	ctx.push_message(&system_msg);
 	print_last_message(ctx);
-
-	if (ctx.init_options.headless)
-	{
-		Message user_msg = {
-			.role = "user",
-			.content = ctx.init_options.init_message,
-		};
-		ctx.push_message(&user_msg);
-		print_last_message(ctx);
-	}
 }
 
 fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 {
     // 是否需要调用工具
 	bool calling_tools = false;
+	bool init_message_added = false;
 
 	while AGENT_LOOP: (true) @pool()
 	{
@@ -100,12 +91,21 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 		}
 		else if (ctx.init_options.headless)
 		{
-		    Message message = {
-				.role = "user",
-				.content = ctx.init_options.init_message,
-			};
-			ctx.push_message(&message);
-			print_last_message(ctx);
+		    if (init_message_added)
+			{
+			    io::printfn(util::system_message("> DONE"));
+				os::exit(0);
+			}
+			else
+			{
+                Message message = {
+                   	.role = "user",
+                   	.content = ctx.init_options.init_message,
+                };
+                ctx.push_message(&message);
+                print_last_message(ctx);
+                init_message_added = true;
+			}
 		}
 		else
 		{
