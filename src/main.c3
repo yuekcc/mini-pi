@@ -7,10 +7,10 @@ import std::collections::list;
 
 import c3x::object;
 import context;
-import cmd;
 import util;
 import tools;
 import http;
+import getopts;
 
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 
@@ -118,19 +118,16 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 
 fn int main(String[] args)
 {
-    // TODO 从命令行及配置文件读取初始设置
-	InitOptions init_options = {
-		.agent_name = "default",
-		.init_message = "",
-		.model_id = "Bailian/Qwen3.6-plus",
-		.url = "http://127.0.0.1:5678/chat/completions",
-		.api_key = "sk-1234",
-		.headless = false,
-	};
+	InitOptions*? init_options = getopts::parse(mem, args);
+	if (catch err = init_options)
+	{
+	    io::printfn("Flags parse error, %s", err);
+		return 1;
+	}
 
 	// 工具池初始化
 	ToolPool tool_pool;
-	tool_pool.init(mem, &init_options);
+	tool_pool.init(mem, init_options);
 	defer tool_pool.free();
 
 	// 全局上下文

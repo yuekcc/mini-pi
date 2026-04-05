@@ -38,12 +38,12 @@ struct Context
 
     String id;
     String topic;
-    InitOptions init_options;
+    InitOptions* init_options;
     MessageList messages;
     Path cwd;
 }
 
-fn Context* Context.init(&self, Allocator allocator, InitOptions init_options)
+fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options)
 {
     self.allocator = allocator;
     self.id = util::timestamp_id(allocator);
