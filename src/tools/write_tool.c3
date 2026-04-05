@@ -7,6 +7,13 @@ import std::collections::list;
 import c3x::object;
 import cmd;
 
+fn String? write(Allocator allocator, String file_path, String content)
+{
+    Path path_obj = path::new(tmem, file_path)!;
+    file::save(path_obj.str_view(), content)!;
+    return string::format(allocator, "(Saved to %s)", path_obj.str_view());
+}
+
 const String WRITE_SCHEMA = `{
   "type": "function",
   "function": {
@@ -51,7 +58,5 @@ fn String? WriteTool.execute(&self, Allocator allocator, Object* args) @dynamic
 {
     String file_path = args.get_string("path") ?? "";
     String content = args.get_string("content") ?? "";
-    Path path_obj = path::new(tmem, file_path)!;
-    file::save(path_obj.str_view(), content)!;
-    return string::format(allocator, "(Saved to %s)", path_obj.str_view());
+    return write(allocator, file_path, content);
 }

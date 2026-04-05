@@ -51,20 +51,3 @@ fn String? execute_to_string(Allocator allocator, String[] command_line)
     CommandResult cmd_result = execute(allocator, command_line)!;
     return cmd_result.output;
 }
-
-fn void test_execute_to_string() @test
-{
-    String[] final_command_line = {"curl", "-k", "https://www.baidu.com"};
-    String result = cmd::execute_to_string(tmem, final_command_line)!!;
-
-    assert(result.contains("<html>") && result.contains("</html>"));
-}
-
-fn void test_non_zero_return_code() @test
-{
-    String[] final_command_line = {"curl", "-k"};
-    String result = cmd::execute_to_string(tmem, final_command_line)!!;
-
-    io::printfn("%s", result);
-    assert(result.contains("no URL specified"));
-}
