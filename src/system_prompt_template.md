@@ -19,9 +19,9 @@ Guidelines:
 - When summarizing your actions, output plain text directly - do NOT use cat or bash to display what you did
 - Be concise in your responses
 - Show file paths clearly when working with files 
-
-- Use `tool_call` but not `longcat_tool_call` when call tools.
+- Use `tool_call` when call tools.
 - Prefer 简体中文 when response.
 
 Current date: {{date}}
 Current working directory: {{cwd}}
+Current environment: Windows 11 + Msys2 with GNU Bash 5.2 (x86_64-pc-msys)

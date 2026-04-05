@@ -4,6 +4,7 @@ import std::io;
 import std::io::path;
 import std::time::datetime;
 import std::collections::list;
+import std::os;
 
 import c3x::object;
 import context;
@@ -97,11 +98,20 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 			}
 			calling_tools = false;
 		}
-		// 非 headless 模式，支持用户输入
-		else if (!ctx.init_options.headless)
+		else if (ctx.init_options.headless)
 		{
-			Message* user_input = read_input(ctx);
-			ctx.push_message(user_input);
+		    Message message = {
+				.role = "user",
+				.content = ctx.init_options.init_message,
+			};
+			ctx.push_message(&message);
+			print_last_message(ctx);
+		}
+		else
+		{
+			// 非 headless 模式，支持用户输入
+    		Message* user_input = read_input(ctx);
+    		ctx.push_message(user_input);
 		}
 
 		// 发送请求

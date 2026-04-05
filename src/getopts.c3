@@ -1,6 +1,7 @@
 module getopts;
 
 import std::io;
+import std::os;
 
 import context;
 
@@ -43,7 +44,6 @@ fn InitOptions*? parse(Allocator allocator, String[] args)
         }
         else if (flag == "--headless")
         {
-            i += 1;
             init_options.headless = true;
             continue;
         }
@@ -55,6 +55,7 @@ fn InitOptions*? parse(Allocator allocator, String[] args)
             continue;
         }
     }
-
+    // io::printfn("init_message = %s", init_options.init_message);
+    // io::printfn("headless = %s", init_options.headless);
 	return init_options;
 }
