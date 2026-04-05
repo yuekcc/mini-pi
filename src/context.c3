@@ -13,6 +13,8 @@ struct InitOptions
 	String url;
 	String api_key;
 	bool headless;
+	bool print_help;
+	bool print_version;
 }
 
 struct ToolCall

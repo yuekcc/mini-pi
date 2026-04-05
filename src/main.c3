@@ -136,6 +136,18 @@ fn int main(String[] args)
 		return 1;
 	}
 
+	if (init_options.print_help)
+	{
+        getopts::print_help();
+        return 0;
+	}
+
+	if (init_options.print_version)
+	{
+	    getopts::print_version();
+        return 0;
+	}
+
 	// 工具池初始化
 	ToolPool tool_pool;
 	tool_pool.init(mem, init_options);
