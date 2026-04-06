@@ -34,19 +34,28 @@ struct ToolPool
 
 fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options)
 {
-    Tool[*] tmp_tools = {
-        (Tool) alloc::new(allocator, BashTool),
-        (Tool) alloc::new(allocator, EditTool),
-        (Tool) alloc::new(allocator, WriteTool),
-        (Tool) alloc::new(allocator, GrepTool),
-        (Tool) alloc::new(allocator, LsTool),
-        (Tool) alloc::new(allocator, ReadTool),
-    };
+    List{Tool} tools;
+    tools.init(tmem);
+
+    tools.push((Tool) alloc::new(allocator, BashTool));
+    tools.push((Tool) alloc::new(allocator, EditTool));
+    tools.push((Tool) alloc::new(allocator, WriteTool));
+    tools.push((Tool) alloc::new(allocator, GrepTool));
+    tools.push((Tool) alloc::new(allocator, LsTool));
+    tools.push((Tool) alloc::new(allocator, ReadTool));
+
+    // Tool[*] tmp_tools = {
+    //     (Tool) alloc::new(allocator, BashTool),
+    //     (Tool) alloc::new(allocator, EditTool),
+    //     (Tool) alloc::new(allocator, WriteTool),
+    //     (Tool) alloc::new(allocator, GrepTool),
+    //     (Tool) alloc::new(allocator, LsTool),
+    //     (Tool) alloc::new(allocator, ReadTool),
+    // };
 
     self.allocator = allocator;
-    self.tools = alloc::clone_slice(allocator, tmp_tools);
     self.schema_cache = "";
-
+    self.tools = tools.to_array(allocator);
     return self;
 }
 
