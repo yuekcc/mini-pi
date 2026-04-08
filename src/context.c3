@@ -21,8 +21,8 @@ struct InitOptions (Printable)
 fn usz? InitOptions.to_format(&self, Formatter* formatter) @dynamic
 {
     usz count = 0;
-    count += formatter.printf(util::system_message("Start mp with agent %s@%s, headless is %s"), self.agent_name, self.model_id, self.headless)!;
-    count += formatter.printf(util::system_message("Allowed tools: %s"), self.tools)!;
+    count += formatter.printf(util::system_message("Start mp with agent %s@%s, headless is %s\n"), self.agent_name, self.model_id, self.headless)!;
+    count += formatter.printf(util::system_message("Allowed tools: %s\n"), self.tools)!;
     return count;
 }
 

@@ -148,6 +148,8 @@ fn int main(String[] args)
         return 0;
 	}
 
+	io::printfn("%s", init_options);
+
 	// 工具池初始化
 	ToolPool tool_pool;
 	tool_pool.init(mem, init_options);
