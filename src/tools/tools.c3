@@ -34,24 +34,25 @@ struct ToolPool
 
 fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options)
 {
+    String[] allowed_tools = init_options.tools.split(tmem, ",");
+
     List{Tool} tools;
     tools.init(tmem);
 
-    tools.push((Tool) alloc::new(allocator, BashTool));
-    tools.push((Tool) alloc::new(allocator, EditTool));
-    tools.push((Tool) alloc::new(allocator, WriteTool));
-    tools.push((Tool) alloc::new(allocator, GrepTool));
-    tools.push((Tool) alloc::new(allocator, LsTool));
-    tools.push((Tool) alloc::new(allocator, ReadTool));
-
-    // Tool[*] tmp_tools = {
-    //     (Tool) alloc::new(allocator, BashTool),
-    //     (Tool) alloc::new(allocator, EditTool),
-    //     (Tool) alloc::new(allocator, WriteTool),
-    //     (Tool) alloc::new(allocator, GrepTool),
-    //     (Tool) alloc::new(allocator, LsTool),
-    //     (Tool) alloc::new(allocator, ReadTool),
-    // };
+    foreach (tool_name : allowed_tools)
+    {
+        switch (tool_name)
+        {
+            case "read": tools.push((Tool) alloc::new(allocator, ReadTool));
+            case "bash": tools.push((Tool) alloc::new(allocator, BashTool));
+            case "edit": tools.push((Tool) alloc::new(allocator, EditTool));
+            case "write": tools.push((Tool) alloc::new(allocator, WriteTool));
+            case "grep": tools.push((Tool) alloc::new(allocator, GrepTool));
+            case "find": tools.push((Tool) alloc::new(allocator, FindTool));
+            case "ls": tools.push((Tool) alloc::new(allocator, LsTool));
+            default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s", tool_name));
+        }
+    }
 
     self.allocator = allocator;
     self.schema_cache = "";

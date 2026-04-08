@@ -15,6 +15,7 @@ const String HELP = `mp - a pi coding agent clone, my own coding agent.
 flags:
     --agent         指定智能体角色，默认为 default
     --model         指定使用的模型 ID
+    --tools         允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
     --headless      设置为非交互模式，未设置 --headless 时默认进入交互模式
     --init-message  指定默认输入的消息（需要同时设置 --headless）
     --help          显示帮助信息
@@ -23,6 +24,7 @@ flags:
 
 faultdef
     NO_MODE_ID, // 未提供 model id
+    NO_TOOLS, // 未提供工具列表
     NO_AGENT_NAME, // 未提供 Agent 名称
     NO_INIT_MESSAGE; // 未提供初始消息
 
@@ -45,6 +47,7 @@ fn InitOptions*? parse(Allocator allocator, String[] args)
     init_options.api_key = PROVIDER_API_KEY;
     init_options.headless = false;
     init_options.init_message = "";
+    init_options.tools = "read,bash,edit,write,grep,find,ls";
 
     for (usz i = 1; i < args.len; i++)
     {
@@ -83,6 +86,13 @@ fn InitOptions*? parse(Allocator allocator, String[] args)
         else if (flag == "--help" || flag == "-h")
         {
             init_options.print_help = true;
+            continue;
+        }
+        else if (flag == "--tools")
+        {
+            i += 1;
+            if (i >= args.len || args[i] == "") return NO_TOOLS~;
+            init_options.tools = args[i];
             continue;
         }
     }

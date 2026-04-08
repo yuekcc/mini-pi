@@ -5,7 +5,7 @@ import std::io::path;
 import std::collections::list;
 import util;
 
-struct InitOptions
+struct InitOptions (Printable)
 {
 	String agent_name;
 	String init_message;
@@ -15,6 +15,15 @@ struct InitOptions
 	bool headless;
 	bool print_help;
 	bool print_version;
+	String tools;
+}
+
+fn usz? InitOptions.to_format(&self, Formatter* formatter) @dynamic
+{
+    usz count = 0;
+    count += formatter.printf(util::system_message("Start mp with agent %s@%s, headless is %s"), self.agent_name, self.model_id, self.headless)!;
+    count += formatter.printf(util::system_message("Allowed tools: %s"), self.tools)!;
+    return count;
 }
 
 struct ToolCall
