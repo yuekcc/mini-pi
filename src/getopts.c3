@@ -5,6 +5,8 @@ import std::os;
 
 import context;
 
+$exec("bash", { "version.sh" });
+
 const String PROVIDER_URL = "http://127.0.0.1:5678/chat/completions";
 const String PROVIDER_API_KEY = "sk-1234";
 const String DEFAULT_MODEL_ID = "minimax.com/MiniMax-M2.7";
@@ -20,6 +22,15 @@ flags:
     --init-message  指定默认输入的消息（需要同时设置 --headless）
     --help          显示帮助信息
     --version       查看版本号
+
+tools:
+    - 'read'
+    - 'bash'
+    - 'edit'
+    - 'write'
+    - 'grep'
+    - 'find'
+    - 'ls'
 `;
 
 faultdef
@@ -35,7 +46,7 @@ fn void print_help()
 
 fn void print_version()
 {
-    io::printfn("mp %s", "0.0.1");
+    io::printfn("mp %s", VERSION);
 }
 
 fn InitOptions*? parse(Allocator allocator, String[] args)
