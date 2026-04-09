@@ -17,7 +17,6 @@ fn String? find(Allocator allocator, String pattern, String file_path = "", int 
     if (pattern != "" && pattern.contains("*"))
     {
         final_command.push("-g");
-
     }
 
     final_command.push(pattern);
