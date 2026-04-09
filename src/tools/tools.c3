@@ -16,8 +16,6 @@ faultdef
     EXECUTE_BASH_COMMAND_ERROR,
     UNKNOWN_TOOL;
 
-alias StringList = List{String};
-
 interface Tool
 {
     fn String name();
