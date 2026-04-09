@@ -10,7 +10,7 @@ import cmd;
 
 fn String? grep(Allocator allocator, String pattern, String file_path = "", String glob = "", bool ignore_case = false, bool literal = false, int context = 0, int limit = 100)
 {
-    StringList final_command;
+    List{String} final_command;
     final_command.init(tmem);
 
     final_command.push("rg");
