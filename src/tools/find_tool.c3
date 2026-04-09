@@ -9,8 +9,25 @@ import cmd;
 
 fn String? find(Allocator allocator, String pattern, String file_path = "", int limit = 1000)
 {
-    String[] final_command = file_path != "" ? {"fd", pattern, file_path} : {"fd", pattern};
-    CommandResult result = cmd::execute(allocator, final_command)!;
+    List{String} final_command;
+    final_command.init(tmem);
+
+    final_command.push("fd");
+
+    if (pattern != "" && pattern.contains("*"))
+    {
+        final_command.push("-g");
+
+    }
+
+    final_command.push(pattern);
+
+    if (file_path != "")
+    {
+        final_command.push(pattern);
+    }
+
+    CommandResult result = cmd::execute(allocator, final_command.to_array(tmem))!;
     if (result.code == 0)
     {
         return result.output.copy(allocator);
