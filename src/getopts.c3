@@ -19,7 +19,7 @@ flags:
     --model         指定使用的模型 ID
     --tools         允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
     --headless      设置为非交互模式，未设置 --headless 时默认进入交互模式
-    --init-message  指定默认输入的消息（需要同时设置 --headless）
+    --init-message  指定默认提示词（需要同时设置 --headless），支持 @filename 方式从文件获取提示词
     --help          显示帮助信息
     --version       查看版本号
 
@@ -47,6 +47,20 @@ fn void print_help()
 fn void print_version()
 {
     io::printfn("mp %s", VERSION);
+}
+
+fn void try_load_prompt(Allocator allocator, InitOptions* init_options)
+{
+    if (!init_options.init_message.starts_with("@"))
+    {
+        return;
+    }
+
+    String file_name = init_options.init_message.trim_left("@");
+    if (try content = (String)file::load(tmem, file_name))
+    {
+        init_options.init_message = content.copy(allocator);
+    }
 }
 
 fn InitOptions*? parse(Allocator allocator, String[] args)
@@ -107,6 +121,8 @@ fn InitOptions*? parse(Allocator allocator, String[] args)
             continue;
         }
     }
+
+    try_load_prompt(allocator, init_options);
 
 	return init_options;
 }
