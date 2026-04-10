@@ -11,9 +11,7 @@ import context;
 import util;
 import tools;
 import http;
-import getopts;
-
-const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
+import flags;
 
 fn void print_last_message(Context* ctx)
 {
@@ -52,26 +50,11 @@ fn Message* read_input(Context* ctx)
 	return result;
 }
 
-fn void init_context(Context* ctx)
-{
-   	DateTime now = datetime::now();
-	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
-
-	String final_system_prompt = SYSTEM_PROMPT_TPL
-		.replace(tmem, "{{cwd}}", ctx.cwd.str_view())
-		.replace(tmem, "{{date}}", now_str)
-        .replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)");
-
-	Message system_msg = {
-		.role = "system",
-		.content = final_system_prompt,
-	};
-	ctx.push_message(&system_msg);
-	print_last_message(ctx);
-}
 
 fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 {
+    print_last_message(ctx);
+
     // 是否需要调用工具
 	bool calling_tools = false;
 	bool init_message_added = false;
@@ -129,8 +112,8 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 
 fn int main(String[] args)
 {
-	InitOptions*? init_options = getopts::parse(mem, args);
-	if (catch err = init_options)
+    InitOptions init_options;
+	if (catch err = init_options.init(mem, args))
 	{
 	    io::printfn("Flags parse error, %s", err);
 		return 1;
@@ -138,13 +121,13 @@ fn int main(String[] args)
 
 	if (init_options.print_help)
 	{
-        getopts::print_help();
+        flags::print_help();
         return 0;
 	}
 
 	if (init_options.print_version)
 	{
-	    getopts::print_version();
+	    flags::print_version();
         return 0;
 	}
 
@@ -152,16 +135,15 @@ fn int main(String[] args)
 
 	// 工具池初始化
 	ToolPool tool_pool;
-	tool_pool.init(mem, init_options);
+	tool_pool.init(mem, &init_options);
 	defer tool_pool.free();
 
 	// 全局上下文
 	Context ctx;
-	ctx.init(mem, init_options);
+	ctx.init(mem, &init_options);
 	defer ctx.free();
 
     // 初始化
-    init_context(&ctx);
 	agent_loop(&ctx, &tool_pool);
 	return 0;
 }
