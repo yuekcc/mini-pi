@@ -10,7 +10,7 @@
 | `--model <id>` | 指定使用的模型 ID | `minimax.com/MiniMax-M2.2` |
 | `--tools <list>` | 允许使用的工具列表（逗号分隔） | `read,bash,edit,write,grep,find,ls` |
 | `--headless` | 启用非交互模式 | 交互模式 |
-| `--init-message <msg>` | 设置初始消息（需配合 `--headless` 使用） | - |
+| `--init-message <msg>` | 指定默认提示词（需要同时设置 --headless），支持 @filename 方式从文件获取提示词 | - |
 | `--help`, `-h` | 显示帮助信息 | - |
 | `--version`, `-v` | 显示版本号 | - |
 
