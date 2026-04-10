@@ -5,27 +5,6 @@ import std::io::path;
 import std::collections::list;
 import util;
 
-struct InitOptions (Printable)
-{
-	String agent_name;
-	String init_message;
-	String model_id;
-	String url;
-	String api_key;
-	bool headless;
-	bool print_help;
-	bool print_version;
-	String tools;
-}
-
-fn usz? InitOptions.to_format(&self, Formatter* formatter) @dynamic
-{
-    usz count = 0;
-    count += formatter.printf(util::system_message("Start mp with agent %s@%s, headless is %s\n"), self.agent_name, self.model_id, self.headless)!;
-    count += formatter.printf(util::system_message("Allowed tools: %s\n"), self.tools)!;
-    return count;
-}
-
 struct ToolCall
 {
     String name;
@@ -64,6 +43,8 @@ fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options)
     self.messages.init(allocator);
     self.cwd = path::cwd(allocator)!!;
 
+    self.reset();
+
     return self;
 }
 
@@ -95,4 +76,22 @@ fn void Context.push_message(&self, Message* message)
     }
 
     self.messages.push(*result);
+}
+
+fn void Context.reset(&self)
+{
+    Message system_msg = {
+		.role = "system",
+	};
+
+	if (self.init_options.enable_agents_md)
+	{
+	    system_msg.content = string::format(self.allocator, "%s\n----\n%s", self.init_options.system_prompt, self.init_options.instructions);
+	}
+	else
+	{
+	    system_msg.content = self.init_options.system_prompt.copy(self.allocator);
+	}
+
+	self.push_message(&system_msg);
 }
