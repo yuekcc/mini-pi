@@ -22,18 +22,18 @@ fn void print_last_message(Context* ctx)
 		String content = msg.content.trim();
 		if (content == "")
 		{
-		    io::printfn("");
+			io::printfn("");
 			return;
 
 		}
 
 		if (msg.role == "tool")
 		{
-		    io::printfn(util::system_message("%s\n"), content);
+			io::printfn(util::system_message("%s\n"), content);
 		}
 		else
 		{
-		    io::printfn("%s\n", content);
+			io::printfn("%s\n", content);
 		}
 	}
 }
@@ -53,15 +53,15 @@ fn Message* read_input(Context* ctx)
 
 fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 {
-    print_last_message(ctx);
+	print_last_message(ctx);
 
-    // 是否需要调用工具
+	// 是否需要调用工具
 	bool calling_tools = false;
 	bool init_message_added = false;
 
 	while AGENT_LOOP: (true) @pool()
 	{
-	    // 调用工具
+		// 调用工具
 		if (calling_tools)
 		{
 			Message* last_msg = ctx.last_message(ctx.allocator);
@@ -76,27 +76,27 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 		else if (ctx.init_options.headless)
 		{
 			// 再次循环到用户输入的回合，如果已经添加过初始消息，说明 LLM 已经执行结束
-		    if (init_message_added)
+			if (init_message_added)
 			{
-			    io::printfn(util::system_message("> DONE"));
+				io::printfn(util::system_message("> DONE"));
 				os::exit(0);
 			}
 			else
 			{
-                Message message = {
-                   	.role = "user",
-                   	.content = ctx.init_options.init_message,
-                };
-                ctx.push_message(&message);
-                print_last_message(ctx);
-                init_message_added = true;
+				Message message = {
+					.role = "user",
+					.content = ctx.init_options.init_message,
+				};
+				ctx.push_message(&message);
+				print_last_message(ctx);
+				init_message_added = true;
 			}
 		}
 		else
 		{
 			// 非 headless 模式，支持用户输入
-    		Message* user_input = read_input(ctx);
-    		ctx.push_message(user_input);
+			Message* user_input = read_input(ctx);
+			ctx.push_message(user_input);
 		}
 
 		// 发送请求
@@ -113,23 +113,23 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 
 fn int main(String[] args)
 {
-    InitOptions init_options;
+	InitOptions init_options;
 	if (catch err = init_options.init(mem, args))
 	{
-	    io::printfn("Flags parse error, %s", err);
+		io::printfn("Flags parse error, %s", err);
 		return 1;
 	}
 
 	if (init_options.print_help)
 	{
-        flags::print_help();
-        return 0;
+		flags::print_help();
+		return 0;
 	}
 
 	if (init_options.print_version)
 	{
-	    flags::print_version();
-        return 0;
+		flags::print_version();
+		return 0;
 	}
 
 	io::printfn("%s", init_options);
@@ -144,7 +144,7 @@ fn int main(String[] args)
 	ctx.init(mem, &init_options);
 	defer ctx.free();
 
-    // 初始化
+	// 初始化
 	agent_loop(&ctx, &tool_pool);
 	return 0;
 }

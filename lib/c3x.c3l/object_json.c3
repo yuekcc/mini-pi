@@ -25,7 +25,7 @@ fn Object*? parse(Allocator allocator, InStream s)
 
 fn String Object.to_json(&self, Allocator allocator)
 {
-    return string::format(allocator, "%s", self);
+	return string::format(allocator, "%s", self);
 }
 
 // -- Implementation follows --

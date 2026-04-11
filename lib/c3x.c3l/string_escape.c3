@@ -37,7 +37,7 @@ fn void escape_dstring(DString result, String s, bool strip_quotes) @private
 			case '\v': result.append(`\v`);
 			case '\0': result.append(`\0`);
 			default:
-			    result.append_char(c);
+				result.append_char(c);
 		}
 	}
 
