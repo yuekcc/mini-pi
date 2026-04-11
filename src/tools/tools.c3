@@ -87,7 +87,10 @@ fn String ToolPool.schema(&self, Allocator allocator)
     }
     buf.append("]");
 
-    self.schema_cache = buf.str_view().copy(self.allocator);
+    // 利用序列化/反序列化进行格式化
+    Object* schema_arr = object::parse_string(tmem, buf.str_view())!!;
+
+    self.schema_cache = schema_arr.to_json(self.allocator);
     return self.schema_cache.copy(allocator);
 }
 
