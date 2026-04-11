@@ -50,13 +50,21 @@ mp [选项]
   - [x] 分层 ui-loop-request
   - [x] 集成 libcurl
   - [x] 日志转储 (dump 宏)
+  - [x] 集成 JSON 库 (已使用 c3x::object)
+- [ ] 第二次重构
+  - [ ] 改为基于 thread pool 的 event-loop 模式
+  - [ ] 增加工具事件
+  - [ ] 在 `~/.cache/mp/workspace/${project_name}_${sessionId}` 目录保存日志
 - [x] 命令行参数支持 (InitOptions)
 - [x] 基础审计日志 (请求/响应自动转储至 logs/)
 - [ ] 多 agent 支持
+  - [ ] 通过 --agent 指定 agent
+  - [ ] 通过 --agent-list 列出全部 agent
+  - [ ] 支持不同的 agent 配置不同的工具
 - [ ] 支持 Ralph loop 模式
 - [ ] skills 支持
-- [x] 集成 JSON 库 (已使用 c3x::object)
-- [ ] 支持 AGENTS.md 文件
+- [x] 支持 AGENTS.md 文件
+
 
 ## 更新 libcurl-x64.dll
 
