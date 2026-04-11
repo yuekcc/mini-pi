@@ -24,7 +24,7 @@ struct Object (Printable)
 }
 
 
-fn usz? Object.to_format(&self, Formatter* formatter) @dynamic
+fn sz? Object.to_format(&self, Formatter* formatter) @dynamic
 {
 	switch (self.type)
 	{
@@ -46,7 +46,7 @@ fn usz? Object.to_format(&self, Formatter* formatter) @dynamic
 			n += formatter.printf("]")!;
 			return n;
 		case ObjectInternalMap:
-			usz n = formatter.printf("{")!;
+			sz n = formatter.printf("{")!;
 			@stack_mem(1024; Allocator mem)
 			{
 				foreach (i, key : self.map.keys(mem))
