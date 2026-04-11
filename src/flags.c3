@@ -1,9 +1,17 @@
+module version @if(!$feature(RELEASE));
+
+const String VERSION = "0.0.1";
+
+module version @if($feature(RELEASE));
+
+$exec("bash", { "version.sh" });
+
+
 module flags;
 
 import std::io;
+import version;
 
-// $exec("bash", { "version.sh" });
-const String VERSION = "0.0.1";
 
 const String HELP = `mp - a pi coding agent clone, my own coding agent.
 
@@ -34,5 +42,5 @@ fn void print_help()
 
 fn void print_version()
 {
-    io::printfn("mp %s", VERSION);
+    io::printfn("mp %s", version::VERSION);
 }

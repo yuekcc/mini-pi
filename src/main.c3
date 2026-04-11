@@ -75,6 +75,7 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 		}
 		else if (ctx.init_options.headless)
 		{
+			// 再次循环到用户输入的回合，如果已经添加过初始消息，说明 LLM 已经执行结束
 		    if (init_message_added)
 			{
 			    io::printfn(util::system_message("> DONE"));
