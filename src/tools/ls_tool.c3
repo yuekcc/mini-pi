@@ -20,30 +20,7 @@ fn String? ls(Allocator allocator, String file_path = "", int limit = 500)
 	return EXECUTE_LS_COMMAND_ERROR~;
 }
 
-const String LS_SCHEMA = `{
-  "type": "function",
-  "function": {
-	"name": "ls",
-	"label": "ls",
-	"strict": true,
-	"description": "List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles. Output is truncated to 500 entries or 50KB (whichever is hit first).",
-	"parameters": {
-	  "type": "object",
-	  "properties": {
-		"path": {
-		  "type": "string",
-		  "description": "Directory to list (default: current directory)"
-		},
-		"limit": {
-		  "type": "number",
-		  "description": "Maximum number of entries to return (default: 500)"
-		}
-	  },
-	  "required": [],
-	  "additionalProperties": false
-	}
-  }
-}`;
+const String LS_SCHEMA = (String)$embed("ls_tool_schema.json");
 
 struct LsTool (Tool)
 {

@@ -35,34 +35,7 @@ fn String? find(Allocator allocator, String pattern, String file_path = "", int 
 	return EXECUTE_FD_COMMAND_ERROR~;
 }
 
-const String FIND_SCHEMA = `{
-  "type": "function",
-  "function": {
-	"name": "find",
-	"label": "find",
-	"strict": true,
-	"description": "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to 500 results or 50KB (whichever is hit first).",
-	"parameters": {
-	  "type": "object",
-	  "properties": {
-		"pattern": {
-		  "type": "string",
-		  "description": "Glob pattern to match files, e.g. '*.ts', '**/*.json', or 'src/**/*.spec.ts'"
-		},
-		"path": {
-		  "type": "string",
-		  "description": "Directory to search in (default: current directory)"
-		},
-		"limit": {
-		  "type": "number",
-		  "description": "Maximum number of results (default: 1000)"
-		}
-	  },
-	  "required": ["pattern"],
-	  "additionalProperties": false
-	}
-  }
-}`;
+const String FIND_SCHEMA = (String)$embed("find_tool_schema.json");
 
 struct FindTool (Tool)
 {

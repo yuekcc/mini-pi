@@ -33,34 +33,7 @@ fn String? read(Allocator allocator, String file_path, int offset = 1, int limit
 	return pad_line_numbers(allocator, normalized_content);
 }
 
-const String READ_SCHEMA = `{
-  "type": "function",
-  "function": {
-	"name": "read",
-	"label": "read",
-	"strict": true,
-	"description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
-	"parameters": {
-	  "type": "object",
-	  "properties": {
-		"path": {
-		  "type": "string",
-		  "description": "Path to the file to read (relative or absolute)"
-		},
-		"offset": {
-		  "type": "number",
-		  "description": "Line number to start reading from (1-indexed)"
-		},
-		"limit": {
-		  "type": "number",
-		  "description": "Maximum number of lines to read"
-		}
-	  },
-	  "required": ["path"],
-	  "additionalProperties": false
-	}
-  }
-}`;
+const String READ_SCHEMA = (String)$embed("read_tool_schema.json");
 
 struct ReadTool (Tool)
 {

@@ -47,50 +47,7 @@ fn String? grep(Allocator allocator, String pattern, String file_path = "", Stri
 	return EXECUTE_RIPGREP_COMMAND_ERROR~;
 }
 
-const String GREP_SCHEMA = `{
-  "type": "function",
-  "function": {
-	"name": "grep",
-	"label": "grep",
-	"strict": true,
-	"description": "Search file contents for a pattern. Returns matching lines with file paths and line numbers. Respects .gitignore. Output is truncated to 100 matches or 50KB (whichever is hit first). Long lines are truncated to 500 chars.",
-	"parameters": {
-	  "type": "object",
-	  "properties": {
-		"pattern": {
-		  "type": "string",
-		  "description": "Search pattern (regex or literal string)"
-		},
-		"path": {
-		  "type": "string",
-		  "description": "Directory or file to search (default: current directory)"
-		},
-		"glob": {
-		  "type": "string",
-		  "description": "Filter files by glob pattern, e.g. '*.ts' or '**/*.spec.ts'"
-		},
-		"ignoreCase": {
-		  "type": "boolean",
-		  "description": "Case-insensitive search (default: false)"
-		},
-		"literal": {
-		  "type": "boolean",
-		  "description": "Treat pattern as literal string instead of regex (default: false)"
-		},
-		"context": {
-		  "type": "number",
-		  "description": "Number of lines to show before and after each match (default: 0)"
-		},
-		"limit": {
-		  "type": "number",
-		  "description": "Maximum number of matches to return (default: 100)"
-		}
-	  },
-	  "required": ["pattern"],
-	  "additionalProperties": false
-	}
-  }
-}`;
+const String GREP_SCHEMA = (String)$embed("grep_tool_schema.json");
 
 struct GrepTool (Tool)
 {

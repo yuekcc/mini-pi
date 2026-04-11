@@ -86,7 +86,8 @@ fn void Context.reset(&self)
 
 	if (self.init_options.enable_agents_md)
 	{
-		system_msg.content = string::format(self.allocator, "%s\n----\n%s", self.init_options.system_prompt, self.init_options.instructions);
+		system_msg.content = string::format(self.allocator,
+			"%s\n----\n%s", self.init_options.system_prompt, self.init_options.instructions);
 	}
 	else
 	{
