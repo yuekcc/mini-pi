@@ -45,7 +45,7 @@ macro String system_message(String $format)
 	return Ansi.BRIGHT_BLACK +++ $format +++ Ansi.RESET;
 }
 
-macro void? do_dump(String $file_name_template, String content) @private
+macro void? do_dump(String $file_name_template, String content) @local
 {
 	String file_name = string::format(tmem, $file_name_template, timestamp_id(tmem));
 	Path file_path = path::new(tmem, file_name)!;
