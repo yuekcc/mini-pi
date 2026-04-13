@@ -53,9 +53,9 @@ mp [选项]
 - [ ] 第二次重构
   - [ ] 改为基于 thread pool 的 event-loop 模式
   - [ ] 增加工具事件
-  - [ ] 在 `~/.cache/mp/workspace/${project_name}_${sessionId}` 目录保存日志
-- [x] 命令行参数支持 (InitOptions)
-- [x] 基础审计日志 (请求/响应自动转储至 logs/)
+- [x] 在 `~/.cache/mp/workspace/${project_name}/${sessionId}.jsonl` 目录保存日志
+- [x] 命令行参数支持
+- [x] ~~基础审计日志 (请求/响应自动转储至 logs/)~~
 - [ ] 多 agent 支持
   - [ ] 通过 --agent 指定 agent
   - [ ] 通过 --agent-list 列出全部 agent
