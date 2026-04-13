@@ -4,6 +4,28 @@ import std::time::datetime;
 import std::io;
 import std::io::path;
 
+fn String hash_path(Path file_path)
+{
+	$if env::WIN32:
+		String[] parts = file_path.str_view().tsplit("\\");
+	$else
+		String[] parts = file_path.str_view().tsplit("/");
+	$endif
+
+	DString buf = dstring::new(tmem);
+
+	foreach (part : parts[:parts.len - 1])
+	{
+		buf.append(part[0]);
+	}
+	
+	String basename = file_path.basename();
+	buf.append("_");
+	buf.append(basename);
+
+	return buf.str_view();
+}
+
 fn String normalize_line_endings(Allocator allocator, String str)
 {
 	return str.replace(allocator, "\r\n", "\n");
