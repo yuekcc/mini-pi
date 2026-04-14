@@ -28,6 +28,7 @@ struct InitOptions (Printable)
 	bool headless;
 	bool print_help;
 	bool print_version;
+	bool debug;
 	bool enable_agents_md;
 	String instructions; // AGENTS.md 内容
 	String tools;
@@ -40,6 +41,7 @@ fn sz? InitOptions.to_format(&self, Formatter* formatter) @dynamic
 	count += formatter.printf(util::system_message("Start mp with agent %s@%s, headless is %s\n"), self.agent_name, self.model_id, self.headless)!;
 	count += formatter.printf(util::system_message("Load AGENTS.md: %s\n"), self.enable_agents_md)!;
 	count += formatter.printf(util::system_message("Allowed tools: %s\n"), self.tools)!;
+	count += formatter.printf(util::system_message("API: %s\n"), self.url)!;
 
 	return count;
 }
@@ -123,6 +125,11 @@ fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
 		else if (flag == "--version" || flag == "-v")
 		{
 			self.print_version = true;
+			continue;
+		}
+		else if (flag == "--debug")
+		{
+			self.debug = true;
 			continue;
 		}
 		else if (flag == "--help" || flag == "-h")

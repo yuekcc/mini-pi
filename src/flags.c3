@@ -23,6 +23,7 @@ flags:
 	--init-message  指定默认提示词（需要同时设置 --headless），支持 @filename 方式从文件获取提示词
 	--help          显示帮助信息
 	--version       查看版本号
+	--debug         启动 DEBUG 模式
 
 tools:
 	- 'read'
