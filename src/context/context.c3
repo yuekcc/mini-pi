@@ -26,34 +26,34 @@ struct Message
 
 fn Object* Message.to_object(&self, Allocator allocator)
 {
-    Object* message = object::new_obj(allocator);
+	Object* message = object::new_obj(allocator);
 
-    message.set("role", self.role.copy(allocator));
-    message.set("content", self.content.copy(allocator));
+	message.set("role", self.role.copy(allocator));
+	message.set("content", self.content.copy(allocator));
 
-    if (self.tool_call_id != "")
-    {
-        message.set("tool_call_id", self.tool_call_id.copy(allocator));
+	if (self.tool_call_id != "")
+	{
+		message.set("tool_call_id", self.tool_call_id.copy(allocator));
 
-        if (self.tool_call != null)
-        {
-            Object* tool_calls = object::new_obj(allocator);
-            message.set("tool_calls", tool_calls);
+		if (self.tool_call != null)
+		{
+			Object* tool_calls = object::new_obj(allocator);
+			message.set("tool_calls", tool_calls);
 
-            Object* tool_call = object::new_obj(allocator);
-            tool_calls.push(tool_call);
+			Object* tool_call = object::new_obj(allocator);
+			tool_calls.push(tool_call);
 
-            tool_call.set("id",  self.tool_call_id.copy(allocator));
-            tool_call.set("index",  0);
-            Object* function = object::new_obj(allocator);
-            tool_call.set("function",  function);
+			tool_call.set("id",  self.tool_call_id.copy(allocator));
+			tool_call.set("index",  0);
+			Object* function = object::new_obj(allocator);
+			tool_call.set("function",  function);
 
-            function.set("name", self.tool_call.name.copy(allocator));
-            function.set("arguments", self.tool_call.arguments.copy(allocator));
-        }
-    }
+			function.set("name", self.tool_call.name.copy(allocator));
+			function.set("arguments", self.tool_call.arguments.copy(allocator));
+		}
+	}
 
-    return message;
+	return message;
 }
 
 alias MessageList = List{Message};
@@ -69,6 +69,11 @@ struct Context
 	String cwd;
 	String log_file_path;
 	// File log_file;
+}
+
+fn bool Context.debug(&self)
+{
+	return self.init_options.debug;
 }
 
 fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options)

@@ -34,7 +34,7 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 			Object* tool_call = tool_calls.get_at(0);
 			if (tool_call != null)
 			{
-			    result.tool_call_id = tool_call.get_string("id")!!.copy(ctx.allocator);
+				result.tool_call_id = tool_call.get_string("id")!!.copy(ctx.allocator);
 				result.tool_call = alloc::new(ctx.allocator, ToolCall);
 				Object* function = tool_call.get("function")!!;
 				result.tool_call.name = function.get_string("name")!!.copy(ctx.allocator);
@@ -56,33 +56,33 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 
 		foreach (&msg : &ctx.messages)
 		{
-            Object* message = object::new_obj(tmem);
-            messages.push(message);
+			Object* message = object::new_obj(tmem);
+			messages.push(message);
 
-            message.set("role", msg.role.copy(tmem));
-            message.set("content", msg.content.copy(tmem));
+			message.set("role", msg.role.copy(tmem));
+			message.set("content", msg.content.copy(tmem));
 
-            if (msg.tool_call_id != "")
-            {
-                message.set("tool_call_id", msg.tool_call_id.copy(tmem));
+			if (msg.tool_call_id != "")
+			{
+				message.set("tool_call_id", msg.tool_call_id.copy(tmem));
 
-                if (msg.tool_call != null)
-                {
-                    Object* tool_calls = object::new_obj(tmem);
-                    message.set("tool_calls", tool_calls);
+				if (msg.tool_call != null)
+				{
+					Object* tool_calls = object::new_obj(tmem);
+					message.set("tool_calls", tool_calls);
 
-                    Object* tool_call = object::new_obj(tmem);
-                    tool_calls.push(tool_call);
+					Object* tool_call = object::new_obj(tmem);
+					tool_calls.push(tool_call);
 
-                    tool_call.set("id",  msg.tool_call_id.copy(tmem));
-                    tool_call.set("index",  0);
-                    Object* function = object::new_obj(tmem);
-                    tool_call.set("function",  function);
+					tool_call.set("id",  msg.tool_call_id.copy(tmem));
+					tool_call.set("index",  0);
+					Object* function = object::new_obj(tmem);
+					tool_call.set("function",  function);
 
-                    function.set("name", msg.tool_call.name.copy(tmem));
-                    function.set("arguments", msg.tool_call.arguments.copy(tmem));
-                }
-            }
+					function.set("name", msg.tool_call.name.copy(tmem));
+					function.set("arguments", msg.tool_call.arguments.copy(tmem));
+				}
+			}
 		}
 
 		Object* request_body = object::new_obj(tmem);
@@ -98,7 +98,10 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 
 		String request_body_json = request_body.to_json(tmem);
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", tools_schema);
-		util::dump("logs/req_%s.json", request_body_json);
+		if (ctx.debug())
+		{
+			util::dump("logs/req_%s.json", request_body_json);
+		}
 
 		List{String} headers;
 		headers.init(tmem);
@@ -120,7 +123,10 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 				return API_ERROR~;
 			}
 
-			util::dump("logs/resp_%s.json", response.body);
+			if (ctx.debug())
+			{
+				util::dump("logs/resp_%s.json", response.body);
+			}
 			return read_response_to_message(ctx, response.body);
 		}
 		else
