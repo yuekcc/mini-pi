@@ -2,6 +2,29 @@
 
 **a pi coding agent clone, my own coding agent.**
 
+## 特性
+
+- [x] Agent Loop
+  - [x] 支持 OpenAI Chat Completions API
+  - [x] 多轮对话
+  - [x] 支持工具调用
+- [ ] 多 agent 支持
+  - [ ] 通过 --agent 指定 agent
+  - [ ] 通过 --agent-list 列出全部 agent
+  - [ ] 支持不同的 agent 配置不同的工具
+- [ ] 支持 Ralph Loop 长任务模式
+- [x] 内置工具 (7/7)
+  - [x] read
+  - [x] ls
+  - [x] grep (依赖 [rg](github.com/BurntSushi/ripgrep))
+  - [x] edit
+  - [x] write
+  - [x] bash
+  - [x] find (依赖 [fd](https://github.com/sharkdp/fd))
+- [x] 支持 AGENTS.md 文件(只支持当前目录)
+- [x] 审计日志 `~/.config/mp/workspace/${project_name}/${sessionId}.jsonl`
+- [x] 全局设置文件 `~/.config/mp/mp.json`
+
 ## 命令行用法
 
 ```bash
@@ -12,11 +35,19 @@ mp [选项]
 
 见 [docs/flags.md](docs/flags.md)
 
-## 架构图
+## 构建
 
-见 [docs/arch.md](docs/arch.md)
+需要最新版本 [c3c](https://github.com/c3lang/c3c/releases/tag/latest-prerelease-tag)
 
-## 模块说明
+```sh
+# 构建
+c3c build
+
+# 发布
+sh scripts/release.sh
+```
+
+### 模块说明
 
 | 模块         | 文件                         | 职责                                                  |
 | ------------ | ---------------------------- | ----------------------------------------------------- |
@@ -30,57 +61,10 @@ mp [选项]
 | **工具函数** | `util.c3`                    | JSON 转义、时间戳、日志转储 (宏)、ANSI 格式化 (宏)    |
 | **外部依赖** | `lib/`                       | `curl.c3l` (libcurl 绑定), `c3x::object` (JSON 处理)  |
 
-## TODOs
+### 架构图
 
-- [x] Agent loop
-  - [x] 支持 OpenAI Chat Completions API
-  - [x] 多轮交互
-  - [x] 支持调用工具
-  - [x] 支持 thinking 配置
-- [x] 工具 (7/7)
-  - [x] read
-  - [x] ls
-  - [x] grep
-  - [x] edit
-  - [x] write
-  - [x] bash
-  - [x] find (基于 fd)
-- [x] 第一次重构
-  - [x] 分层 ui-loop-request
-  - [x] 集成 libcurl
-  - [x] 日志转储 (dump 宏)
-  - [x] 集成 JSON 库 (已使用 c3x::object)
-- [ ] 第二次重构
-  - [ ] 改为基于 thread pool 的 event-loop 模式
-  - [ ] 增加工具事件
-- [x] 在 `~/.cache/mp/workspace/${project_name}/${sessionId}.jsonl` 目录保存日志
-- [x] 命令行参数支持
-- [x] ~~基础审计日志 (请求/响应自动转储至 logs/)~~
-- [ ] 多 agent 支持
-  - [ ] 通过 --agent 指定 agent
-  - [ ] 通过 --agent-list 列出全部 agent
-  - [ ] 支持不同的 agent 配置不同的工具
-- [ ] 支持 Ralph loop 模式
-- [ ] skills 支持
-- [x] 支持 AGENTS.md 文件
+见 [docs/arch.md](docs/arch.md)
 
-## 更新 libcurl-x64.dll
+### 更新 libcurl
 
-curl 官方的 windows 版本只提供了 mingw-w64 的 .a 文件. c3c 默认使用 msvc 编译的链接器，只支持 .lib。可以通过 lib 命令从 .def 文件生成 .lib：
-
-> 两个方法，二选一：
->
-> 1. 安装需要 msvc，可以使用 [portable-msvc.py](https://gist.github.com/mmozeiko/7f3162ec2988e81e56d5c4e22cde9977) 安装便携版。
-> 2. 安装 [zig](https://ziglang.org/download/)，zig 内置了 lib 的命令行功能，可以代替 msvc 的 lib.exe。
-
-在 msvc prompt 里执行：
-
-```cmd
-lib.exe /def:libcurl-x64.def /out:lib/curl.c3l\windows-x64\libcurl.lib /machine:x64
-```
-
-或使用 zig 内置的 lib 命令：
-
-```cmd
-zig lib /def:libcurl-x64.def /out:lib/curl.c3l/windows-x64/libcurl.lib /machine:x64
-```
+见 [docs/update-libcurl.md](docs/update-libcurl.md)
