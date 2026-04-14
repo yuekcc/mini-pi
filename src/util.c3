@@ -3,6 +3,7 @@ module util;
 import std::time::datetime;
 import std::io;
 import std::io::path;
+import std::os::env;
 
 fn String hash_path(Path file_path)
 {
@@ -84,3 +85,19 @@ macro bool dump(String $file_name_template, String content)
 {
 	return @ok(do_dump($file_name_template, content));
 }
+
+
+fn Path? get_agent_home()
+{
+	String home_dir_str = env::get_home_dir(tmem)!;
+	Path home_dir = path::new(tmem, home_dir_str)!;
+	Path mp_home = home_dir.append(tmem, string::format(tmem, ".config/mp"))!;
+	return mp_home;
+}
+
+fn String get_config_file(Allocator allocator)
+{
+	Path agent_home = get_agent_home()!!;
+	return agent_home.append(tmem, string::format(tmem, "mp.json"))!!.str_view().copy(allocator);
+}
+

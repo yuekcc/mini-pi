@@ -128,9 +128,8 @@ fn void Context.push_message(&self, Message* message)
 
 fn void Context.init_log_file(&self)
 {
-	String home_dir_str = env::get_home_dir(tmem)!!;
-	Path home_dir = path::new(tmem, home_dir_str)!!;
-	Path log_file = home_dir.append(tmem, 
+	Path mp_home = util::get_agent_home()!!;
+	Path log_file = mp_home.append(tmem, 
 		string::format(tmem, ".config/mp/workspace/%s/%s.jsonl", util::hash_path(path::new(tmem, self.cwd)), self.id))!!;
 
 	Path log_file_store_dir = log_file.parent()!!;
@@ -140,7 +139,6 @@ fn void Context.init_log_file(&self)
 	}
 
 	self.log_file_path = log_file.str_view().copy(self.allocator);
-	// self.log_file = file::open(self.log_file_path, "a+")!!;
 }
 
 fn void? Context.log_message(&self, Message* message)
