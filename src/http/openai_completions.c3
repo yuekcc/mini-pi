@@ -113,7 +113,9 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 		client.init();
 		defer client.free();
 
-		if (try Response response = client.post(ctx.init_options.url, request_body_json, &headers))
+		String url = string::format(tmem, "%s/chat/completions", ctx.init_options.base_url);
+
+		if (try Response response = client.post(url, request_body_json, &headers))
 		{
 			io::printfn(util::system_message("> Remote reply:\nstatus = %d\nbody = %s\n"), response.status_code, response.body);
 
