@@ -28,7 +28,7 @@ struct SystemConfig
 
 fn SystemConfig* SystemConfig.init_from_json(&self, Allocator allocator, String json)
 {
-	Object*? config = object::parse_string(tmem, json);
+	Object*? config = object::parse(tmem, json);
 	if (catch err = config)
 	{
 		io::printfn(util::error_message("Local config file failed, for %s"), err);

@@ -13,7 +13,7 @@ faultdef
 
 fn Message? read_response_to_message(Context* ctx, String json_doc)
 {
-	Object* res = object::parse_string(tmem, json_doc)!;
+	Object* res = object::parse(tmem, json_doc)!;
 	Object* choices = res.get("choices")!;
 	Object* last_choice = choices.get_at(0);
 

@@ -8,9 +8,9 @@ const String TEST_DATA = `{
 
 fn void test_c3x_object() @test
 {
-		Object* obj1 = object::parse_string(tmem, TEST_DATA)!!;
+		Object* obj1 = object::parse(tmem, TEST_DATA)!!;
 		String doc = obj1.to_json(tmem);
-		Object* obj2 = object::parse_string(tmem, doc)!!;
+		Object* obj2 = object::parse(tmem, doc)!!;
 
 		assert((obj1.get_string("name")!!) == (obj2.get_string("name")!!));
 		assert((obj1.get_string("arguments")!!) == (obj2.get_string("arguments")!!));

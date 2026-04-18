@@ -88,7 +88,7 @@ fn String ToolPool.schema(&self, Allocator allocator)
 	buf.append("]");
 
 	// 利用序列化/反序列化进行格式化
-	Object* schema_arr = object::parse_string(tmem, buf.str_view())!!;
+	Object* schema_arr = object::parse(tmem, buf.str_view())!!;
 
 	self.schema_cache = schema_arr.to_json(self.allocator);
 	return self.schema_cache.copy(allocator);
@@ -113,7 +113,7 @@ fn Message* ToolPool.dispatch(&self, Allocator allocator, String tool_call_id, T
 {
 	@pool()
 	{
-		Object* args = object::parse_string(tmem, tool_call.arguments)!!;
+		Object* args = object::parse(tmem, tool_call.arguments)!!;
 		Message* msg = alloc::new(allocator, Message);
 		msg.tool_call_id = tool_call_id;
 		msg.role = "tool";
