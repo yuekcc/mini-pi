@@ -48,6 +48,7 @@ fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options
 			case "grep": tools.push((Tool) alloc::new(allocator, GrepTool));
 			case "find": tools.push((Tool) alloc::new(allocator, FindTool));
 			case "ls": tools.push((Tool) alloc::new(allocator, LsTool));
+			case "task": tools.push((Tool) alloc::new(allocator, TaskTool));
 			default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s", tool_name));
 		}
 	}

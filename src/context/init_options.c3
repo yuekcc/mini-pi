@@ -14,6 +14,7 @@ const String DEFAULT_AGENT_NAME = "default";
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 
 faultdef
+	NO_OUTPUT_FILE,
 	NO_MODE_ID, // 未提供 model id
 	NO_TOOLS, // 未提供工具列表
 	NO_AGENT_NAME, // 未提供 Agent 名称
@@ -69,6 +70,7 @@ struct InitOptions (Printable)
 	String instructions; // AGENTS.md 内容
 	String tools;
 	String system_prompt;
+	String output_file;
 }
 
 fn sz? InitOptions.to_format(&self, Formatter* formatter) @dynamic
@@ -209,6 +211,13 @@ fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_TOOLS~;
 			self.tools = args[i];
+			continue;
+		}
+		else if (flag == "--output-file")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_OUTPUT_FILE~;
+			self.output_file = args[i];
 			continue;
 		}
 	}
