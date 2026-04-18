@@ -67,3 +67,15 @@ fn void test_tool_pool() @test
 
 	io::printfn("Tools Schema:\n%s", tool_pool.schema(tmem));
 }
+
+fn void test_subagent_python_version() @test
+{
+	// 使用子代理方式检查 Python 版本号
+	String prompt = "请执行 `python --version` 命令来检查 Python 版本，并将结果以纯文本形式返回。只需要返回版本号，例如：Python 3.x.x";
+	String result = tools::execute_task(tmem, "default", prompt, "检查 Python 版本号")!!;
+	io::printfn("子代理返回结果: %s", result);
+	
+	// 验证结果包含 Python 版本信息
+	assert(result.contains("Python"));
+	assert(result.contains("3."));
+}
