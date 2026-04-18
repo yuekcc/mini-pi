@@ -1,0 +1,28 @@
+{
+  "type": "function",
+  "function": {
+    "name": "bash",
+    "label": "bash",
+    "strict": true,
+    "description": "Run a subtask in a clean context and return a summary.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "type": "string",
+          "description": "Subagent name, without '@'"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "task details"
+        },
+        "description": {
+          "type": "string",
+          "description": "A short description for the task"
+        }
+      },
+      "required": ["command", "prompt", "description"],
+      "additionalProperties": false
+    }
+  }
+}
