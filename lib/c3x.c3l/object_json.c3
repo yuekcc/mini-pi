@@ -1,21 +1,31 @@
 module c3x::object;
-
 import std::io;
+import std::collections::object;
 
 faultdef UNEXPECTED_CHARACTER, INVALID_ESCAPE_SEQUENCE, INVALID_NUMBER, MAX_DEPTH_REACHED;
 
 int max_depth = 128;
 
-fn Object*? parse_string(Allocator allocator, String s)
+enum JsonFlavor
 {
-	return parse(allocator, (ByteReader){}.init(s));
+	JSON,
+	JSONC
+}
+fn Object*? parse(Allocator allocator, String s, JsonFlavor flavor = JSONC)
+{
+	return load(allocator, (ByteReader){}.init(s), flavor);
 }
 
-fn Object*? parse(Allocator allocator, InStream s)
+fn Object*? tparse(String s, JsonFlavor flavor = JSONC)
+{
+	return load(tmem, (ByteReader){}.init(s));
+}
+
+fn Object*? load(Allocator allocator, InStream s, JsonFlavor flavor = JSONC)
 {
 	@stack_mem(512; Allocator smem)
 	{
-		JsonContext context = { .last_string = dstring::new_with_capacity(smem, 64), .stream = s, .allocator = allocator };
+		JsonContext context = { .last_string = dstring::new_with_capacity(smem, 64), .stream = s, .allocator = allocator, .flavor = flavor };
 		@pool()
 		{
 			return parse_any(&context)!;
@@ -23,9 +33,9 @@ fn Object*? parse(Allocator allocator, InStream s)
 	};
 }
 
-fn String Object.to_json(&self, Allocator allocator)
+fn Object*? temp_load(InStream s, JsonFlavor flavor = JSONC)
 {
-	return string::format(allocator, "%s", self);
+	return load(tmem, s, flavor);
 }
 
 // -- Implementation follows --
@@ -49,21 +59,17 @@ enum JsonTokenType @local
 
 struct JsonContext @local
 {
-	uint line;
 	InStream stream;
 	Allocator allocator;
 	JsonTokenType token;
 	DString last_string;
 	double last_number;
-	char current;
 	int depth;
-	bitstruct : char
-	{
-		bool skip_comments;
-		bool reached_end;
-		bool pushed_back;
-	}
-
+	int line;
+	char current;
+	bool reached_end;
+	bool pushed_back;
+	JsonFlavor flavor;
 }
 
 
@@ -78,8 +84,8 @@ fn Object*? parse_from_token(JsonContext* context, JsonTokenType token) @local
 		case RBRACE:
 		case RBRACKET:
 		case COLON: return UNEXPECTED_CHARACTER~;
-		case STRING: return object::new_string(context.last_string.str_view(), context.allocator);
-		case NUMBER: return object::new_float(context.last_number, context.allocator);
+		case STRING: return object::new_string(context.allocator, context.last_string.str_view());
+		case NUMBER: return object::new_float(context.allocator, context.last_number);
 		case TRUE: return object::new_bool(true);
 		case FALSE: return object::new_bool(false);
 		case NULL: return object::new_null();
@@ -157,9 +163,9 @@ fn Object*? parse_map(JsonContext* context) @local
 	@stack_mem(256; Allocator mem)
 	{
 		DString temp_key = dstring::new_with_capacity(mem, 32);
-		while (token != JsonTokenType.RBRACE)
+		while (token != RBRACE)
 		{
-			if (token != JsonTokenType.STRING) return UNEXPECTED_CHARACTER~;
+			if (token != STRING) return UNEXPECTED_CHARACTER~;
 			DString string = context.last_string;
 			// Copy the key to our temp holder, since our
 			// last_string may be used in parse_any
@@ -169,12 +175,13 @@ fn Object*? parse_map(JsonContext* context) @local
 			Object* element = parse_any(context)!;
 			map.set(temp_key.str_view(), element);
 			token = advance(context)!;
-			if (token == JsonTokenType.COMMA)
+			if (token == COMMA)
 			{
 				token = advance(context)!;
+				if (token == RBRACE && context.flavor == JSON) return UNEXPECTED_CHARACTER~;
 				continue;
 			}
-			if (token != JsonTokenType.RBRACE) return UNEXPECTED_CHARACTER~;
+			if (token != RBRACE) return UNEXPECTED_CHARACTER~;
 		}
 		return map;
 	};
@@ -187,17 +194,18 @@ fn Object*? parse_array(JsonContext* context) @local
 	defer context.depth--;
 	if (++context.depth >= max_depth) return MAX_DEPTH_REACHED~;
 	JsonTokenType token = advance(context)!;
-	while (token != JsonTokenType.RBRACKET)
+	while (token != RBRACKET)
 	{
 		Object* element = parse_from_token(context, token)!;
 		list.push(element);
 		token = advance(context)!;
-		if (token == JsonTokenType.COMMA)
+		if (token == COMMA)
 		{
 			token = advance(context)!;
+			if (token == RBRACKET && context.flavor == JSON) return UNEXPECTED_CHARACTER~;
 			continue;
 		}
-		if (token != JsonTokenType.RBRACKET) return UNEXPECTED_CHARACTER~;
+		if (token != RBRACKET) return UNEXPECTED_CHARACTER~;
 	}
 	return list;
 }
@@ -254,8 +262,21 @@ fn JsonTokenType? advance(JsonContext* context) @local
 			case '\v':
 				continue;
 			case '/':
-				if (!context.skip_comments) break WS;
+				if (context.flavor == JSON) break WS;
 				c = read_next(context)!;
+				if (c == '/')
+				{
+					while (try ch = read_next(context))
+					{
+						if (ch == '\n')
+						{
+							context.line++;
+							pushback(context, ch);
+							continue WS;
+						}
+					}
+					break WS;
+				}
 				if (c != '*')
 				{
 					pushback(context, c);
@@ -378,7 +399,7 @@ fn JsonTokenType? lex_string(JsonContext* context)
 				{
 					c = read_next(context)!;
 					if (!c.is_xdigit()) return INVALID_ESCAPE_SEQUENCE~;
-					val = val << 4 + (c > '9' ? (c | 32) - 'a' + 10 : c - '0');
+					val = val << 4u + (c > '9' ? (c | 32u) - 'a' + 10u : c - '0');
 				}
 				context.last_string.append_char32(val);
 				continue;
