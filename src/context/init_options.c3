@@ -12,6 +12,7 @@ const String PROVIDER_API_KEY = "sk-1234";
 const String DEFAULT_MODEL_ID = "minimax.com/MiniMax-M2.7";
 const String DEFAULT_AGENT_NAME = "default";
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
+const String DEFAULT_TOOLS = "read,bash,edit,write,grep,find,ls,task";
 
 faultdef
 	NO_OUTPUT_FILE,
@@ -160,7 +161,7 @@ fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
 	self.api_key = PROVIDER_API_KEY;
 	self.headless = false;
 	self.init_message = "";
-	self.tools = "read,bash,edit,write,grep,find,ls";
+	self.tools = DEFAULT_TOOLS;
 
 	for (usz i = 1; i < args.len; i++)
 	{

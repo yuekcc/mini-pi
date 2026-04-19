@@ -39,7 +39,7 @@ fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options
 
 	foreach (tool_name : allowed_tools)
 	{
-		switch (tool_name)
+		switch (tool_name.trim())
 		{
 			case "read": tools.push((Tool) alloc::new(allocator, ReadTool));
 			case "bash": tools.push((Tool) alloc::new(allocator, BashTool));
@@ -49,7 +49,7 @@ fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options
 			case "find": tools.push((Tool) alloc::new(allocator, FindTool));
 			case "ls": tools.push((Tool) alloc::new(allocator, LsTool));
 			case "task": tools.push((Tool) alloc::new(allocator, TaskTool));
-			default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s", tool_name));
+			default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s", tool_name.trim()));
 		}
 	}
 

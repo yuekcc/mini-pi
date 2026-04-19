@@ -4,7 +4,7 @@
     "name": "bash",
     "label": "bash",
     "strict": true,
-    "description": "Run a subtask in a clean context and return a summary.",
+    "description": "Run a subagent in a clean context and return a summary.",
     "parameters": {
       "type": "object",
       "properties": {

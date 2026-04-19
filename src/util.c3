@@ -87,17 +87,22 @@ macro bool dump(String $file_name_template, String content)
 }
 
 
-fn Path? get_agent_home()
+fn Path get_agent_home()
 {
-	String home_dir_str = env::get_home_dir(tmem)!;
-	Path home_dir = path::new(tmem, home_dir_str)!;
-	Path mp_home = home_dir.append(tmem, string::format(tmem, ".config/mp"))!;
+	String home_dir_str = env::get_home_dir(tmem)!!;
+	Path home_dir = path::new(tmem, home_dir_str)!!;
+	Path mp_home = home_dir.append(tmem, string::format(tmem, ".config/mp"))!!;
+	if (!path::exists(mp_home))
+	{
+		path::mkdir(mp_home, true)!!;
+	}
+
 	return mp_home;
 }
 
 fn String get_config_file(Allocator allocator)
 {
-	Path agent_home = get_agent_home()!!;
+	Path agent_home = get_agent_home();
 	return agent_home.append(tmem, string::format(tmem, "mp.json"))!!.str_view().copy(allocator);
 }
 

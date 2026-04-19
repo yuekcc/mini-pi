@@ -128,14 +128,14 @@ fn void Context.push_message(&self, Message* message)
 
 fn String Context.get_workspace(&self)
 {
-	Path mp_home = util::get_agent_home()!!;
+	Path mp_home = util::get_agent_home();
 	Path workspace = mp_home.append(tmem, string::format(tmem, ".config/mp/workspace/%s", util::hash_path(path::new(tmem, self.cwd))))!!;
 	return workspace.str_view();
 }
 
 fn void Context.init_log_file(&self)
 {
-	Path mp_home = util::get_agent_home()!!;
+	Path mp_home = util::get_agent_home();
 	Path log_file = mp_home.append(tmem, 
 		string::format(tmem, ".config/mp/workspace/%s/%s.jsonl", util::hash_path(path::new(tmem, self.cwd)), self.id))!!;
 
