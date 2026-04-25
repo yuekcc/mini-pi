@@ -18,7 +18,16 @@ fn String? execute_task(Allocator allocator, String agent_name, String prompt, S
 		path::mkdir(output_file.parent()!!, true)!!;
 	}
 
-	String[] final_command = {"mp", "--agent", agent_name, "--headless", "--init-message", prompt, "--output-file", output_file.str_view()};
+	String[] final_command = {
+		"mp",
+		"--agent",
+		agent_name,
+		"--headless",
+		"--task",
+		prompt,
+		"--output-file",
+		output_file.str_view()
+	};
 	io::printfn(util::system_message("> Launch subagent '%s' for %s"), agent_name, description);
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
@@ -33,7 +42,6 @@ fn String? execute_task(Allocator allocator, String agent_name, String prompt, S
 	io::printfn(util::system_message("> Subagent failed"));
 	return "ERROR, launch task failed";
 }
-
 
 
 const String TASK_SCHEMA = (String)$embed("task_tool_schema.json");
