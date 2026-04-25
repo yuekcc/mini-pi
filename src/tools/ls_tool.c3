@@ -10,7 +10,7 @@ import cmd;
 
 fn String? ls(Allocator allocator, String file_path = "", int limit = 500)
 {
-	String[] final_command = file_path != "" ? {"ls", "-ahl", file_path} : {"ls", "-ahl"};
+	String[] final_command = file_path != "" ? { "ls", "-ahl", file_path } : { "ls", "-ahl" };
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
 	{

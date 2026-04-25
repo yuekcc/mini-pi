@@ -19,7 +19,7 @@ fn String hash_path(Path file_path)
 	{
 		buf.append(part[0]);
 	}
-	
+
 	String basename = file_path.basename();
 	buf.append("_");
 	buf.append(basename);
@@ -35,7 +35,7 @@ fn String normalize_line_endings(Allocator allocator, String str)
 fn String pad_start(Allocator allocator, usz target_length, String pad_str)
 {
 	DString buf = dstring::new(tmem);
-	for(usz i = 0; i < target_length; i++)
+	for (usz i = 0; i < target_length; i++)
 	{
 		buf.append(pad_str);
 	}
@@ -43,8 +43,18 @@ fn String pad_start(Allocator allocator, usz target_length, String pad_str)
 	return buf.copy_str(allocator);
 }
 
-fn String timestamp(Allocator allocator, TzDateTime dt) {
-	return string::format(allocator, "%04d%02d%02d_%02d%02d%02d", dt.year, dt.month.ordinal + 1, dt.day, dt.hour, dt.min, dt.sec);
+fn String timestamp(Allocator allocator, TzDateTime dt)
+{
+	return string::format(
+		allocator,
+		"%04d%02d%02d_%02d%02d%02d",
+		dt.year,
+		dt.month.ordinal + 1,
+		dt.day,
+		dt.hour,
+		dt.min,
+		dt.sec
+	);
 }
 
 fn String timestamp_id(Allocator allocator)
@@ -105,4 +115,3 @@ fn String get_config_file(Allocator allocator)
 	Path agent_home = get_agent_home();
 	return agent_home.append(tmem, string::format(tmem, "mp.json"))!!.str_view().copy(allocator);
 }
-

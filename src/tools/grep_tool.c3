@@ -8,7 +8,16 @@ import c3x::object;
 import cmd;
 
 
-fn String? grep(Allocator allocator, String pattern, String file_path = "", String glob = "", bool ignore_case = false, bool literal = false, int context = 0, int limit = 100)
+fn String? grep(
+	Allocator allocator,
+	String pattern,
+	String file_path = "",
+	String glob = "",
+	bool ignore_case = false,
+	bool literal = false,
+	int context = 0,
+	int limit = 100
+)
 {
 	List{String} final_command;
 	final_command.init(tmem);

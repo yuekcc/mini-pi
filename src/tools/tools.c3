@@ -10,11 +10,8 @@ import util;
 import context;
 
 faultdef
-	EXECUTE_LS_COMMAND_ERROR,
-	EXECUTE_RIPGREP_COMMAND_ERROR,
-	EXECUTE_FD_COMMAND_ERROR,
-	EXECUTE_BASH_COMMAND_ERROR,
-	UNKNOWN_TOOL;
+	EXECUTE_LS_COMMAND_ERROR, EXECUTE_RIPGREP_COMMAND_ERROR, EXECUTE_FD_COMMAND_ERROR, EXECUTE_BASH_COMMAND_ERROR, UNKNOWN_TOOL
+;
 
 interface Tool
 {
@@ -41,14 +38,14 @@ fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options
 	{
 		switch (tool_name.trim())
 		{
-			case "read": tools.push((Tool) alloc::new(allocator, ReadTool));
-			case "bash": tools.push((Tool) alloc::new(allocator, BashTool));
-			case "edit": tools.push((Tool) alloc::new(allocator, EditTool));
-			case "write": tools.push((Tool) alloc::new(allocator, WriteTool));
-			case "grep": tools.push((Tool) alloc::new(allocator, GrepTool));
-			case "find": tools.push((Tool) alloc::new(allocator, FindTool));
-			case "ls": tools.push((Tool) alloc::new(allocator, LsTool));
-			case "task": tools.push((Tool) alloc::new(allocator, TaskTool));
+			case "read": tools.push((Tool)alloc::new(allocator, ReadTool));
+			case "bash": tools.push((Tool)alloc::new(allocator, BashTool));
+			case "edit": tools.push((Tool)alloc::new(allocator, EditTool));
+			case "write": tools.push((Tool)alloc::new(allocator, WriteTool));
+			case "grep": tools.push((Tool)alloc::new(allocator, GrepTool));
+			case "find": tools.push((Tool)alloc::new(allocator, FindTool));
+			case "ls": tools.push((Tool)alloc::new(allocator, LsTool));
+			case "task": tools.push((Tool)alloc::new(allocator, TaskTool));
 			default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s", tool_name.trim()));
 		}
 	}
@@ -61,7 +58,7 @@ fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options
 
 fn void ToolPool.free(&self)
 {
-	foreach (&tool: self.tools)
+	foreach (&tool : self.tools)
 	{
 		alloc::free(self.allocator, tool);
 	}
@@ -77,7 +74,7 @@ fn String ToolPool.schema(&self, Allocator allocator)
 	DString buf = dstring::new(tmem);
 	bool tool_added = false;
 	buf.append("[");
-	foreach (tool: self.tools)
+	foreach (tool : self.tools)
 	{
 		if (tool_added)
 		{
@@ -99,7 +96,7 @@ fn String? ToolPool.do_dispatch(&self, Allocator allocator, String id, String na
 {
 	io::printfn(util::system_message("> Dispatch tool call. Use id = %s, name = %s, args = %s\n"), id, name, args);
 
-	foreach (&tool: self.tools)
+	foreach (&tool : self.tools)
 	{
 		if (tool.name() == name)
 		{
@@ -122,7 +119,12 @@ fn Message* ToolPool.dispatch(&self, Allocator allocator, String tool_call_id, T
 		String? result = self.do_dispatch(tmem, tool_call_id, tool_call.name, args);
 		if (catch excuse = result)
 		{
-			msg.content = string::format(allocator, "Execute %s tool failed, for %s. You should retry carefully", tool_call.name, excuse);
+			msg.content = string::format(
+				allocator,
+				"Execute %s tool failed, for %s. You should retry carefully",
+				tool_call.name,
+				excuse
+			);
 			msg.role = "tool";
 		}
 		else

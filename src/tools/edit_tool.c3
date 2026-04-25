@@ -8,7 +8,8 @@ import c3x::object;
 import cmd;
 import util;
 
-fn String? edit(Allocator allocator, String file_path, String old_text, String new_text) {
+fn String? edit(Allocator allocator, String file_path, String old_text, String new_text)
+{
 	Path path_obj = path::new(tmem, file_path)!;
 
 	String content = (String)file::load_path(tmem, path_obj)!;

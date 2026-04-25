@@ -9,7 +9,7 @@ import cmd;
 
 fn String? bash(Allocator allocator, String command, int timeout_s = -1)
 {
-	String[] final_command = {"sh", "-c", command};
+	String[] final_command = { "sh", "-c", command };
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
 	{

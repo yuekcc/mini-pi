@@ -43,10 +43,10 @@ fn Object* Message.to_object(&self, Allocator allocator)
 			Object* tool_call = object::new_obj(allocator);
 			tool_calls.push(tool_call);
 
-			tool_call.set("id",  self.tool_call_id.copy(allocator));
-			tool_call.set("index",  0);
+			tool_call.set("id", self.tool_call_id.copy(allocator));
+			tool_call.set("index", 0);
 			Object* function = object::new_obj(allocator);
-			tool_call.set("function",  function);
+			tool_call.set("function", function);
 
 			function.set("name", self.tool_call.name.copy(allocator));
 			function.set("arguments", self.tool_call.arguments.copy(allocator));
@@ -82,14 +82,14 @@ fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options)
 	self.id = util::timestamp_id(allocator);
 	self.topic = "TBA";
 	self.init_options = init_options;
-	self.messages = {};
+	self.messages = { };
 	self.messages.init(allocator);
 	self.cwd = path::cwd(tmem)!!.str_view().copy(allocator);
 
 	// 顺序有关
 	self.init_log_file();
 	self.reset();
-	
+
 
 	return self;
 }
@@ -129,15 +129,20 @@ fn void Context.push_message(&self, Message* message)
 fn String Context.get_workspace(&self)
 {
 	Path mp_home = util::get_agent_home();
-	Path workspace = mp_home.append(tmem, string::format(tmem, ".config/mp/workspace/%s", util::hash_path(path::new(tmem, self.cwd))))!!;
+	Path workspace = mp_home.append(
+		tmem,
+		string::format(tmem, ".config/mp/workspace/%s", util::hash_path(path::new(tmem, self.cwd)))
+	)!!;
 	return workspace.str_view();
 }
 
 fn void Context.init_log_file(&self)
 {
 	Path mp_home = util::get_agent_home();
-	Path log_file = mp_home.append(tmem, 
-		string::format(tmem, ".config/mp/workspace/%s/%s.jsonl", util::hash_path(path::new(tmem, self.cwd)), self.id))!!;
+	Path log_file = mp_home.append(
+		tmem,
+		string::format(tmem, ".config/mp/workspace/%s/%s.jsonl", util::hash_path(path::new(tmem, self.cwd)), self.id)
+	)!!;
 
 	Path log_file_store_dir = log_file.parent()!!;
 	if (!path::exists(log_file_store_dir))
@@ -160,14 +165,16 @@ fn void? Context.log_message(&self, Message* message)
 
 fn void Context.reset(&self)
 {
-	Message system_msg = {
-		.role = "system",
-	};
+	Message system_msg = { .role = "system", };
 
 	if (self.init_options.enable_agents_md)
 	{
-		system_msg.content = string::format(self.allocator,
-			"%s\n----\n%s", self.init_options.system_prompt, self.init_options.instructions);
+		system_msg.content = string::format(
+			self.allocator,
+			"%s\n----\n%s",
+			self.init_options.system_prompt,
+			self.init_options.instructions
+		);
 	}
 	else
 	{

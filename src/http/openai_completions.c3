@@ -8,8 +8,8 @@ import context;
 import util;
 
 faultdef
-	API_ERROR,
-	EMPTY_RESPONSE;
+	API_ERROR, EMPTY_RESPONSE
+;
 
 fn Message? read_response_to_message(Context* ctx, String json_doc)
 {
@@ -30,7 +30,10 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 		};
 		if (try Object* tool_calls = message.get("tool_calls"))
 		{
-			io::printfn(util::system_message("> Found tool calls = %s\n"), string::format(ctx.allocator, "%s", tool_calls));
+			io::printfn(
+				util::system_message("> Found tool calls = %s\n"),
+				string::format(ctx.allocator, "%s", tool_calls)
+			);
 			Object* tool_call = tool_calls.get_at(0);
 			if (tool_call != null)
 			{
@@ -74,10 +77,10 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 					Object* tool_call = object::new_obj(tmem);
 					tool_calls.push(tool_call);
 
-					tool_call.set("id",  msg.tool_call_id.copy(tmem));
-					tool_call.set("index",  0);
+					tool_call.set("id", msg.tool_call_id.copy(tmem));
+					tool_call.set("index", 0);
 					Object* function = object::new_obj(tmem);
-					tool_call.set("function",  function);
+					tool_call.set("function", function);
 
 					function.set("name", msg.tool_call.name.copy(tmem));
 					function.set("arguments", msg.tool_call.arguments.copy(tmem));
@@ -117,7 +120,11 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 
 		if (try Response response = client.post(url, request_body_json, &headers))
 		{
-			io::printfn(util::system_message("> Remote reply:\nstatus = %d\nbody = %s\n"), response.status_code, response.body);
+			io::printfn(
+				util::system_message("> Remote reply:\nstatus = %d\nbody = %s\n"),
+				response.status_code,
+				response.body
+			);
 
 			if (response.status_code != 200)
 			{

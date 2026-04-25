@@ -27,7 +27,7 @@ fn void escape_dstring(DString result, String s, bool strip_quotes) @private
 	{
 		switch (c)
 		{
-			case '"':  result.append(`\"`);
+			case '"': result.append(`\"`);
 			case '\\': result.append(`\\`);
 			case '\b': result.append(`\b`);
 			case '\f': result.append(`\f`);
@@ -42,7 +42,6 @@ fn void escape_dstring(DString result, String s, bool strip_quotes) @private
 	}
 
 	if (!strip_quotes) result.append_char('"');
-
 }
 
 fn String? unescape(Allocator allocator, String s, bool allow_unquoted = false, bool lenient = false)
@@ -91,16 +90,16 @@ fn void? unescape_dstring(String s, DString result, bool allow_unquoted = false,
 		char escape_char = s[++i];
 		switch (escape_char)
 		{
-			case '"':  result.append_char('"');
+			case '"': result.append_char('"');
 			case '\\': result.append_char('\\');
-			case '/':  result.append_char('/');
-			case 'b':  result.append_char('\b');
-			case 'f':  result.append_char('\f');
-			case 'n':  result.append_char('\n');
-			case 'r':  result.append_char('\r');
-			case 't':  result.append_char('\t');
-			case 'v':  result.append_char('\v');
-			case '0':  result.append_char('\0');
+			case '/': result.append_char('/');
+			case 'b': result.append_char('\b');
+			case 'f': result.append_char('\f');
+			case 'n': result.append_char('\n');
+			case 'r': result.append_char('\r');
+			case 't': result.append_char('\t');
+			case 'v': result.append_char('\v');
+			case '0': result.append_char('\0');
 			case 'x':
 				// Hex escape \xHH
 				if (i + 2 >= len) return string::INVALID_HEX_ESCAPE~;

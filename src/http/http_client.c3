@@ -97,10 +97,7 @@ fn Response? HttpClient.request(&self, String url, String method, List{String}* 
 	int response_code = 0;
 	curl::easy_getinfo(self.curl, (curl::CurlInfoType)2097154, &response_code); // RESPONSE_CODE
 
-	Response response = {
-		.status_code = response_code,
-		.body = self.response_buffer.str_view().copy(tmem),
-	};
+	Response response = { .status_code = response_code, .body = self.response_buffer.str_view().copy(tmem), };
 
 	return response;
 }

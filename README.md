@@ -8,7 +8,7 @@
   - [x] 支持 OpenAI Chat Completions API
   - [x] 多轮对话
   - [x] 支持工具调用
-- [x] 内置工具 (7/7)
+- [x] 内置工具
   - [x] read
   - [x] ls
   - [x] grep (依赖 [rg](github.com/BurntSushi/ripgrep))

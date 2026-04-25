@@ -16,7 +16,7 @@ fn String pad_line_numbers(Allocator allocator, String content)
 	DString buf = dstring::new(tmem);
 	foreach (i, &line : lines)
 	{
-		String line_num = string::format(tmem, "%d", i+1);
+		String line_num = string::format(tmem, "%d", i + 1);
 		buf.appendf("%s%s: %s\n", util::pad_start(tmem, width - line_num.len, "0"), line_num, *line);
 	}
 
