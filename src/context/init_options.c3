@@ -5,6 +5,7 @@ import std::os;
 import std::time::datetime;
 
 import c3x::object;
+import cli;
 import util;
 
 const String PROVIDER_URL = "http://127.0.0.1:1234";
@@ -51,7 +52,7 @@ fn SystemConfig* SystemConfig.init_from_json(&self, Allocator allocator, String 
 	{
 		self.model_id = config.get_string("model_id")!!.copy(allocator);
 	}
-	
+
 	return self;
 }
 
@@ -150,7 +151,33 @@ fn void try_load_config_file(Allocator allocator, InitOptions* init_options)
 			init_options.model_id = config.model_id.copy(allocator);
 		}
 	}
+}
 
+fn void try_load_from_cli(Allocator allocator, InitOptions* init_options, String[] args)
+{
+	CliOptions cli_opts;
+	bool read_cli_ok = @ok(cli_opts.init(args));
+	if (!read_cli_ok)
+	{
+		return;
+	}
+
+	init_options.agent_name = cli_opts.agent.copy(allocator);
+	init_options.model_id = cli_opts.model.copy(allocator);
+	init_options.tools = cli_opts.tools.copy(allocator);
+	init_options.headless = cli_opts.headless;
+	init_options.init_message = cli_opts.task.copy(allocator);
+	init_options.print_help = cli_opts.help;
+	init_options.print_version = cli_opts.version;
+	init_options.debug = cli_opts.debug;
+
+	if (cli_opts.task == "" && cli_opts.file != "")
+	{
+		if (try content = (String)file::load(tmem, cli_opts.file))
+		{
+			init_options.init_message = content.copy(allocator);
+		}
+	}
 }
 
 fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
@@ -161,67 +188,8 @@ fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
 	self.api_key = PROVIDER_API_KEY;
 	self.headless = false;
 	self.init_message = "";
-	self.tools = DEFAULT_TOOLS;
 
-	for (usz i = 1; i < args.len; i++)
-	{
-		String flag = args[i];
-		if (flag == "--agent")
-		{
-			i += 1;
-			if (i >= args.len || args[i] == "") return NO_AGENT_NAME~;
-			self.agent_name = args[i];
-			continue;
-		}
-		else if (flag == "--model")
-		{
-			i += 1;
-			if (i >= args.len || args[i] == "") return NO_MODE_ID~;
-			self.model_id = args[i];
-			continue;
-		}
-		else if (flag == "--headless")
-		{
-			self.headless = true;
-			continue;
-		}
-		else if (flag == "--init-message")
-		{
-			i += 1;
-			if (i >= args.len || args[i] == "") return NO_INIT_MESSAGE~;
-			self.init_message = args[i];
-			continue;
-		}
-		else if (flag == "--version" || flag == "-v")
-		{
-			self.print_version = true;
-			continue;
-		}
-		else if (flag == "--debug")
-		{
-			self.debug = true;
-			continue;
-		}
-		else if (flag == "--help" || flag == "-h")
-		{
-			self.print_help = true;
-			continue;
-		}
-		else if (flag == "--tools")
-		{
-			i += 1;
-			if (i >= args.len || args[i] == "") return NO_TOOLS~;
-			self.tools = args[i];
-			continue;
-		}
-		else if (flag == "--output-file")
-		{
-			i += 1;
-			if (i >= args.len || args[i] == "") return NO_OUTPUT_FILE~;
-			self.output_file = args[i];
-			continue;
-		}
-	}
+	try_load_from_cli(allocator, self, args);
 
 	try_load_system_prompt(allocator, self);
 

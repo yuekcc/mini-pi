@@ -11,7 +11,7 @@ import context;
 import util;
 import tools;
 import http;
-import flags;
+import cli;
 
 fn void print_last_message(Context* ctx)
 {
@@ -24,7 +24,6 @@ fn void print_last_message(Context* ctx)
 		{
 			io::printfn("");
 			return;
-
 		}
 
 		if (msg.role == "tool")
@@ -91,10 +90,7 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 			}
 			else
 			{
-				Message message = {
-					.role = "user",
-					.content = ctx.init_options.init_message,
-				};
+				Message message = { .role = "user", .content = ctx.init_options.init_message, };
 				ctx.push_message(&message);
 				print_last_message(ctx);
 				init_message_added = true;
@@ -130,13 +126,13 @@ fn int main(String[] args)
 
 	if (init_options.print_help)
 	{
-		flags::print_help();
+		cli::print_help();
 		return 0;
 	}
 
 	if (init_options.print_version)
 	{
-		flags::print_version();
+		cli::print_version();
 		return 0;
 	}
 
