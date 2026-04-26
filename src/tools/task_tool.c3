@@ -28,7 +28,7 @@ fn String? execute_task(Allocator allocator, String agent_name, String prompt, S
 		"--output-file",
 		output_file.str_view()
 	};
-	io::printfn(util::system_message("> Launch subagent '%s' for %s"), agent_name, description);
+	io::printfn(util::system_message("> Launch subagent '%s' for %s, result will save to %s"), agent_name, description, output_file.str_view());
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
 	{
@@ -39,7 +39,7 @@ fn String? execute_task(Allocator allocator, String agent_name, String prompt, S
 		}
 	}
 
-	io::printfn(util::system_message("> Subagent failed"));
+	io::printfn(util::system_message("> Subagent failed, %s"), result.output);
 	return "ERROR, launch task failed";
 }
 
@@ -64,7 +64,7 @@ fn String TaskTool.schema(&self) @dynamic
 
 fn String? TaskTool.execute(&self, Allocator allocator, Object* args) @dynamic
 {
-	String agent_name = args.get_string("agent") ?? "";
+	String agent_name = args.get_string("agent") ?? "default";
 	String prompt = args.get_string("prompt") ?? "";
 	String description = args.get_string("description") ?? "";
 

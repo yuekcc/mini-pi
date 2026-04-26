@@ -157,6 +157,7 @@ fn void try_load_from_cli(Allocator allocator, InitOptions* init_options, String
 	init_options.print_help = cli_opts.help;
 	init_options.print_version = cli_opts.version;
 	init_options.debug = cli_opts.debug;
+	init_options.output_file = cli_opts.output_file.copy(allocator);
 
 	if (cli_opts.task == "" && cli_opts.file != "")
 	{

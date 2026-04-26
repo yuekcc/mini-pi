@@ -17,6 +17,7 @@
   - [x] bash
   - [x] find (依赖 [fd](https://github.com/sharkdp/fd))
   - [x] task
+  - [ ] skill
 - [x] 通过 task 工具启动一个子 agent
 - [ ] 多 agent 支持
   - [ ] 通过 --agent 指定 agent
