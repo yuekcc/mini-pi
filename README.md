@@ -23,6 +23,7 @@
   - [ ] 通过 --agent-list 列出全部 agent
   - [ ] 支持不同的 agent 配置不同的工具
 - [ ] 支持 Ralph Loop 长任务模式
+- [ ] 内置 PDCA-based SDD 流程
 - [x] 支持 AGENTS.md 文件(只支持当前目录)
 - [x] 审计日志 `~/.config/mp/workspace/${project_name}/${sessionId}.jsonl`
 - [x] 全局设置文件 `~/.config/mp/mp.json`
