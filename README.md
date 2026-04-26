@@ -23,7 +23,7 @@
   - [ ] 通过 --agent 指定 agent
   - [ ] 通过 --agent-list 列出全部 agent
   - [ ] 支持不同的 agent 配置不同的工具
-- [ ] 支持 Ralph Loop 长任务模式
+- [x] 支持 Ralph Loop 长任务模式：通过子agent方式可以实现类似效果，参考 [ralph-loop-task.md](docs/ralph-loop-task.md)
 - [ ] 内置 PDCA-based SDD 流程
 - [x] 支持 AGENTS.md 文件(只支持当前目录)
 - [x] 审计日志 `~/.config/mp/workspace/${project_name}/${sessionId}.jsonl`
