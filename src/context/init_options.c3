@@ -86,19 +86,6 @@ fn sz? InitOptions.to_format(&self, Formatter* formatter) @dynamic
 	return count;
 }
 
-fn void try_load_user_prompt(Allocator allocator, InitOptions* init_options) @local
-{
-	if (!init_options.init_message.starts_with("@"))
-	{
-		return;
-	}
-
-	String file_name = init_options.init_message.trim_left("@");
-	if (try content = (String)file::load(tmem, file_name))
-	{
-		init_options.init_message = content.copy(allocator);
-	}
-}
 
 fn void try_load_instructions(Allocator allocator, InitOptions* init_options) @local
 {
@@ -194,8 +181,6 @@ fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
 	try_load_system_prompt(allocator, self);
 
 	try_load_instructions(allocator, self);
-
-	try_load_user_prompt(allocator, self);
 
 	try_load_config_file(allocator, self);
 
