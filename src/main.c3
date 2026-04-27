@@ -52,7 +52,7 @@ fn Message* read_input(Context* ctx)
 
 fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 {
-	print_last_message(ctx);
+	// print_last_message(ctx);
 
 	// 是否需要调用工具
 	bool calling_tools = false;

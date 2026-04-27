@@ -78,10 +78,11 @@ struct InitOptions (Printable)
 fn sz? InitOptions.to_format(&self, Formatter* formatter) @dynamic
 {
 	sz count = 0;
-	count += formatter.printf(util::system_message("Start mp with agent %s@%s, headless is %s\n"), self.agent_name, self.model_id, self.headless)!;
-	count += formatter.printf(util::system_message("Load AGENTS.md: %s\n"), self.enable_agents_md)!;
-	count += formatter.printf(util::system_message("Allowed tools: %s\n"), self.tools)!;
-	count += formatter.printf(util::system_message("API: %s\n"), self.base_url)!;
+	count += formatter.printf(util::system_message("\nStart mp@%s\n\n"), self.agent_name)!;
+	count += formatter.printf(util::system_message("Enable tools: %s\n"), self.tools)!;
+	count += formatter.printf(util::system_message("Enable headless mode：%s\n"), self.headless)!;
+	count += formatter.printf(util::system_message("Enable AGENTS.md: %s\n"), self.enable_agents_md)!;
+	count += formatter.printf(util::system_message("\nModel: %s@%s\n"), self.model_id, self.base_url)!;
 
 	return count;
 }
@@ -177,13 +178,13 @@ fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
 	self.headless = false;
 	self.init_message = "";
 
+	try_load_config_file(allocator, self);
+
 	try_load_from_cli(allocator, self, args);
 
 	try_load_system_prompt(allocator, self);
 
 	try_load_instructions(allocator, self);
-
-	try_load_config_file(allocator, self);
 
 	return self;
 }
