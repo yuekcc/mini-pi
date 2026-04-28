@@ -16,11 +16,12 @@ const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 const String DEFAULT_TOOLS = "read,bash,edit,write,grep,find,ls,task";
 
 faultdef
-	NO_OUTPUT_FILE,
+	NO_OUTPUT_FILE, // 未指定输出文件
 	NO_MODE_ID, // 未提供 model id
 	NO_TOOLS, // 未提供工具列表
 	NO_AGENT_NAME, // 未提供 Agent 名称
-	NO_INIT_MESSAGE; // 未提供初始消息
+	NO_INIT_MESSAGE, // 未提供初始消息
+;
 
 struct SystemConfig
 {
@@ -103,8 +104,7 @@ fn void try_load_system_prompt(Allocator allocator, InitOptions* init_options) @
 	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
 	Path cwd = path::cwd(allocator)!!;
 
-	String final_system_prompt = SYSTEM_PROMPT_TPL
-		.replace(tmem, "{{cwd}}", cwd.str_view())
+	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd.str_view())
 		.replace(tmem, "{{date}}", now_str)
 		.replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)");
 

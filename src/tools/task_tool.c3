@@ -28,7 +28,12 @@ fn String? execute_task(Allocator allocator, String agent_name, String prompt, S
 		"--output-file",
 		output_file.str_view()
 	};
-	io::printfn(util::system_message("> Launch subagent '%s' for %s, result will save to %s"), agent_name, description, output_file.str_view());
+	io::printfn(
+		util::system_message("> Launch subagent '%s' for %s, result will save to %s"),
+		agent_name,
+		description,
+		output_file.str_view()
+	);
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
 	{

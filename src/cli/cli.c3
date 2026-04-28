@@ -3,16 +3,16 @@ module cli;
 const String HELP = `mp - a pi coding agent clone, my own coding agent.
 
 flags:
-	--agent         指定智能体角色，默认为 default
-	--model         指定使用的模型 ID
-	--tools         允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
-	--headless      设置为非交互模式，未设置 --headless 时默认进入交互模式
-	--task, -t      指定默认任务
-	--file, -f      从指定文件中读出内容，并设置为默认任务
-	--help          显示帮助信息
-	--version       查看版本号
-	--debug         启动 DEBUG 模式
-	--output-file   将最后一次 LLM 回复输出到指定文件
+	--agent  指定智能体角色，默认为 default
+	--model  指定使用的模型 ID
+	--tools  允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
+	--headless  设置为非交互模式，未设置 --headless 时默认进入交互模式
+	--task, -t  指定默认任务
+	--file, -f  从指定文件中读出内容，并设置为默认任务
+	--help  显示帮助信息
+	--version  查看版本号
+	--debug  启动 DEBUG 模式
+	--output-file  将最后一次 LLM 回复输出到指定文件
 
 tools:
 	- 'read'
@@ -22,6 +22,7 @@ tools:
 	- 'grep'
 	- 'find'
 	- 'ls'
+	- 'task'
 `;
 
 const String DEFAULT_AGENT_NAME = "default";
@@ -29,11 +30,12 @@ const String DEFAULT_MODEL_ID = "minimax.com/MiniMax-M2.7";
 const String DEFAULT_TOOLS = "read,bash,edit,write,grep,find,ls,task";
 
 faultdef
-	NO_OUTPUT_FILE,
+	NO_OUTPUT_FILE,  // 未指定输出文件
 	NO_MODE_ID, // 未提供 model id
 	NO_TOOLS, // 未提供工具列表
 	NO_AGENT_NAME, // 未提供 Agent 名称
-	NO_INIT_MESSAGE; // 未提供初始消息
+	NO_INIT_MESSAGE, // 未提供初始消息
+;
 
 
 struct CliOptions
