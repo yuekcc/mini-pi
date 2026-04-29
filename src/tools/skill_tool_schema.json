@@ -1,0 +1,20 @@
+{
+  "type": "function",
+  "function": {
+    "name": "skill",
+    "label": "skill",
+    "strict": true,
+    "description": "Load the full body of a named skill into the current context.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "skill name"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  }
+}
