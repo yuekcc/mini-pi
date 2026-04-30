@@ -86,8 +86,13 @@ fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
 
 fn String SkillContext.print_installed(&self, Allocator allocator)
 {
+	if (self.data.len() == 0)
+	{
+		return "";
+	}
+
 	DString buf = dstring::new(tmem);
-	buf.append("---\nAvailable skills:\n\n");
+	buf.append("Available skills:\n\n");
 
 	self.data.@each(; name, skill)
 	{
@@ -95,8 +100,7 @@ fn String SkillContext.print_installed(&self, Allocator allocator)
 		buf.appendf("  description: %s\n", skill.description);
 		buf.appendf("  location: %s\n", skill.path);
 	};
-
-	buf.append("\n---\n");
+	
 	return buf.copy_str(allocator);
 }
 

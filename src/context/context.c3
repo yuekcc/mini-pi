@@ -5,8 +5,11 @@ import std::io::file;
 import std::io::path;
 import std::collections::list;
 import std::os::env;
-import util;
+
 import c3x::object;
+
+import util;
+import skill;
 
 struct ToolCall
 {
@@ -167,19 +170,26 @@ fn void Context.reset(&self)
 {
 	Message system_msg = { .role = "system", };
 
-	if (self.init_options.enable_agents_md)
+	List{String} prompts;
+	prompts.init(tmem);
+
+	// 系统提示词
+	prompts.push(self.init_options.system_prompt);
+
+	// skill 列表
+	SkillContext* context = skill::use_skill_context();
+	String skill_list_prompt = context.print_installed(tmem);
+	if (skill_list_prompt != "")
 	{
-		system_msg.content = string::format(
-			self.allocator,
-			"%s\n----\n%s",
-			self.init_options.system_prompt,
-			self.init_options.instructions
-		);
-	}
-	else
-	{
-		system_msg.content = self.init_options.system_prompt.copy(self.allocator);
+		prompts.push(skill_list_prompt);
 	}
 
+	// AGENTS.md
+	if (self.init_options.enable_agents_md)
+	{
+		prompts.push(self.init_options.instructions);
+	}
+
+	system_msg.content = string::join(self.allocator, prompts.to_array(tmem), "\n---\n");
 	self.push_message(&system_msg);
 }
