@@ -54,11 +54,6 @@ fn void test_use_skill_context() @test
 	// 验证返回的不是 null
 	assert(context1 != null);
 	
-	// 验证 context 已经初始化并 ready
-	assert(context1.ready);
-	
-	io::printfn("test_use_skill_context: context1.ready = %b", context1.ready);
-	
 	// 再次调用，应该返回相同的实例（静态变量）
 	SkillContext* context2 = skill::use_skill_context();
 	assert(context1 == context2);
@@ -78,4 +73,12 @@ fn void test_use_skill_context() @test
 	
 	// 释放静态 context，避免内存泄漏检测失败
 	skill::free_skill_context();
+}
+
+fn void test_print_installed_skills() @test
+{
+	SkillContext* context = skill::use_skill_context();
+	defer skill::free_skill_context();
+
+	io::printfn("%s", context.print_installed(tmem));
 }

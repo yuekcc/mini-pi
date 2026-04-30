@@ -71,7 +71,6 @@ fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
 		skill.init(allocator, path);
 		if (skill.ready)
 		{
-			io::printfn("Add skill, name = %s", skill.name);
 			self.data.set(skill.name, skill);
 		}
 		else
@@ -83,6 +82,22 @@ fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
 	}
 
 	return self;
+}
+
+fn String SkillContext.print_installed(&self, Allocator allocator)
+{
+	DString buf = dstring::new(tmem);
+	buf.append("---\nAvailable skills:\n\n");
+
+	self.data.@each(; name, skill)
+	{
+		buf.appendf("- name: %s\n", name);
+		buf.appendf("  description: %s\n", skill.description);
+		buf.appendf("  location: %s\n", skill.path);
+	};
+
+	buf.append("\n---\n");
+	return buf.copy_str(allocator);
 }
 
 fn void SkillContext.free(&self)
@@ -133,7 +148,8 @@ fn void find_skill_dirs(List{Path}* paths)
 		PathList  global_skills = path::ls(tmem, global_skills_home)!!;
 		foreach(global_skill: global_skills)
 		{
-			paths.push(global_skill.absolute(tmem))!!;
+			Path dir = global_skills_home.append(tmem, global_skill.str_view())!!;
+			paths.push(dir);
 		}
 	}
 
@@ -143,7 +159,8 @@ fn void find_skill_dirs(List{Path}* paths)
 		PathList  local_skills = path::ls(tmem, local_skills_home)!!;
 		foreach(local_skill: local_skills)
 		{
-			paths.push(local_skill.absolute(tmem))!!;
+			Path dir = local_skills_home.append(tmem, local_skill.str_view())!!;
+			paths.push(dir);
 		}
 	}
 }
