@@ -11,7 +11,7 @@ import skill;
 
 fn String? load_skill(Allocator allocator, String name)
 {
-	SkillContext* cx = skill::use_skill_context();
+	SkillHub* cx = skill::use_skill_context();
 	Skill* skill = cx.data.get(name)!!;
 	return skill.content.copy(allocator);
 }

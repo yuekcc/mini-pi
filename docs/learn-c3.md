@@ -78,11 +78,11 @@ C3 中模块级别的变量**不需要** `static` 关键字，默认就是模块
 
 ```c
 // 正确：模块级别变量
-SkillContext _global_context;
+SkillHub _global_context;
 bool _context_initialized = false;
 
 // 错误：C3 不支持模块级别的 static
-// static SkillContext _global_context;  // 编译错误
+// static SkillHub _global_context;  // 编译错误
 ```
 
 ### 3.2 函数内静态变量
@@ -203,10 +203,10 @@ self.data.@each(; name, skill) { ... };
 ### 8.3 静态变量的模块级别声明
 ```c
 // 错误（模块级别）
-static SkillContext context;
+static SkillHub context;
 
 // 正确（模块级别）
-SkillContext _global_context;
+SkillHub _global_context;
 ```
 
 ### 8.4 String 释放方式
@@ -225,7 +225,7 @@ C3 支持 `defer` 语句，在函数退出时执行：
 ```c
 fn void test_skill_context() @test
 {
-    SkillContext context;
+    SkillHub context;
     // ...
     context.init(mem, paths.to_array(tmem));
     defer context.free();  // 函数退出时自动调用

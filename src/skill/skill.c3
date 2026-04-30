@@ -54,13 +54,13 @@ fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 	return self;
 }
 
-struct SkillContext
+struct SkillHub
 {
 	HashMap {String, Skill*} data;
 	Allocator allocator;
 }
 
-fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
+fn SkillHub* SkillHub.init(&self, Allocator allocator, Path[] paths)
 {
 	self.allocator = allocator;
 	self.data.init(allocator);
@@ -84,7 +84,7 @@ fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
 	return self;
 }
 
-fn String SkillContext.print_installed(&self, Allocator allocator)
+fn String SkillHub.print_installed(&self, Allocator allocator)
 {
 	if (self.data.len() == 0)
 	{
@@ -100,11 +100,12 @@ fn String SkillContext.print_installed(&self, Allocator allocator)
 		buf.appendf("  description: %s\n", skill.description);
 		buf.appendf("  location: %s\n", skill.path);
 	};
+	defer buf.free();
 	
 	return buf.copy_str(allocator);
 }
 
-fn void SkillContext.free(&self)
+fn void SkillHub.free(&self)
 {
 	self.data.@each(; name, skill)
 	{
@@ -114,10 +115,10 @@ fn void SkillContext.free(&self)
 	self.data.free();
 }
 
-SkillContext _global_context;
+SkillHub _global_context;
 bool _context_initialized = false;
 
-fn SkillContext* use_skill_context()
+fn SkillHub* use_skill_context()
 {
 	if (_context_initialized)
 	{
