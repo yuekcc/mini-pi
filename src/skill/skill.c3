@@ -25,9 +25,6 @@ fn void Skill.free(&self, Allocator allocator)
 
 fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 {
-	// skill 的父目录
-	self.path = dir.str_view().copy(allocator);
-
 	Path skill_file = dir.append(tmem, "SKILL.md")!!;
 	if (!path::exists(skill_file))
 	{
@@ -35,18 +32,27 @@ fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 		return self;
 	}
 
+	// 记录 SKILL.md 的路径
+	self.path = skill_file.str_view().copy(allocator);
+
 	String text = (String)file::load_path(tmem, skill_file)!!;
 
 	Markdown* markdown = parse_markdown(text);
+
+	// 记录 SKILL.md 的正文
 	self.content = markdown.body.copy(allocator);
 
 	String name = markdown.front_matter.get_string("name") ?? "";
 	String description = markdown.front_matter.get_string("description") ?? "";
 
+	// 记录名称
 	if (name != "") self.name = name.copy(allocator);
+
+	// 记录描述
 	if (description != "") self.description = description.copy(allocator);
 
-	if (self.name != "" && self.content != "")
+	// 名称、描述、正文三者非空都是合法的 skill
+	if (self.name != "" && self.description != "" && self.content != "")
 	{
 		self.ready = true;
 	}
@@ -92,13 +98,18 @@ fn String SkillHub.print_installed(&self, Allocator allocator)
 	}
 
 	DString buf = dstring::new(tmem);
-	buf.append("Available skills:\n\n");
+	buf.append("The following skills provide specialized instructions for specific tasks.\n");
+	buf.append("Use the read tool to load a skill's file when the task matches its description.\n");
+	buf.append("When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n");
+	buf.append("\n");
 
 	self.data.@each(; name, skill)
 	{
-		buf.appendf("- name: %s\n", name);
-		buf.appendf("  description: %s\n", skill.description);
-		buf.appendf("  location: %s\n", skill.path);
+		buf.append("<skill>\n");
+		buf.appendf("  <name>%s</name>\n", escape_xml(name));
+		buf.appendf("  <description>%s</description>\n", escape_xml(skill.description));
+		buf.appendf("  <location>%s</location>\n", escape_xml(skill.path));
+		buf.append("</skill>\n");
 	};
 	defer buf.free();
 
@@ -168,4 +179,14 @@ fn void find_skill_dirs(List{Path}* paths)
 			paths.push(dir);
 		}
 	}
+}
+
+fn String escape_xml(String str)
+{
+	return str
+		.treplace("&", "&amp;")
+		.treplace("<", "&lt;")
+		.treplace(">", "&gt;")
+		.treplace("\"", "&quot;")
+		.treplace("'", "&apos;");
 }
