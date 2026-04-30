@@ -7,10 +7,13 @@ import std::collections::list;
 import c3x::object;
 import cmd;
 import util;
+import skill;
 
 fn String? load_skill(Allocator allocator, String name)
 {
-	return "";
+	SkillContext* cx = skill::use_skill_context();
+	Skill* skill = cx.data.get(name)!!;
+	return skill.content.copy(allocator);
 }
 
 const String SKILL_SCHEMA = (String)$embed("skill_tool_schema.json");

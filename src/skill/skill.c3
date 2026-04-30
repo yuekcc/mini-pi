@@ -15,6 +15,14 @@ struct Skill
 	bool ready;
 }
 
+fn void Skill.free(&self, Allocator allocator)
+{
+	if (self.path != "") self.path.free(allocator);
+	if (self.name != "") self.name.free(allocator);
+	if (self.description != "") self.description.free(allocator);
+	if (self.content != "") self.content.free(allocator);
+}
+
 fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 {
 	// skill 的父目录
@@ -67,6 +75,12 @@ fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
 			io::printfn("Add skill, name = %s", skill.name);
 			self.data.set(skill.name, skill);
 		}
+		else
+		{
+			// 释放未 ready 的 skill
+			skill.free(allocator);
+			alloc::free(allocator, skill);
+		}
 	}
 
 	self.ready = true;
@@ -76,46 +90,52 @@ fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
 
 fn void SkillContext.free(&self)
 {
+	self.data.@each(; name, skill)
+	{
+		skill.free(self.allocator);
+		alloc::free(self.allocator, skill);
+	};
 	self.data.free();
 }
 
 fn SkillContext* use_skill_context()
 {
-	static SkillContext* context;
+	static SkillContext context;
 
-	if (context && context.ready)
+	if (context.ready)
 	{
-		return context;
+		return &context;
 	}
-
-	context = alloc::new(mem, SkillContext);
 
 	@pool()
 	{
 		List{Path} paths;
-
-		Path global_skills_home = path::home_directory(tmem)!!.append(tmem, ".agents/skills")!!;
-		if (path::exists(global_skills_home))
-		{
-			PathList  global_skills = path::ls(tmem, global_skills_home)!!;
-			foreach(global_skill: global_skills)
-			{
-				paths.push(global_skill.absolute(tmem))!!;
-			}
-		}
-
-		Path local_skills_home = path::cwd(tmem)!!.append(tmem, ".agents/skills")!!;
-		if (path::exists(local_skills_home))
-		{
-			PathList  local_skills = path::ls(tmem, global_skills_home)!!;
-			foreach(local_skill: local_skills)
-			{
-				paths.push(local_skill.absolute(tmem))!!;
-			}
-		}
-
+		find_skill_dirs(&paths);
 		context.init(mem, paths.to_array(mem));
-		return context;
+		return &context;
 	};
+}
+
+fn void find_skill_dirs(List{Path}* paths)
+{
+	Path global_skills_home = path::home_directory(tmem)!!.append(tmem, ".agents/skills")!!;
+	if (path::exists(global_skills_home))
+	{
+		PathList  global_skills = path::ls(tmem, global_skills_home)!!;
+		foreach(global_skill: global_skills)
+		{
+			paths.push(global_skill.absolute(tmem))!!;
+		}
+	}
+
+	Path local_skills_home = path::cwd(tmem)!!.append(tmem, ".agents/skills")!!;
+	if (path::exists(local_skills_home))
+	{
+		PathList  local_skills = path::ls(tmem, local_skills_home)!!;
+		foreach(local_skill: local_skills)
+		{
+			paths.push(local_skill.absolute(tmem))!!;
+		}
+	}
 }
 
