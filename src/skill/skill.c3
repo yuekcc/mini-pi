@@ -58,7 +58,6 @@ struct SkillContext
 {
 	HashMap {String, Skill*} data;
 	Allocator allocator;
-	bool ready;
 }
 
 fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
@@ -83,8 +82,6 @@ fn SkillContext* SkillContext.init(&self, Allocator allocator, Path[] paths)
 		}
 	}
 
-	self.ready = true;
-
 	return self;
 }
 
@@ -98,22 +95,34 @@ fn void SkillContext.free(&self)
 	self.data.free();
 }
 
+SkillContext _global_context;
+bool _context_initialized = false;
+
 fn SkillContext* use_skill_context()
 {
-	static SkillContext context;
-
-	if (context.ready)
+	if (_context_initialized)
 	{
-		return &context;
+		return &_global_context;
 	}
 
 	@pool()
 	{
 		List{Path} paths;
+		paths.init(tmem);
 		find_skill_dirs(&paths);
-		context.init(mem, paths.to_array(mem));
-		return &context;
+		_global_context.init(mem, paths.to_array(tmem));
+		_context_initialized = true;
+		return &_global_context;
 	};
+}
+
+fn void free_skill_context()
+{
+	if (_context_initialized)
+	{
+		_global_context.free();
+		_context_initialized = false;
+	}
 }
 
 fn void find_skill_dirs(List{Path}* paths)

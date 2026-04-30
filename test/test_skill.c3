@@ -43,5 +43,39 @@ fn void test_skill_context() @test
 
 	// Skill* skill = hub.data["codemap"]!!;
 	// io::printfn("skill name: %s", skill.name);
-	// io::printfn("skill description: %s", skill.description);
+	// io::printfn("skill description: %s", skill.description);ukn
+}
+
+fn void test_use_skill_context() @test
+{
+	// 第一次调用，应该初始化并返回 context
+	SkillContext* context1 = skill::use_skill_context();
+	
+	// 验证返回的不是 null
+	assert(context1 != null);
+	
+	// 验证 context 已经初始化并 ready
+	assert(context1.ready);
+	
+	io::printfn("test_use_skill_context: context1.ready = %b", context1.ready);
+	
+	// 再次调用，应该返回相同的实例（静态变量）
+	SkillContext* context2 = skill::use_skill_context();
+	assert(context1 == context2);
+	
+	io::printfn("test_use_skill_context: context1 == context2 (same pointer)");
+	
+	// 验证可以访问 skill 数据（如果有的话）
+	// 遍历并打印已加载的 skill 名称
+	int skill_count = 0;
+	context1.data.@each(; name, skill)
+	{
+		skill_count++;
+		io::printfn("  Loaded skill: %s", name);
+	};
+	
+	io::printfn("test_use_skill_context: total %d skills loaded", skill_count);
+	
+	// 释放静态 context，避免内存泄漏检测失败
+	skill::free_skill_context();
 }
