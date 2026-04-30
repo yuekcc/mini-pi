@@ -37,7 +37,7 @@ fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 
 	String text = (String)file::load_path(tmem, skill_file)!!;
 
-	Markdown*  markdown = parse_markdown(text);
+	Markdown* markdown = parse_markdown(text);
 	self.content = markdown.body.copy(allocator);
 
 	String name = markdown.front_matter.get_string("name") ?? "";
@@ -56,7 +56,7 @@ fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 
 struct SkillHub
 {
-	HashMap {String, Skill*} data;
+	HashMap{String, Skill*} data;
 	Allocator allocator;
 }
 
@@ -65,7 +65,7 @@ fn SkillHub* SkillHub.init(&self, Allocator allocator, Path[] paths)
 	self.allocator = allocator;
 	self.data.init(allocator);
 
-	foreach(path: paths)
+	foreach (path : paths)
 	{
 		Skill* skill = alloc::new(allocator, Skill);
 		skill.init(allocator, path);
@@ -101,7 +101,7 @@ fn String SkillHub.print_installed(&self, Allocator allocator)
 		buf.appendf("  location: %s\n", skill.path);
 	};
 	defer buf.free();
-	
+
 	return buf.copy_str(allocator);
 }
 
@@ -150,8 +150,8 @@ fn void find_skill_dirs(List{Path}* paths)
 	Path global_skills_home = path::home_directory(tmem)!!.append(tmem, ".agents/skills")!!;
 	if (path::exists(global_skills_home))
 	{
-		PathList  global_skills = path::ls(tmem, global_skills_home)!!;
-		foreach(global_skill: global_skills)
+		PathList global_skills = path::ls(tmem, global_skills_home)!!;
+		foreach (global_skill : global_skills)
 		{
 			Path dir = global_skills_home.append(tmem, global_skill.str_view())!!;
 			paths.push(dir);
@@ -161,12 +161,11 @@ fn void find_skill_dirs(List{Path}* paths)
 	Path local_skills_home = path::cwd(tmem)!!.append(tmem, ".agents/skills")!!;
 	if (path::exists(local_skills_home))
 	{
-		PathList  local_skills = path::ls(tmem, local_skills_home)!!;
-		foreach(local_skill: local_skills)
+		PathList local_skills = path::ls(tmem, local_skills_home)!!;
+		foreach (local_skill : local_skills)
 		{
 			Path dir = local_skills_home.append(tmem, local_skill.str_view())!!;
 			paths.push(dir);
 		}
 	}
 }
-

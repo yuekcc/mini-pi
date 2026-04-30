@@ -28,13 +28,13 @@ fn Object* parse_front_matter(String declaration)
 	Object* result = object::new_obj(tmem);
 
 	String[] lines = declaration.tsplit("\n", skip_empty: false);
-	foreach (line: lines)
+	foreach (line : lines)
 	{
 		if (try colon_index = line.index_of(":"))
 		{
-			String key = line[0..colon_index-1];
+			String key = line[0..colon_index - 1];
 			// io::printfn("key = %s, colon_index = %d", key, colon_index);
-			String value = line[colon_index+1 .. ];
+			String value = line[colon_index + 1..];
 			// io::printfn("value = %s, colon_index = %d", try_unescape(value), colon_index);
 			result.set(key, try_unescape(value));
 		}
@@ -51,10 +51,10 @@ fn Markdown* parse_markdown(String content)
 	bool get_start_separator = false;
 	bool get_end_separator = false;
 
-	List {String} declaration_lines;
+	List{String} declaration_lines;
 	defer declaration_lines.free();
 
-	List {String} body_lines;
+	List{String} body_lines;
 	defer body_lines.free();
 
 	foreach (line : lines)

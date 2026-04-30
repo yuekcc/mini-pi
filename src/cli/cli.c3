@@ -30,7 +30,7 @@ const String DEFAULT_MODEL_ID = "minimax.com/MiniMax-M2.7";
 const String DEFAULT_TOOLS = "read,bash,edit,write,grep,find,ls,task";
 
 faultdef
-	NO_OUTPUT_FILE,  // 未指定输出文件
+	NO_OUTPUT_FILE, // 未指定输出文件
 	NO_MODE_ID, // 未提供 model id
 	NO_TOOLS, // 未提供工具列表
 	NO_AGENT_NAME, // 未提供 Agent 名称
