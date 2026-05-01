@@ -22,6 +22,7 @@ struct Message
 	String id;
 	String role;
 	String content;
+	String reasoning_content;
 	String tool_call_id;
 	ToolCall* tool_call;
 }

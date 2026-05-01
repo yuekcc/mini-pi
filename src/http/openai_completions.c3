@@ -21,10 +21,12 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 	{
 		String role = message.get_string("role") ?? "assistant";
 		String content = message.get_string("content") ?? "";
+		String reasoning_content = message.get_string("reasoning_content") ?? "";
 		Message result = {
 			.id = util::timestamp_id(ctx.allocator),
 			.role = role.copy(ctx.allocator),
 			.content = content.copy(ctx.allocator),
+			.reasoning_content = reasoning_content.copy(ctx.allocator),
 			.tool_call_id = "",
 			.tool_call = null,
 		};
@@ -64,6 +66,11 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 
 			message.set("role", msg.role.copy(tmem));
 			message.set("content", msg.content.copy(tmem));
+
+			if (msg.role == "assistant" &&  msg.reasoning_content != "")
+			{
+				message.set("reasoning_content", msg.reasoning_content.copy(tmem));
+			}
 
 			if (msg.tool_call_id != "")
 			{
