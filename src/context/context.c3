@@ -200,27 +200,26 @@ fn void Context.print_last_message(&self)
 {
 	if (try msg = self.messages.last())
 	{
-		io::printfn(util::bold("# %s"), msg.role.to_upper_copy(tmem));
+		// io::printfn(util::bold("# %s"), msg.role.to_upper_copy(tmem));
 
 		String content = msg.content.trim();
-		if (content == "")
+		String reasoning_content = msg.reasoning_content.trim();
+
+		if (msg.role == "tool" && content != "" )
 		{
-			io::printfn("(EMPTY)");
+			io::printfn(util::system_message("%s\n"), content);
 			return;
 		}
 
-		if (msg.role == "tool")
-		{
-			io::printfn(util::system_message("%s\n"), msg.content);
-			return;
-		}
-
-		if (msg.reasoning_content != "")
+		if (reasoning_content != "")
 		{
 			io::printfn("Thinking ...");
-			io::printfn(util::system_message("%s\n"), msg.reasoning_content);
+			io::printfn(util::system_message("%s\n"), reasoning_content);
 		}
 
-		io::printfn("%s\n", content);
+		if (content != "")
+		{
+			io::printfn("%s\n", content);
+		}
 	}
 }

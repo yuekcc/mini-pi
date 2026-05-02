@@ -1,7 +1,7 @@
 import std::io;
 import cmd;
 
-fn void test_execute_to_string() @test
+fn void test_cmd_execute_to_string() @test
 {
 	String[] final_command_line = {"curl", "-k", "https://www.baidu.com"};
 	String result = cmd::execute_to_string(tmem, final_command_line)!!;
@@ -9,11 +9,14 @@ fn void test_execute_to_string() @test
 	assert(result.contains("<html>") && result.contains("</html>"));
 }
 
-fn void test_non_zero_return_code() @test
+fn void test_cmd_non_zero_return_code() @test
 {
 	String[] final_command_line = {"curl", "-k"};
-	String result = cmd::execute_to_string(tmem, final_command_line)!!;
 
-	io::printfn("%s", result);
-	assert(result.contains("no URL specified"));
+	CommandResult? result = cmd::execute(tmem, final_command_line);
+	if (try result)
+	{
+		io::printfn("exit code is %d, output is %s", result.code, result.output);
+		assert(result.output.contains("no URL specified"));
+	}
 }

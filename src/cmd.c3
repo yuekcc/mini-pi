@@ -12,6 +12,9 @@ struct CommandResult
 fn CommandResult? execute(Allocator allocator, String[] command_line)
 {
 	Process process = process::spawn(command_line, STDERR_TO_STDOUT | INHERIT_ENV | NO_WINDOW)!;
+	defer (void)process.destroy();
+
+	int exit_code = process.join()!;
 
 	@pool()
 	{
@@ -27,17 +30,8 @@ fn CommandResult? execute(Allocator allocator, String[] command_line)
 
 			result.write(buf[:len])!;
 		}
-
-		while (true)
-		{
-			if (!process.is_running()!)
-			{
-				process.destroy();
-				break;
-			}
-		}
-
-		return { .code = 0, .output = result.copy_str(allocator) };
+		
+		return { .code = exit_code, .output = result.copy_str(allocator) };
 	};
 }
 
