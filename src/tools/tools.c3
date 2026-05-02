@@ -94,7 +94,7 @@ fn String ToolPool.schema(&self, Allocator allocator)
 
 fn String? ToolPool.do_dispatch(&self, Allocator allocator, String id, String name, Object* args)
 {
-	io::printfn(util::system_message("> Dispatch tool call. Use id = %s, name = %s, args = %s\n"), id, name, args);
+	io::printfn(util::system_message("> Dispatch tool call. Use id = %s, name = %s, args = %s"), id, name, args);
 
 	foreach (&tool : self.tools)
 	{

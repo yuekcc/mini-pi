@@ -39,7 +39,7 @@ fn String? execute_task(Allocator allocator, String agent_name, String prompt, S
 	{
 		if (try output = (String)file::load_path(tmem, output_file))
 		{
-			io::printfn(util::system_message("> Subagent completed, output saved to %s\n"), output_file);
+			io::printfn(util::system_message("> Subagent completed, output saved to %s"), output_file);
 			if (output != "") return output.copy(allocator);
 		}
 	}

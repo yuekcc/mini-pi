@@ -33,7 +33,7 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 		if (try Object* tool_calls = message.get("tool_calls"))
 		{
 			io::printfn(
-				util::system_message("> Found tool calls = %s\n"),
+				util::system_message("> Found tool calls = %s"),
 				string::format(ctx.allocator, "%s", tool_calls)
 			);
 			Object* tool_call = tool_calls.get_at(0);
@@ -67,7 +67,7 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 			message.set("role", msg.role.copy(tmem));
 			message.set("content", msg.content.copy(tmem));
 
-			if (msg.role == "assistant" &&  msg.reasoning_content != "")
+			if (msg.role == "assistant")
 			{
 				message.set("reasoning_content", msg.reasoning_content.copy(tmem));
 			}
@@ -128,7 +128,7 @@ fn Message? send_completion_request(Context* ctx, String tools_schema)
 		if (try Response response = client.post(url, request_body_json, &headers))
 		{
 			io::printfn(
-				util::system_message("> Remote reply:\nstatus = %d\nbody = %s\n"),
+				util::system_message("> Remote reply: status = %d, body = %s"),
 				response.status_code,
 				response.body
 			);

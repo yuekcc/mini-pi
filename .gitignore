@@ -9,3 +9,5 @@ apikey.txt
 /logs/**/*.log
 /logs/**/req_*.json
 /logs/**/resp_*.json
+
+/docs.html

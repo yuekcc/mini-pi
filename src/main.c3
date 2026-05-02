@@ -13,30 +13,6 @@ import tools;
 import http;
 import cli;
 
-fn void print_last_message(Context* ctx)
-{
-	if (try msg = ctx.messages.last())
-	{
-		io::printfn(util::bold("# %s"), msg.role);
-
-		String content = msg.content.trim();
-		if (content == "")
-		{
-			io::printfn("");
-			return;
-		}
-
-		if (msg.role == "tool")
-		{
-			io::printfn(util::system_message("%s\n"), content);
-		}
-		else
-		{
-			io::printfn("%s\n", content);
-		}
-	}
-}
-
 fn Message* read_input(Context* ctx)
 {
 	io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
@@ -68,7 +44,7 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 			{
 				Message* tool_result = tool_pool.dispatch(ctx.allocator, last_msg.tool_call_id, last_msg.tool_call);
 				ctx.push_message(tool_result);
-				print_last_message(ctx);
+				ctx.print_last_message();
 			}
 			calling_tools = false;
 		}
@@ -92,7 +68,7 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 			{
 				Message message = { .role = "user", .content = ctx.init_options.init_message, };
 				ctx.push_message(&message);
-				print_last_message(ctx);
+				ctx.print_last_message();
 				init_message_added = true;
 			}
 		}
@@ -107,7 +83,7 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 		if (try Message message = http::send_completion_request(ctx, tool_pool.schema(tmem)))
 		{
 			ctx.push_message(&message);
-			print_last_message(ctx);
+			ctx.print_last_message();
 			calling_tools = (message.tool_call != null);
 		}
 

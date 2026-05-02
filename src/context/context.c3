@@ -194,3 +194,33 @@ fn void Context.reset(&self)
 	system_msg.content = string::join(self.allocator, prompts.to_array(tmem), "\n---\n");
 	self.push_message(&system_msg);
 }
+
+
+fn void Context.print_last_message(&self)
+{
+	if (try msg = self.messages.last())
+	{
+		io::printfn(util::bold("# %s"), msg.role.to_upper_copy(tmem));
+
+		String content = msg.content.trim();
+		if (content == "")
+		{
+			io::printfn("(EMPTY)");
+			return;
+		}
+
+		if (msg.role == "tool")
+		{
+			io::printfn(util::system_message("%s\n"), msg.content);
+			return;
+		}
+
+		if (msg.reasoning_content != "")
+		{
+			io::printfn("Thinking ...");
+			io::printfn(util::system_message("%s\n"), msg.reasoning_content);
+		}
+
+		io::printfn("%s\n", content);
+	}
+}
