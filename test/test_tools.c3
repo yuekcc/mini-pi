@@ -53,6 +53,38 @@ fn void test_read_tool() @test
 	assert(content.count("fn int main(String[] args)") == 1);
 }
 
+fn void test_read_tool_offset_limit() @test
+{
+	// 测试 offset 功能 - 从第3行开始读取
+	String content = tools::read(tmem, "test_read_lines.txt", 3, -1)!!;
+	io::printfn("content with offset=3 -> \n%s", content);
+	// 应该显示第3-7行
+	assert(content.count("Line 3:") == 1);
+	assert(content.count("Line 1:") == 0);
+	
+	// 测试 limit 功能 - 只读取3行
+	content = tools::read(tmem, "test_read_lines.txt", -1, 3)!!;
+	io::printfn("content with limit=3 -> \n%s", content);
+	// 应该只显示第1-3行
+	assert(content.count("Line 1:") == 1);
+	assert(content.count("Line 3:") == 1);
+	assert(content.count("Line 4:") == 0);
+	
+	// 测试 offset + limit 组合
+	content = tools::read(tmem, "test_read_lines.txt", 2, 3)!!;
+	io::printfn("content with offset=2, limit=3 -> \n%s", content);
+	// 应该显示第2-4行
+	assert(content.count("Line 2:") == 1);
+	assert(content.count("Line 4:") == 1);
+	assert(content.count("Line 1:") == 0);
+	assert(content.count("Line 5:") == 0);
+	
+	// 测试 offset 超出范围
+	content = tools::read(tmem, "test_read_lines.txt", 100, -1)!!;
+	io::printfn("content with offset=100 (out of range) -> \n%s", content);
+	assert(content.contains("Error"));
+}
+
 fn void test_bash_tool() @test
 {
 	String content = tools::bash(tmem,"ls -alh src")!!;
