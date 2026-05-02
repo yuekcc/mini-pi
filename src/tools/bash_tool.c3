@@ -15,8 +15,11 @@ fn String? bash(Allocator allocator, String command, int timeout_s = -1)
 	{
 		return result.output.copy(allocator);
 	}
-
-	return EXECUTE_BASH_COMMAND_ERROR~;
+	else
+	{
+		String msg = string::format(tmem, "Execute command failed, exit code is %d, \n%s", result.code, result.output);
+		return msg.copy(allocator);
+	}
 }
 
 const String BASH_SCHEMA = (String)$embed("bash_tool_schema.json");

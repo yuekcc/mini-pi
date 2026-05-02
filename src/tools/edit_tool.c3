@@ -19,7 +19,7 @@ fn String? edit(Allocator allocator, String file_path, String old_text, String n
 	String updated = normalized_content.replace(tmem, normalized_old, normalized_new);
 
 	file::save(path_obj.str_view(), updated)!;
-	return string::format(allocator, "(Saved to %s)", path_obj.str_view());
+	return string::format(allocator, "(Success, saved to %s)", path_obj.str_view());
 }
 
 const String EDIT_SCHEMA = (String)$embed("edit_tool_schema.json");
