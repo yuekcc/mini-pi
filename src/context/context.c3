@@ -178,8 +178,8 @@ fn void Context.reset(&self)
 	prompts.push(self.init_options.system_prompt);
 
 	// skill 列表
-	SkillHub* context = skill::use_skill_context();
-	String skill_list_prompt = context.print_installed(tmem);
+	SkillHub* skill_hub = skill::use_skill_hub();
+	String skill_list_prompt = skill_hub.print_installed(tmem);
 	if (skill_list_prompt != "")
 	{
 		prompts.push(skill_list_prompt);

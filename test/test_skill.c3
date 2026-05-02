@@ -34,7 +34,7 @@ fn void test_skill_context() @test
 	context.init(mem, paths.to_array(tmem));
 	defer context.free();
 
-	// SkillHub* hub = skill::use_skill_context();
+	// SkillHub* hub = skill::use_skill_hub();
 	// defer hub.free();
 
 	// Skill* skill = hub.data["codemap"]!!;
@@ -42,10 +42,10 @@ fn void test_skill_context() @test
 	// io::printfn("skill description: %s", skill.description);ukn
 }
 
-fn void test_use_skill_context() @test
+fn void test_use_skill_hub() @test
 {
 	// 第一次调用，应该初始化并返回 context
-	SkillHub* context1 = skill::use_skill_context();
+	SkillHub* context1 = skill::use_skill_hub();
 
 	// 释放静态 context，避免内存泄漏检测失败
 	defer 	skill::free_skill_context();
@@ -54,10 +54,10 @@ fn void test_use_skill_context() @test
 	assert(context1 != null);
 	
 	// 再次调用，应该返回相同的实例（静态变量）
-	SkillHub* context2 = skill::use_skill_context();
+	SkillHub* context2 = skill::use_skill_hub();
 	assert(context1 == context2);
 	
-	io::printfn("test_use_skill_context: context1 == context2 (same pointer)");
+	io::printfn("test_use_skill_hub: context1 == context2 (same pointer)");
 	
 	// 验证可以访问 skill 数据（如果有的话）
 	// 遍历并打印已加载的 skill 名称
@@ -68,7 +68,7 @@ fn void test_use_skill_context() @test
 		io::printfn("  Loaded skill: %s", name);
 	};
 	
-	io::printfn("test_use_skill_context: total %d skills loaded", skill_count);
+	io::printfn("test_use_skill_hub: total %d skills loaded", skill_count);
 
 
 	io::printfn("%s", context1.print_installed(tmem));

@@ -129,7 +129,7 @@ fn void SkillHub.free(&self)
 SkillHub _global_context;
 bool _context_initialized = false;
 
-fn SkillHub* use_skill_context()
+fn SkillHub* use_skill_hub()
 {
 	if (_context_initialized)
 	{

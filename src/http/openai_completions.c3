@@ -33,7 +33,7 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 		if (try Object* tool_calls = message.get("tool_calls"))
 		{
 			io::printfn(
-				util::system_message("> Found tool calls = %s"),
+				util::system_message("> Detect tool calls, %s"),
 				string::format(ctx.allocator, "%s", tool_calls)
 			);
 			Object* tool_call = tool_calls.get_at(0);

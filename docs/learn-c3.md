@@ -237,7 +237,7 @@ fn void test_skill_context() @test
 
 ### 10.1 测试函数声明
 ```c
-fn void test_use_skill_context() @test
+fn void test_use_skill_hub() @test
 {
     // 测试代码
     assert(context1 != null);
@@ -253,7 +253,7 @@ c3c test
 c3c test --test-filter test_skill_context
 
 # 显示测试输出
-c3c test --test-filter test_use_skill_context --test-show-output
+c3c test --test-filter test_use_skill_hub --test-show-output
 ```
 
 ## 总结
