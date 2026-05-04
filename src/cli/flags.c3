@@ -1,6 +1,6 @@
 module version @if(!$feature(RELEASE));
 
-const String VERSION = "0.0.1";
+const String VERSION = "1.0.0";
 
 module version @if($feature(RELEASE));
 
