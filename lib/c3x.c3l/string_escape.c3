@@ -1,9 +1,9 @@
-module c3x::util;
+module c3x::object;
 
 fn String escape(Allocator allocator, String s, bool strip_quotes = true)
 {
 	// Conservative allocation: most strings need minimal escaping
-	usz initial_capacity = s.len + s.len / 5 + 2; // ~1.2x + quotes
+	sz initial_capacity = s.len + s.len / 5 + 2; // ~1.2x + quotes
 
 	if (allocator == tmem)
 	{

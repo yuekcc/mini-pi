@@ -1,6 +1,6 @@
 module c3x::object;
+
 import std::io;
-import std::collections::object;
 
 faultdef UNEXPECTED_CHARACTER, INVALID_ESCAPE_SEQUENCE, INVALID_NUMBER, MAX_DEPTH_REACHED;
 
@@ -13,24 +13,19 @@ enum JsonFlavor
 }
 fn Object*? parse(Allocator allocator, String s, JsonFlavor flavor = JSONC)
 {
-	return load(allocator, (ByteReader) { }.init(s), flavor);
+	return load(allocator, (ByteReader){}.init(s), flavor);
 }
 
 fn Object*? tparse(String s, JsonFlavor flavor = JSONC)
 {
-	return load(tmem, (ByteReader) { }.init(s));
+	return load(tmem, (ByteReader){}.init(s));
 }
 
 fn Object*? load(Allocator allocator, InStream s, JsonFlavor flavor = JSONC)
 {
-	@stack_mem(512 ; Allocator smem)
+	@stack_mem(512; Allocator smem)
 	{
-		JsonContext context = {
-			.last_string = dstring::new_with_capacity(smem, 64),
-			.stream = s,
-			.allocator = allocator,
-			.flavor = flavor
-		};
+		JsonContext context = { .last_string = dstring::new_with_capacity(smem, 64), .stream = s, .allocator = allocator, .flavor = flavor };
 		@pool()
 		{
 			return parse_any(&context)!;
@@ -102,9 +97,9 @@ fn Object*? parse_any(JsonContext* context) @local
 	return parse_from_token(context, advance(context));
 }
 
-fn JsonTokenType? lex_number(JsonContext* context, char c) @local
+fn JsonTokenType? lex_number(JsonContext *context, char c) @local
 {
-	@stack_mem(256 ; Allocator mem)
+	@stack_mem(256; Allocator mem)
 	{
 		DString t = dstring::new_with_capacity(mem, 32);
 		bool negate = c == '-';
@@ -127,7 +122,7 @@ fn JsonTokenType? lex_number(JsonContext* context, char c) @local
 		if (c == '.')
 		{
 			t.append(c);
-			while (c = read_next(context)! , c.is_digit())
+			while (c = read_next(context)!, c.is_digit())
 			{
 				t.append(c);
 			}
@@ -165,7 +160,7 @@ fn Object*? parse_map(JsonContext* context) @local
 	defer context.depth--;
 	if (++context.depth >= max_depth) return MAX_DEPTH_REACHED~;
 
-	@stack_mem(256 ; Allocator mem)
+	@stack_mem(256; Allocator mem)
 	{
 		DString temp_key = dstring::new_with_capacity(mem, 32);
 		while (token != RBRACE)
@@ -219,7 +214,7 @@ fn void pushback(JsonContext* context, char c) @local
 {
 	if (!context.reached_end)
 	{
-		assert (!context.pushed_back);
+		assert(!context.pushed_back);
 		context.pushed_back = true;
 		context.current = c;
 	}
@@ -409,7 +404,7 @@ fn JsonTokenType? lex_string(JsonContext* context)
 				context.last_string.append_char32(val);
 				continue;
 			default:
-				return INVALID_ESCAPE_SEQUENCE~;
+				 return INVALID_ESCAPE_SEQUENCE~;
 		}
 		context.last_string.append(c);
 	}
