@@ -22,7 +22,7 @@ fn CommandResult? execute(Allocator allocator, String[] command_line)
 		while (true)
 		{
 			char[512] buf @noinit;
-			usz len = process.read_stdout(&buf, buf.len)!;
+			sz len = process.read_stdout(&buf, buf.len)!;
 			if (len == 0)
 			{
 				break;
