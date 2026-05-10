@@ -1,6 +1,7 @@
 module c3x::object;
 
 import std::io;
+import std::collections::object;
 
 faultdef UNEXPECTED_CHARACTER, INVALID_ESCAPE_SEQUENCE, INVALID_NUMBER, MAX_DEPTH_REACHED;
 
