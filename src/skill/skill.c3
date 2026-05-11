@@ -124,6 +124,7 @@ fn void SkillHub.free(&self)
 		alloc::free(self.allocator, skill);
 	};
 	self.data.free();
+	self.data = {};
 }
 
 SkillHub _global_context;

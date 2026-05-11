@@ -27,10 +27,8 @@ struct ToolPool
 	Tool[] tools;
 }
 
-fn ToolPool* ToolPool.init(&self, Allocator allocator, InitOptions* init_options)
+fn ToolPool* ToolPool.init(&self, Allocator allocator, String[] allowed_tools)
 {
-	String[] allowed_tools = init_options.tools.split(tmem, ",");
-
 	List{Tool} tools;
 	tools.init(tmem);
 

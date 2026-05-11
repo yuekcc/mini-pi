@@ -94,10 +94,14 @@ fn void test_bash_tool() @test
 fn void test_tool_pool() @test
 {
 	ToolPool tool_pool;
-	tool_pool.init(tmem, null);
+	tool_pool.init(tmem, {"read", "write", "bash", "edit"});
 	defer tool_pool.free();
 
+	String schema = tool_pool.schema(tmem);
+
 	io::printfn("Tools Schema:\n%s", tool_pool.schema(tmem));
+	test::eq(true, schema.starts_with("["));
+	test::eq(true, schema.trim().ends_with("]"));
 }
 
 fn void test_subagent_python_version() @test

@@ -12,6 +12,7 @@ import util;
 import tools;
 import http;
 import cli;
+import skill;
 
 fn Message* read_input(Context* ctx)
 {
@@ -116,12 +117,15 @@ fn int main(String[] args)
 
 	// 工具池初始化
 	ToolPool tool_pool;
-	tool_pool.init(mem, &init_options);
+	tool_pool.init(mem, init_options.tools.split(tmem, ","));
 	defer tool_pool.free();
+
+	SkillHub* skill_hub = skill::use_skill_hub();
+	defer skill::free_skill_context();
 
 	// 全局上下文
 	Context ctx;
-	ctx.init(mem, &init_options);
+	ctx.init(mem, &init_options, skill_hub);
 	defer ctx.free();
 
 	// 初始化

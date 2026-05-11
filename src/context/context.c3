@@ -72,7 +72,8 @@ struct Context
 	MessageList messages;
 	String cwd;
 	String log_file_path;
-	// File log_file;
+	
+	SkillHub* skill_hub;
 }
 
 fn bool Context.debug(&self)
@@ -80,7 +81,7 @@ fn bool Context.debug(&self)
 	return self.init_options.debug;
 }
 
-fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options)
+fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options, SkillHub* skill_hub)
 {
 	self.allocator = allocator;
 	self.id = util::timestamp_id(allocator);
@@ -89,6 +90,7 @@ fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options)
 	self.messages = { };
 	self.messages.init(allocator);
 	self.cwd = path::cwd(tmem)!!.str_view().copy(allocator);
+	self.skill_hub = skill_hub;
 
 	// 顺序有关
 	self.init_log_file();
@@ -101,6 +103,7 @@ fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options)
 fn void Context.free(&self)
 {
 	self.messages.free();
+	self.skill_hub.free();
 	// @catch(self.log_file.close());
 }
 
@@ -178,8 +181,7 @@ fn void Context.reset(&self)
 	prompts.push(self.init_options.system_prompt);
 
 	// skill 列表
-	SkillHub* skill_hub = skill::use_skill_hub();
-	String skill_list_prompt = skill_hub.print_installed(tmem);
+	String skill_list_prompt = self.skill_hub.print_installed(tmem);
 	if (skill_list_prompt != "")
 	{
 		prompts.push(skill_list_prompt);

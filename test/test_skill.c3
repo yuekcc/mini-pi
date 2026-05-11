@@ -11,7 +11,7 @@ fn void test_parse_markdown() @test
 	assert(result.body.ends_with("- **Pass Rate**: 90% must match expected citations."));
 }
 
-fn void test_find_skill_dirs() @test
+fn void find_skill_dirs() @test
 {
 	List{Path} paths;
 	skill::find_skill_dirs(&paths);
@@ -26,6 +26,8 @@ fn void test_find_skill_dirs() @test
 
 fn void test_skill_context() @test
 {
+	defer skill::free_skill_context();
+
 	SkillHub context;
 
 	List{Path} paths;
