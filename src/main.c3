@@ -94,24 +94,32 @@ fn void agent_loop(Context* ctx, ToolPool* tool_pool)
 
 fn int main(String[] args)
 {
-	InitOptions init_options;
-	if (catch err = init_options.init(mem, args))
-	{
-		io::printfn("Flags parse error, %s", err);
-		return 1;
-	}
+	CliOptions cli_opts;
+	cli_opts.init(args)!!;
 
-	if (init_options.print_help)
+	if (cli_opts.help)
 	{
 		cli::print_help();
 		return 0;
 	}
 
-	if (init_options.print_version)
+	if (cli_opts.version)
 	{
 		cli::print_version();
 		return 0;
 	}
+
+	SkillHub* skill_hub = skill::use_skill_hub();
+	defer skill::free_skill_context();
+
+	if (cli_opts.list_skills)
+	{
+		io::printfn("%s", skill_hub.print_installed(tmem));
+		return 0;
+	}
+
+	InitOptions init_options;
+	init_options.init(mem, &cli_opts);
 
 	io::printfn("%s", init_options);
 
@@ -119,9 +127,6 @@ fn int main(String[] args)
 	ToolPool tool_pool;
 	tool_pool.init(mem, init_options.tools.split(tmem, ","));
 	defer tool_pool.free();
-
-	SkillHub* skill_hub = skill::use_skill_hub();
-	defer skill::free_skill_context();
 
 	// 全局上下文
 	Context ctx;

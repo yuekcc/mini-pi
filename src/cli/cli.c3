@@ -50,6 +50,7 @@ struct CliOptions
 	bool version;
 	bool debug;
 	String output_file;
+	bool list_skills;
 }
 
 fn CliOptions*? CliOptions.init(&self, String[] args)
@@ -78,6 +79,11 @@ fn CliOptions*? CliOptions.init(&self, String[] args)
 		else if (flag == "--headless")
 		{
 			self.headless = true;
+			continue;
+		}
+		else if (flag == "--list-skills")
+		{
+			self.list_skills = true;
 			continue;
 		}
 		else if (flag == "--task" || flag == "-t")

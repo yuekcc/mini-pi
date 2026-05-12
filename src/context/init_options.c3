@@ -141,15 +141,8 @@ fn void try_load_config_file(Allocator allocator, InitOptions* init_options)
 	}
 }
 
-fn void try_load_from_cli(Allocator allocator, InitOptions* init_options, String[] args)
+fn void try_load_from_cli(Allocator allocator, InitOptions* init_options, CliOptions* cli_opts)
 {
-	CliOptions cli_opts;
-	bool read_cli_ok = @ok(cli_opts.init(args));
-	if (!read_cli_ok)
-	{
-		return;
-	}
-
 	init_options.agent_name = cli_opts.agent.copy(allocator);
 	init_options.model_id = cli_opts.model.copy(allocator);
 	init_options.tools = cli_opts.tools.copy(allocator);
@@ -169,7 +162,7 @@ fn void try_load_from_cli(Allocator allocator, InitOptions* init_options, String
 	}
 }
 
-fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
+fn InitOptions* InitOptions.init(&self, Allocator allocator, CliOptions* cli_opts)
 {
 	self.agent_name = DEFAULT_AGENT_NAME;
 	self.model_id = DEFAULT_MODEL_ID;
@@ -180,7 +173,7 @@ fn InitOptions*? InitOptions.init(&self, Allocator allocator, String[] args)
 
 	try_load_config_file(allocator, self);
 
-	try_load_from_cli(allocator, self, args);
+	try_load_from_cli(allocator, self, cli_opts);
 
 	try_load_system_prompt(allocator, self);
 
