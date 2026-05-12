@@ -13,7 +13,7 @@ fn String? bash(Allocator allocator, String command, int timeout_s = -1)
 	DString output = dstring::new(tmem);
 
 	String[] final_command = { "sh", "-c", command };
-	output.appendf("$ sh -c %s\n\n");
+	output.appendf("$ %s\n\n", command);
 
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
