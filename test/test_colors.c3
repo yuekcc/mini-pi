@@ -1,0 +1,56 @@
+import std::io;
+
+fn void print_ansi_colors() @test
+{
+	io::printfn(Ansi.BOLD +++ "BOLD" +++ Ansi.RESET);
+	io::printfn(Ansi.DIM +++ "DIM" +++ Ansi.RESET);
+	io::printfn(Ansi.ITALIC +++ "ITALIC" +++ Ansi.RESET);
+	io::printfn(Ansi.UNDERLINE +++ "UNDERLINE" +++ Ansi.RESET);
+	io::printfn(Ansi.BLINK +++ "BLINK" +++ Ansi.RESET);
+	io::printfn(Ansi.BLINK_FAST +++ "BLINK_FAST" +++ Ansi.RESET);
+	io::printfn(Ansi.INVERT +++ "INVERT" +++ Ansi.RESET);
+	io::printfn(Ansi.HIDDEN +++ "HIDDEN" +++ Ansi.RESET);
+	io::printfn(Ansi.STRIKETHROUGH +++ "STRIKETHROUGH" +++ Ansi.RESET);
+	io::printfn(Ansi.DOUBLE_UNDER +++ "DOUBLE_UNDER" +++ Ansi.RESET);
+	io::printfn(Ansi.NO_DIM +++ "NO_DIM" +++ Ansi.RESET);
+	io::printfn(Ansi.NO_ITALIC +++ "NO_ITALIC" +++ Ansi.RESET);
+	io::printfn(Ansi.NO_UNDERLINE +++ "NO_UNDERLINE" +++ Ansi.RESET);
+	io::printfn(Ansi.NO_BLINK +++ "NO_BLINK" +++ Ansi.RESET);
+	io::printfn(Ansi.NO_INVERT +++ "NO_INVERT" +++ Ansi.RESET);
+	io::printfn(Ansi.NO_HIDDEN +++ "NO_HIDDEN" +++ Ansi.RESET);
+	io::printfn(Ansi.NO_STRIKETHROUGH +++ "NO_STRIKETHROUGH" +++ Ansi.RESET);
+	io::printfn(Ansi.BLACK +++ "BLACK" +++ Ansi.RESET);
+	io::printfn(Ansi.RED +++ "RED" +++ Ansi.RESET);
+	io::printfn(Ansi.GREEN +++ "GREEN" +++ Ansi.RESET);
+	io::printfn(Ansi.YELLOW +++ "YELLOW" +++ Ansi.RESET);
+	io::printfn(Ansi.BLUE +++ "BLUE" +++ Ansi.RESET);
+	io::printfn(Ansi.MAGENTA +++ "MAGENTA" +++ Ansi.RESET);
+	io::printfn(Ansi.CYAN +++ "CYAN" +++ Ansi.RESET);
+	io::printfn(Ansi.WHITE +++ "WHITE" +++ Ansi.RESET);
+	io::printfn(Ansi.DEFAULT +++ "DEFAULT" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_BLACK +++ "BRIGHT_BLACK" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_RED +++ "BRIGHT_RED" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_GREEN +++ "BRIGHT_GREEN" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_YELLOW +++ "BRIGHT_YELLOW" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_BLUE +++ "BRIGHT_BLUE" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_MAGENTA +++ "BRIGHT_MAGENTA" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_CYAN +++ "BRIGHT_CYAN" +++ Ansi.RESET);
+	io::printfn(Ansi.BRIGHT_WHITE +++ "BRIGHT_WHITE" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BLACK +++ "BG_BLACK" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_RED +++ "BG_RED" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_GREEN +++ "BG_GREEN" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_YELLOW +++ "BG_YELLOW" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BLUE +++ "BG_BLUE" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_MAGENTA +++ "BG_MAGENTA" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_CYAN +++ "BG_CYAN" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_WHITE +++ "BG_WHITE" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_DEFAULT +++ "BG_DEFAULT" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_BLACK +++ "BG_BRIGHT_BLACK" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_RED +++ "BG_BRIGHT_RED" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_GREEN +++ "BG_BRIGHT_GREEN" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_YELLOW +++ "BG_BRIGHT_YELLOW" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_BLUE +++ "BG_BRIGHT_BLUE" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_MAGENTA +++ "BG_BRIGHT_MAGENTA" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_CYAN +++ "BG_BRIGHT_CYAN" +++ Ansi.RESET);
+	io::printfn(Ansi.BG_BRIGHT_WHITE +++ "BG_BRIGHT_WHITE" +++ Ansi.RESET);
+}
