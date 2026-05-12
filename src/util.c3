@@ -8,9 +8,9 @@ import std::os::env;
 fn String hash_path(Path file_path)
 {
 	$if env::WIN32:
-		String[] parts = file_path.str_view().tsplit("\\");
+		String[] parts = file_path.tsplit("\\");
 	$else
-		String[] parts = file_path.str_view().tsplit("/");
+		String[] parts = file_path.tsplit("/");
 	$endif
 
 	DString buf = dstring::new(tmem);
@@ -88,7 +88,7 @@ macro void? do_dump(String $file_name_template, String content) @local
 		path::mkdir(dir, true)!;
 	}
 
-	file::save(file_path.str_view(), content)!;
+	file::save(file_path, content)!;
 }
 
 macro bool dump(String $file_name_template, String content)
@@ -113,5 +113,5 @@ fn Path get_agent_home()
 fn String get_config_file(Allocator allocator)
 {
 	Path agent_home = get_agent_home();
-	return agent_home.append(tmem, string::format(tmem, "mp.json"))!!.str_view().copy(allocator);
+	return agent_home.append(tmem, string::format(tmem, "mp.json"))!!.copy(allocator);
 }

@@ -33,7 +33,7 @@ fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 	}
 
 	// 记录 SKILL.md 的路径
-	self.path = skill_file.str_view().copy(allocator);
+	self.path = skill_file.copy(allocator);
 
 	String text = (String)file::load_path(tmem, skill_file)!!;
 
@@ -165,7 +165,7 @@ fn void find_skill_dirs(List{Path}* paths)
 		PathList global_skills = path::ls(tmem, global_skills_home)!!;
 		foreach (global_skill : global_skills)
 		{
-			Path dir = global_skills_home.append(tmem, global_skill.str_view())!!;
+			Path dir = global_skills_home.append(tmem, global_skill)!!;
 			paths.push(dir);
 		}
 	}
@@ -176,7 +176,7 @@ fn void find_skill_dirs(List{Path}* paths)
 		PathList local_skills = path::ls(tmem, local_skills_home)!!;
 		foreach (local_skill : local_skills)
 		{
-			Path dir = local_skills_home.append(tmem, local_skill.str_view())!!;
+			Path dir = local_skills_home.append(tmem, local_skill)!!;
 			paths.push(dir);
 		}
 	}

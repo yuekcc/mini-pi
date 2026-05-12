@@ -89,7 +89,7 @@ fn Context* Context.init(&self, Allocator allocator, InitOptions* init_options, 
 	self.init_options = init_options;
 	self.messages = { };
 	self.messages.init(allocator);
-	self.cwd = path::cwd(tmem)!!.str_view().copy(allocator);
+	self.cwd = path::cwd(tmem)!!.copy(allocator);
 	self.skill_hub = skill_hub;
 
 	// 顺序有关
@@ -140,7 +140,7 @@ fn String Context.get_workspace(&self)
 		tmem,
 		string::format(tmem, ".config/mp/workspace/%s", util::hash_path(path::new(tmem, self.cwd)))
 	)!!;
-	return workspace.str_view();
+	return workspace;
 }
 
 fn void Context.init_log_file(&self)
@@ -157,7 +157,7 @@ fn void Context.init_log_file(&self)
 		path::mkdir(log_file_store_dir, true)!!;
 	}
 
-	self.log_file_path = log_file.str_view().copy(self.allocator);
+	self.log_file_path = log_file.copy(self.allocator);
 }
 
 fn void? Context.log_message(&self, Message* message)

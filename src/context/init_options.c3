@@ -104,7 +104,7 @@ fn void try_load_system_prompt(Allocator allocator, InitOptions* init_options) @
 	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
 	Path cwd = path::cwd(allocator)!!;
 
-	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd.str_view())
+	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd)
 		.replace(tmem, "{{date}}", now_str)
 		.replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)");
 

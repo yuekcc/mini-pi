@@ -18,8 +18,8 @@ fn String? edit(Allocator allocator, String file_path, String old_text, String n
 	String normalized_new = util::normalize_line_endings(tmem, new_text);
 	String updated = normalized_content.replace(tmem, normalized_old, normalized_new);
 
-	file::save(path_obj.str_view(), updated)!;
-	return string::format(allocator, "(Success, saved to %s)", path_obj.str_view());
+	file::save(path_obj, updated)!;
+	return string::format(allocator, "(Success, saved to %s)", path_obj);
 }
 
 const String EDIT_SCHEMA = (String)$embed("edit_tool_schema.json");

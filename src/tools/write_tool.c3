@@ -13,8 +13,8 @@ const String WRITE_SCHEMA = (String)$embed("write_tool_schema.json");
 fn String? write(Allocator allocator, String file_path, String content)
 {
 	Path path_obj = path::new(tmem, file_path)!;
-	file::save(path_obj.str_view(), content)!;
-	return string::format(allocator, "(Saved to %s)", path_obj.str_view());
+	file::save(path_obj, content)!;
+	return string::format(allocator, "(Saved to %s)", path_obj);
 }
 
 struct WriteTool (Tool)
