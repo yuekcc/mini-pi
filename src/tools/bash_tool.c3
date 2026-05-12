@@ -7,19 +7,26 @@ import std::collections::list;
 import c3x::object;
 import cmd;
 
+// TODO 超长输出时截断
 fn String? bash(Allocator allocator, String command, int timeout_s = -1)
 {
+	DString output = dstring::new(tmem);
+
 	String[] final_command = { "sh", "-c", command };
+	output.appendf("$ sh -c %s\n\n");
+
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
 	{
-		return result.output.copy(allocator);
+		output.append(result.output.trim());
 	}
 	else
 	{
-		String msg = string::format(tmem, "Execute command failed, exit code is %d, \n%s", result.code, result.output);
-		return msg.copy(allocator);
+		output.append(result.output.trim());
+		output.appendf("\n\nCommand exited with code %d", result.code);
 	}
+
+	return output.copy_str(allocator);
 }
 
 const String BASH_SCHEMA = (String)$embed("bash_tool_schema.json");
