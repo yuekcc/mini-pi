@@ -1,0 +1,148 @@
+module ng::cli;
+
+import std::io;
+import ng::version;
+
+const String DEFAULT_AGENT = "default";
+const String DEFAULT_MODEL = "minimax.com/MiniMax-M2.7";
+const String DEFAULT_TOOLS = "read,bash,edit,write,grep,find,ls,task";
+
+const String HELP_MESSAGE = `mp - a coding agent, my own coding agent.
+
+flags:
+    --agent    指定智能体角色，默认为 default
+    --model    指定使用的模型 ID
+    --tools    允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
+    --task, -t    指定默认任务
+    --task-file, -f    从指定文件中读出内容，并设置为默认任务
+    --output-file    将最后一次 LLM 回复输出到指定文件
+    --headless    设置为非交互模式，一轮对话后会自动退出
+
+    --list-skills    列出全部可用 skill
+
+    --help    显示帮助信息
+    --version    查看版本号
+    --debug    启动 DEBUG 模式
+
+tools:
+    - 'read'
+    - 'bash'
+    - 'edit'
+    - 'write'
+    - 'grep'
+    - 'find'
+    - 'ls'
+    - 'task'
+`;
+
+struct Flag
+{
+	String agent;
+	String model;
+	String tools;
+	String task;
+	String task_file;
+	String output_file;
+	bool enable_headless;
+	bool enable_debug;
+	bool show_help;
+	bool show_version;
+	bool show_skills;
+}
+
+faultdef
+	NO_AGENT,
+	NO_MODEL,
+	NO_TOOLS,
+	NO_INIT_TASK,
+	NO_OUTPUT_FILE,
+;
+
+fn void? Flag.init(&self, String[] args)
+{
+	self.agent = DEFAULT_AGENT;
+	self.model = DEFAULT_MODEL;
+	self.tools = DEFAULT_TOOLS;
+
+	for (sz i = 1; i < args.len; i++)
+	{
+		String flag = args[i];
+		if (flag == "--agent")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_AGENT~;
+			self.agent = args[i];
+			continue;
+		}
+		else if (flag == "--model")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_MODEL~;
+			self.model = args[i];
+			continue;
+		}
+		else if (flag == "--tools")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_TOOLS~;
+			self.tools = args[i];
+			continue;
+		}
+		else if (flag == "--task" || flag == "-t")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_INIT_TASK~;
+			self.task = args[i];
+			continue;
+		}
+		else if (flag == "--task-file" || flag == "-f")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_INIT_TASK~;
+			self.task_file = args[i];
+			continue;
+		}
+		else if (flag == "--output-file" || flag == "-o")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_OUTPUT_FILE~;
+			self.output_file = args[i];
+			continue;
+		}
+		else if (flag == "--version" || flag == "-v")
+		{
+			self.show_version = true;
+			continue;
+		}
+		else if (flag == "--help" || flag == "-h")
+		{
+			self.show_help = true;
+			continue;
+		}
+		else if (flag == "--list-skills")
+		{
+			self.show_skills = true;
+			continue;
+		}
+		else if (flag == "--debug")
+		{
+			self.enable_debug = true;
+			continue;
+		}
+		else if (flag == "--headless")
+		{
+			self.enable_headless = true;
+			continue;
+		}
+	}
+}
+
+fn void Flag.print_help(&self)
+{
+	io::printn(HELP_MESSAGE);
+}
+
+fn void Flag.print_version(&self)
+{
+	io::printn(version::VERSION);
+}
