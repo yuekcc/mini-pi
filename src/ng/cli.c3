@@ -10,6 +10,7 @@ const String DEFAULT_TOOLS = "read,bash,edit,write,grep,find,ls,task";
 const String HELP_MESSAGE = `mp - a coding agent, my own coding agent.
 
 flags:
+	--config, -c    指定配置目录
     --agent    指定智能体角色，默认为 default
     --model    指定使用的模型 ID
     --tools    允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
@@ -43,6 +44,7 @@ struct Flag
 	String task;
 	String task_file;
 	String output_file;
+	String config_dir;
 	bool enable_headless;
 	bool enable_debug;
 	bool show_help;
@@ -56,6 +58,7 @@ faultdef
 	NO_TOOLS,
 	NO_INIT_TASK,
 	NO_OUTPUT_FILE,
+	NO_CONFIG_DIR,
 ;
 
 fn void? Flag.init(&self, String[] args)
@@ -67,7 +70,14 @@ fn void? Flag.init(&self, String[] args)
 	for (sz i = 1; i < args.len; i++)
 	{
 		String flag = args[i];
-		if (flag == "--agent")
+
+		if (flag == "--config" || flag == "-c")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_CONFIG_DIR~;
+			self.config_dir = args[i];
+			continue;
+		} else if (flag == "--agent")
 		{
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_AGENT~;

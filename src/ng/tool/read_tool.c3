@@ -1,4 +1,4 @@
-module ng::tools;
+module ng::tool;
 
 import std::io;
 import std::io::path;
