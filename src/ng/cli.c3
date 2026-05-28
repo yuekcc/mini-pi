@@ -53,12 +53,7 @@ struct Flag
 }
 
 faultdef
-	NO_AGENT,
-	NO_MODEL,
-	NO_TOOLS,
-	NO_INIT_TASK,
-	NO_OUTPUT_FILE,
-	NO_CONFIG_DIR,
+	NO_AGENT, NO_MODEL, NO_TOOLS, NO_INIT_TASK, NO_OUTPUT_FILE, NO_CONFIG_DIR,
 ;
 
 fn void? Flag.init(&self, String[] args)
@@ -77,7 +72,8 @@ fn void? Flag.init(&self, String[] args)
 			if (i >= args.len || args[i] == "") return NO_CONFIG_DIR~;
 			self.config_dir = args[i];
 			continue;
-		} else if (flag == "--agent")
+		}
+		else if (flag == "--agent")
 		{
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_AGENT~;

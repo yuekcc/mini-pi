@@ -31,7 +31,7 @@ struct Context
 	String cwd;
 	String config_dir;
 	String log_file;
-	
+
 	SkillHub* skill_hub;
 	ToolHub* tool_hub;
 }

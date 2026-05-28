@@ -35,6 +35,6 @@ fn String WriteTool.schema(&self) @dynamic
 fn void? WriteTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
 	String file_path = args.get_string("path") ?? "";
-	String content = args.get_string("content") ?? "";
+	String content   = args.get_string("content") ?? "";
 	write(allocator, out, file_path, content)!;
 }

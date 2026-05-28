@@ -55,7 +55,7 @@ fn String FindTool.schema(&self) @dynamic
 
 fn void? FindTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
-	String pattern = args.get_string("pattern") ?? "";
+	String pattern   = args.get_string("pattern") ?? "";
 	String file_path = args.get_string("path") ?? "";
 	find(allocator, out, pattern, file_path)!;
 }

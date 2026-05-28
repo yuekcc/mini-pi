@@ -7,26 +7,14 @@ import std::collections::list;
 import c3x::object;
 
 faultdef
-	EXECUTE_LS_COMMAND_ERROR, 
-	EXECUTE_RIPGREP_COMMAND_ERROR, 
-	EXECUTE_FD_COMMAND_ERROR, 
-	EXECUTE_BASH_COMMAND_ERROR, 
-	UNKNOWN_TOOL,
-
-	INVALID_COMMAND_PARAM,
-	INVALID_PATH_PARAM,
-	INVALID_OLD_TEXT_PARAM,
-	INVALID_AGENT_PARAM,
-	INVALID_PROMPT_PARAM,
-	INVALID_DESCRIPTION_PARAM,
-	LAUNCH_TASK_ERROR,
+	EXECUTE_LS_COMMAND_ERROR, EXECUTE_RIPGREP_COMMAND_ERROR, EXECUTE_FD_COMMAND_ERROR, EXECUTE_BASH_COMMAND_ERROR, UNKNOWN_TOOL, INVALID_COMMAND_PARAM, INVALID_PATH_PARAM, INVALID_OLD_TEXT_PARAM, INVALID_AGENT_PARAM, INVALID_PROMPT_PARAM, INVALID_DESCRIPTION_PARAM, LAUNCH_TASK_ERROR,
 ;
 
 interface Tool
 {
 	fn String name();
 	fn String schema();
-	fn void? execute(Allocator allocator, DString out,  Object* args);
+	fn void? execute(Allocator allocator, DString out, Object* args);
 }
 
 struct ToolHub
@@ -78,7 +66,7 @@ fn String ToolHub.schema(&self, Allocator allocator)
 		return self.schema_cache.copy(allocator);
 	}
 
-	DString buf = dstring::new(tmem);
+	DString buf     = dstring::new(tmem);
 	bool tool_added = false;
 	buf.append("[");
 	foreach (tool : self.tools)

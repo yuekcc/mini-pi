@@ -32,10 +32,12 @@ fn Object* parse_front_matter(String declaration)
 	{
 		if (try colon_index = line.index_of(":"))
 		{
-			String key = line[0..colon_index - 1];
+			String key   = line[0..colon_index - 1];
 			// io::printfn("key = %s, colon_index = %d", key, colon_index);
+
 			String value = line[colon_index + 1..];
 			// io::printfn("value = %s, colon_index = %d", try_unescape(value), colon_index);
+
 			result.set(key, try_unescape(value));
 		}
 	}
@@ -46,10 +48,10 @@ fn Object* parse_front_matter(String declaration)
 fn Markdown* parse_markdown(String content)
 {
 	String formatted_content = content.trim().treplace("\r\n", "\n");
-	String[] lines = formatted_content.tsplit("\n", skip_empty: false);
+	String[] lines           = formatted_content.tsplit("\n", skip_empty: false);
 
 	bool get_start_separator = false;
-	bool get_end_separator = false;
+	bool get_end_separator   = false;
 
 	List{String} declaration_lines;
 	defer declaration_lines.free();
@@ -85,7 +87,7 @@ fn Markdown* parse_markdown(String content)
 	}
 
 	String declaration = string::join(tmem, declaration_lines.to_array(tmem), "\n");
-	String body = string::join(tmem, body_lines.to_array(tmem), "\n");
+	String body        = string::join(tmem, body_lines.to_array(tmem), "\n");
 
 	Markdown* result = mem::tnew(Markdown);
 	result.body = body.trim();

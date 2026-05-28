@@ -12,11 +12,11 @@ fn void? edit(Allocator allocator, DString out, String file_path, String old_tex
 {
 	Path path_obj = path::new(tmem, file_path)!;
 
-	String content = (String)file::load_path(tmem, path_obj)!;
+	String content            = (String)file::load_path(tmem, path_obj)!;
 	String normalized_content = util::normalize_line_endings(tmem, content);
-	String normalized_old = util::normalize_line_endings(tmem, old_text);
-	String normalized_new = util::normalize_line_endings(tmem, new_text);
-	String updated = normalized_content.replace(tmem, normalized_old, normalized_new);
+	String normalized_old     = util::normalize_line_endings(tmem, old_text);
+	String normalized_new     = util::normalize_line_endings(tmem, new_text);
+	String updated            = normalized_content.replace(tmem, normalized_old, normalized_new);
 
 	file::save(path_obj, updated)!;
 
@@ -43,8 +43,8 @@ fn String EditTool.schema(&self) @dynamic
 fn void? EditTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
 	String file_path = args.get_string("path") ?? "";
-	String old_text = args.get_string("oldText") ?? "";
-	String new_text = args.get_string("newText") ?? "";
+	String old_text  = args.get_string("oldText") ?? "";
+	String new_text  = args.get_string("newText") ?? "";
 
 	if (file_path == "") return INVALID_PATH_PARAM~;
 	if (old_text == "") return INVALID_OLD_TEXT_PARAM~;

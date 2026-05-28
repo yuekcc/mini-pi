@@ -30,7 +30,7 @@ fn CommandResult? execute(Allocator allocator, String[] command_line)
 
 			result.write(buf[:len])!;
 		}
-		
+
 		return { .code = exit_code, .output = result.copy_str(allocator) };
 	};
 }

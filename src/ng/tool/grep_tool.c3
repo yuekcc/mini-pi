@@ -76,11 +76,11 @@ fn String GrepTool.schema(&self) @dynamic
 
 fn void? GrepTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
-	String pattern = args.get_string("pattern") ?? "";
+	String pattern   = args.get_string("pattern") ?? "";
 	String file_path = args.get_string("path") ?? "";
-	String glob = args.get_string("glob") ?? "";
+	String glob      = args.get_string("glob") ?? "";
 	bool ignore_case = args.get_bool("ignoreCase") ?? false;
-	bool literal = args.get_bool("literal") ?? false;
-	int context = args.get_int("context") ?? 0;
+	bool literal     = args.get_bool("literal") ?? false;
+	int context      = args.get_int("context") ?? 0;
 	grep(allocator, out, pattern, file_path, glob, ignore_case, literal, context)!;
 }

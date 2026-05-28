@@ -10,42 +10,47 @@ import util;
 
 fn void? read(Allocator allocator, DString out, String file_path, int offset = -1, int limit = -1)
 {
-	Path path_obj = path::new(tmem, file_path)!;
-	String content = (String)file::load_path(tmem, path_obj)!;
+	Path path_obj             = path::new(tmem, file_path)!;
+	String content            = (String)file::load_path(tmem, path_obj)!;
 	String normalized_content = util::normalize_line_endings(tmem, content);
-	
+
 	String[] all_lines = normalized_content.split(tmem, "\n");
-	usz total_lines = all_lines.len;
-	
+	usz total_lines    = all_lines.len;
+
 	// 处理 offset (1-indexed, -1 表示不使用)
 	usz start_idx = 0;
-	if (offset > 0) {
+	if (offset > 0)
+	{
 		start_idx = (usz)(offset - 1);
-		if (start_idx >= total_lines) {
+		if (start_idx >= total_lines)
+		{
 			out.appendf("Error: File has only %d lines, but offset %d is out of range.", total_lines, offset);
 			return;
 		}
 	}
-	
+
 	// 处理 limit (-1 表示不使用)
 	usz end_idx = total_lines;
-	if (limit > 0) {
+	if (limit > 0)
+	{
 		end_idx = start_idx + (usz)limit;
-		if (end_idx > total_lines) {
+		if (end_idx > total_lines)
+		{
 			end_idx = total_lines;
 		}
 	}
-	
+
 	// 计算行号宽度
 	usz width = (usz)string::format(tmem, "%d", total_lines).len;
-	
+
 	// 截取需要显示的行并添加行号
-	for (usz i = start_idx; i < end_idx; i++) {
-		int line_num = (int)(i + 1);  // 1-indexed
+	for (usz i = start_idx; i < end_idx; i++)
+	{
+		int line_num        = (int)(i + 1); // 1-indexed
 		String line_num_str = string::format(tmem, "%d", line_num);
 		out.appendf("%s%s: %s\n", util::pad_start(tmem, width - line_num_str.len, "0"), line_num_str, all_lines[i]);
 	}
-	
+
 	out.appendf("\n(End of file. Total lines: %d, showing lines %d-%d)", total_lines, start_idx + 1, end_idx);
 }
 
@@ -69,7 +74,7 @@ fn String ReadTool.schema(&self) @dynamic
 fn void? ReadTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
 	String file_path = args.get_string("path") ?? "";
-	int offset = args.get_int("offset") ?? -1;
-	int limit = args.get_int("limit") ?? -1;
+	int offset       = args.get_int("offset") ?? -1;
+	int limit        = args.get_int("limit") ?? -1;
 	read(allocator, out, file_path, offset, limit)!;
 }

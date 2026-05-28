@@ -44,7 +44,7 @@ fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 	// 记录 SKILL.md 的正文
 	self.content = markdown.body.copy(allocator);
 
-	String name = markdown.front_matter.get_string("name") ?? "";
+	String name        = markdown.front_matter.get_string("name") ?? "";
 	String description = markdown.front_matter.get_string("description") ?? "";
 
 	// 记录名称
@@ -111,7 +111,9 @@ fn String SkillHub.print_installed(&self, Allocator allocator)
 	DString buf = dstring::new(tmem);
 	buf.append("The following skills provide specialized instructions for specific tasks.\n");
 	buf.append("Use the read tool to load a skill's file when the task matches its description.\n");
-	buf.append("When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n");
+	buf.append(
+		"When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n"
+	);
 	buf.append("\n");
 
 	self.data.@each(; name, skill)
@@ -135,7 +137,7 @@ fn void SkillHub.free(&self)
 		alloc::free(self.allocator, skill);
 	};
 	self.data.free();
-	self.data = {};
+	self.data = { };
 }
 
 SkillHub _global_context;
@@ -168,10 +170,6 @@ fn void find_skill_dirs(List{Path}* paths)
 
 fn String escape_xml(String str)
 {
-	return str
-		.treplace("&", "&amp;")
-		.treplace("<", "&lt;")
-		.treplace(">", "&gt;")
-		.treplace("\"", "&quot;")
+	return str.treplace("&", "&amp;").treplace("<", "&lt;").treplace(">", "&gt;").treplace("\"", "&quot;")
 		.treplace("'", "&apos;");
 }

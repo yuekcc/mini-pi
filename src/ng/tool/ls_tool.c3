@@ -8,10 +8,10 @@ import c3x::object;
 import cmd;
 
 
-fn String? ls(Allocator allocator, DString out,  String file_path = "", int limit = 500)
+fn String? ls(Allocator allocator, DString out, String file_path = "", int limit = 500)
 {
 	String[] final_command = file_path != "" ? { "ls", "-ahl", file_path } : { "ls", "-ahl" };
-	CommandResult result = cmd::execute(allocator, final_command)!;
+	CommandResult result   = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
 	{
 		out.append(result.output.trim());

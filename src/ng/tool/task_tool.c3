@@ -11,7 +11,7 @@ import util;
 
 fn void? execute_task(Allocator allocator, DString out, String agent_name, String prompt, String description)
 {
-	Path agent_home = util::get_agent_home();
+	Path agent_home  = util::get_agent_home();
 	Path output_file = agent_home.append(tmem, string::format(tmem, "temp/%s.txt", util::timestamp_id(tmem)))!;
 	if (!path::exists(output_file.parent()!!))
 	{
@@ -40,8 +40,8 @@ fn void? execute_task(Allocator allocator, DString out, String agent_name, Strin
 		if (try output = (String)file::load_path(tmem, output_file))
 		{
 			io::printfn(util::system_message("> Subagent completed, output saved to %s"), output_file);
-			if (output != "") 
-			{ 
+			if (output != "")
+			{
 				out.append(output);
 				return;
 			}
@@ -73,8 +73,8 @@ fn String TaskTool.schema(&self) @dynamic
 
 fn void? TaskTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
-	String agent_name = args.get_string("agent") ?? "default";
-	String prompt = args.get_string("prompt") ?? "";
+	String agent_name  = args.get_string("agent") ?? "default";
+	String prompt      = args.get_string("prompt") ?? "";
 	String description = args.get_string("description") ?? "";
 
 	if (agent_name == "") return INVALID_AGENT_PARAM~;
