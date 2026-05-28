@@ -16,7 +16,7 @@ flags:
     --tools    允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
     --task, -t    指定默认任务
     --task-file, -f    从指定文件中读出内容，并设置为默认任务
-    --output-file    将最后一次 LLM 回复输出到指定文件
+    --output-file, -o    将最后一次 LLM 回复输出到指定文件
     --headless    设置为非交互模式，一轮对话后会自动退出
 
     --list-skills    列出全部可用 skill

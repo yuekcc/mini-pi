@@ -12,7 +12,7 @@ flags:
 	--help  显示帮助信息
 	--version  查看版本号
 	--debug  启动 DEBUG 模式
-	--output-file  将最后一次 LLM 回复输出到指定文件
+	--output-file, -o  将最后一次 LLM 回复输出到指定文件
 
 tools:
 	- 'read'
@@ -122,7 +122,7 @@ fn CliOptions*? CliOptions.init(&self, String[] args)
 			self.tools = args[i];
 			continue;
 		}
-		else if (flag == "--output-file")
+		else if (flag == "--output-file" || flag == "-o")
 		{
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_OUTPUT_FILE~;

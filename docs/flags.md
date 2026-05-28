@@ -4,20 +4,26 @@
 
 ## 参数列表
 
-| 参数                | 说明                                                                    | 默认值                                   |
-| ------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
-| `--agent <name>`    | 指定智能体角色名称                                                      | `default`                                |
-| `--model <id>`      | 指定使用的模型 ID                                                       | `minimax.com/MiniMax-M2.7`               |
-| `--tools <list>`    | 允许使用的工具列表（逗号分隔）                                          | `read,bash,edit,write,grep,find,ls,task` |
-| `--headless`        | 启用非交互模式                                                          | 交互模式（默认）                         |
-| `--task, -t <msg>`  | 指定初始任务内容                                                        | -                                        |
-| `--file, -f <path>` | 从指定文件读取内容作为初始任务（与 `--task` 互斥，`--file` 优先）       | -                                        |
-| `--output-file <p>` | 将最后一次 LLM 的回复内容输出到指定文件（通常与 `--headless` 配合使用） | -                                        |
-| `--help, -h`        | 显示帮助信息                                                            | -                                        |
-| `--version, -v`     | 显示版本号                                                              | -                                        |
-| `--debug`           | 启动 DEBUG 模式，将 HTTP 请求/响应转储到 `logs/` 目录                   | -                                        |
+| 参数                    | 说明                                                                    | 默认值                                   |
+| ----------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
+| `--config, -c <path>`   | 指定配置目录                                                            | `~/.config/mp/`                          |
+| `--agent <name>`        | 指定智能体角色名称                                                      | `default`                                |
+| `--model <id>`          | 指定使用的模型 ID                                                       | `minimax.com/MiniMax-M2.7`               |
+| `--tools <list>`        | 允许使用的工具列表（逗号分隔）                                          | `read,bash,edit,write,grep,find,ls,task` |
+| `--headless`            | 启用非交互模式                                                          | 交互模式（默认）                         |
+| `--task, -t <msg>`      | 指定初始任务内容                                                        | -                                        |
+| `--task-file, -f <path>`| 从指定文件读取内容作为初始任务（与 `--task` 互斥，`--task-file` 优先）  | -                                        |
+| `--output-file, -o <p>` | 将最后一次 LLM 的回复内容输出到指定文件（通常与 `--headless` 配合使用） | -                                        |
+| `--list-skills`         | 列出全部可用 skill                                                      | -                                        |
+| `--help, -h`            | 显示帮助信息                                                            | -                                        |
+| `--version, -v`         | 显示版本号                                                              | -                                        |
+| `--debug`               | 启动 DEBUG 模式，将 HTTP 请求/响应转储到 `logs/` 目录                   | -                                        |
 
 ## 详细说明
+
+### `--config, -c <path>`
+
+指定配置目录的路径。配置目录中存放 `mp.json` 等配置文件。
 
 ### `--agent <name>`
 
@@ -56,7 +62,7 @@
 mp --headless --task "请帮我创建一个 hello world 程序"
 ```
 
-### `--file, -f <path>`
+### `--task-file, -f <path>`
 
 从指定文件读取内容作为初始任务。当 `--task` 和 `--file` 同时指定时，`--file` 优先。
 
@@ -64,9 +70,13 @@ mp --headless --task "请帮我创建一个 hello world 程序"
 mp --headless --file prompt.txt
 ```
 
-### `--output-file <path>`
+### `--output-file, -o <path>`
 
 将最后一次 LLM 的回复内容写入指定文件。通常与 `--headless` 配合，用于批处理任务的输出收集。
+
+### `--list-skills`
+
+列出全部可用的 skill。每个 skill 对应一个独立的代理能力模块。
 
 ### `--debug`
 
