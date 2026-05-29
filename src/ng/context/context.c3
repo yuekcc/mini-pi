@@ -1,9 +1,12 @@
 module ng::context;
 
 import std::collections::list;
+import std::io::path;
 
 import ng::skill;
 import ng::tool;
+import ng::util;
+import ng::cli;
 
 struct ToolCall
 {
@@ -26,12 +29,30 @@ struct Context
 	Allocator allocator;
 
 	String session_id;
-	String topic;
+	
+	Path cwd;
+	Path config_dir;
+	Path log_file;
+
 	List{Message} messages;
-	String cwd;
-	String config_dir;
-	String log_file;
 
 	SkillHub* skill_hub;
 	ToolHub* tool_hub;
+}
+
+fn Context* Context.init(&self, Allocator allocator, Flag* flag, ToolHub* tool_hub, SkillHub* skill_hub)
+{
+	self.allocator = allocator;
+
+	self.session_id = util::timestamp_id(self.allocator);
+	self.cwd = flag.cwd;
+	self.config_dir = flag.config_dir;
+	self.log_file = self.config_dir.append(self.allocator, string::tformat("log/%s.log", self.session_id))!!;
+
+	self.messages.init(self.allocator);
+
+	self.tool_hub = tool_hub;
+	self.skill_hub = skill_hub;
+
+	return self;
 }

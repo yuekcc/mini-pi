@@ -1,6 +1,7 @@
 module ng::cli;
 
 import std::io;
+import std::io::path;
 import ng::version;
 
 const String DEFAULT_AGENT = "default";
@@ -43,8 +44,9 @@ struct Flag
 	String tools;
 	String task;
 	String task_file;
-	String output_file;
-	String config_dir;
+	Path output_file;
+	Path config_dir;
+	Path cwd;
 	bool enable_headless;
 	bool enable_debug;
 	bool show_help;
@@ -56,11 +58,15 @@ faultdef
 	NO_AGENT, NO_MODEL, NO_TOOLS, NO_INIT_TASK, NO_OUTPUT_FILE, NO_CONFIG_DIR,
 ;
 
-fn void? Flag.init(&self, String[] args)
+fn void? Flag.init(&self, Allocator allocator, String[] args)
 {
 	self.agent = DEFAULT_AGENT;
 	self.model = DEFAULT_MODEL;
 	self.tools = DEFAULT_TOOLS;
+	self.cwd = path::cwd(allocator)!;
+
+	Path home_dir = path::home_directory(tmem)!!;
+	self.config_dir = home_dir.append(allocator, ".config/mp")!;
 
 	for (sz i = 1; i < args.len; i++)
 	{
@@ -70,7 +76,7 @@ fn void? Flag.init(&self, String[] args)
 		{
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_CONFIG_DIR~;
-			self.config_dir = args[i];
+			self.config_dir = path::new(allocator, args[i])!;
 			continue;
 		}
 		else if (flag == "--agent")
@@ -112,7 +118,7 @@ fn void? Flag.init(&self, String[] args)
 		{
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_OUTPUT_FILE~;
-			self.output_file = args[i];
+			self.output_file = path::new(allocator, args[i])!;
 			continue;
 		}
 		else if (flag == "--version" || flag == "-v")
