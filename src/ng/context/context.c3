@@ -38,6 +38,7 @@ struct Context
 
 	SkillHub* skill_hub;
 	ToolHub* tool_hub;
+	Flag* flag;
 }
 
 fn Context* Context.init(&self, Allocator allocator, Flag* flag, ToolHub* tool_hub, SkillHub* skill_hub)
@@ -53,6 +54,18 @@ fn Context* Context.init(&self, Allocator allocator, Flag* flag, ToolHub* tool_h
 
 	self.tool_hub = tool_hub;
 	self.skill_hub = skill_hub;
+	self.flag = flag;
 
 	return self;
+}
+
+fn bool Context.debug(&self)
+{
+	return self.flag.enable_debug;
+}
+
+fn void Context.add_message(&self, Message* message)
+{
+	Message* cloned = alloc::clone(self.allocator, *message);
+	self.messages.push(*cloned);
 }
