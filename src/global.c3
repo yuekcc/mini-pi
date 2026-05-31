@@ -25,7 +25,7 @@ fn Path config_dir()
 
 fn Path log_file()
 {
-	return global_store.config_dir;
+	return global_store.log_file;
 }
 
 fn bool debug()
