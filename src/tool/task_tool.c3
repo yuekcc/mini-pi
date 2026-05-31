@@ -1,6 +1,7 @@
 module ng::tool;
 
 import std::io;
+import std::io::file;
 import std::io::path;
 import std::collections::list;
 
@@ -11,35 +12,25 @@ import ng::util;
 
 fn void? execute_task(Allocator allocator, DString out, String agent_name, String prompt, String description)
 {
-	Path agent_home  = util::get_agent_home();
-	Path output_file = agent_home.append(tmem, string::format(tmem, "temp/%s.txt", util::timestamp_id(tmem)))!;
+	String task_id =  util::timestamp_id(tmem);
+	Path user_home  = path::home_directory(tmem)!;
+
+	Path output_file = user_home.append(tmem, string::format(tmem, ".config/mp/task_store/%s_output.txt", task_id))!;
 	if (!path::exists(output_file.parent()!!))
 	{
 		path::mkdir(output_file.parent()!!, true)!!;
 	}
 
-	String[] final_command = {
-		"mp",
-		"--agent",
-		agent_name,
-		"--headless",
-		"--task",
-		prompt,
-		"--output-file",
-		output_file
-	};
-	// io::printfn(
-	// 	util::system_message("> Launch subagent '%s' for %s, result will save to %s"),
-	// 	agent_name,
-	// 	description,
-	// 	output_file
-	// );
+	Path input_file = user_home.append(tmem, string::format(tmem, ".config/mp/task_store/%s_input.txt", task_id))!;
+	file::save(input_file, prompt)!;
+
+	String[] final_command = { "mp", "--agent", agent_name, "--headless", "-f", input_file, "-o", output_file };
 	CommandResult result = cmd::execute(allocator, final_command)!;
 	if (result.code == 0)
 	{
 		if (try output = (String)file::load_path(tmem, output_file))
 		{
-			io::printfn(util::system_message("> Subagent completed, output saved to %s"), output_file);
+			io::printfn("> Subagent completed, output saved to %s", output_file);
 			if (output != "")
 			{
 				out.append(output);
@@ -48,7 +39,6 @@ fn void? execute_task(Allocator allocator, DString out, String agent_name, Strin
 		}
 	}
 
-	// io::printfn(util::system_message("> Subagent failed, %s"), result.output);
 	return LAUNCH_TASK_ERROR~;
 }
 
