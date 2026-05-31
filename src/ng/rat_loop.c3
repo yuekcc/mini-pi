@@ -80,6 +80,7 @@ fn void run(Context* context)
 					.role = "user",
 					.content = load_init_message(tmem, context.flag),
 				};
+				print_message(&reply);
 				context.add_message(&reply);
 			}
 		}
@@ -107,6 +108,7 @@ fn void run(Context* context)
 					reply.content = buf.copy_str(tmem);
 				}
 
+				print_message(&reply);
 				context.add_message(&reply);
 			}
 		}
@@ -121,6 +123,7 @@ fn void run(Context* context)
 
 		if (try Message message =  api::completions(context))
 		{
+			print_message(&message);
 			context.add_message(&message);
 			calling_tools = message.tool_call != null;
 		}

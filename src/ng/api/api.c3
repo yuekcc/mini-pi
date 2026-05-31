@@ -113,14 +113,17 @@ fn Message? completions(Context* ctx)
 		List{String} headers;
 		headers.init(tmem);
 		defer headers.free();
-		headers.push(string::format(tmem, "Authorization: Bearer %s", "sk-1234"));
+
+		// TODO 从配置读出 api-key，而不是直接使用 .flag.apiKey
+		headers.push(string::format(tmem, "Authorization: Bearer %s", ctx.flag.apiKey));
 		headers.push("Content-Type: application/json");
 
 		HttpClient client;
 		client.init();
 		defer client.free();
 
-		String url = string::format(tmem, "%s/chat/completions", "http://127.0.0.1:5678/");
+		// TODO 从配置读出 baseUrl，而不是直接使用 .flag.baseUrl
+		String url = string::format(tmem, "%s/chat/completions", ctx.flag.baseUrl);
 
 		if (try Response response = client.post(url, request_body_json, &headers))
 		{
