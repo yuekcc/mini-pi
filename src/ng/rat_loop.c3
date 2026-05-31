@@ -61,6 +61,18 @@ fn String load_init_message(Allocator allocator, Flag* flag)
 	return message.copy(allocator);
 }
 
+fn Message* read_input(Allocator allocator)
+{
+	io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
+	String input = io::readline(tmem)!!;
+	io::print(Ansi.RESET);
+
+	Message* result = alloc::new(allocator, Message);
+	result.role = "user";
+	result.content = input.copy(allocator);
+	return result;
+}
+
 
 fn void run(Context* context)
 {
@@ -120,9 +132,9 @@ fn void run(Context* context)
 		}
 		else
 		{
-			// TODO
-			io::printfn("未实现，目前只支持 headless 模式");
-			os::exit(2);
+			// 非 headless 模式，支持用户输入
+			Message* user_input = read_input(tmem);
+			context.add_message(user_input);
 		}
 
 		// 发送请求
