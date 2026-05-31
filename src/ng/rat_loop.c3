@@ -14,6 +14,8 @@ fn void print_message(Message* msg)
 {
 	if (msg)
 	{
+		io::printfn(Ansi.BOLD +++ "%s:" +++ Ansi.RESET, msg.role);
+
 		String content = msg.content.trim();
 		String reasoning_content = msg.reasoning_content.trim();
 		if (msg.role == "tool" && content != "" )
@@ -21,10 +23,11 @@ fn void print_message(Message* msg)
 			io::printfn("%s\n", content);
 			return;
 		}
+
 		if (reasoning_content != "")
 		{
-			io::printfn("Thinking ...");
-			io::printfn("%s\n", reasoning_content);
+			io::printfn(Ansi.BRIGHT_BLACK +++ "Thinking ... %s\n" +++ Ansi.RESET, reasoning_content.trim_left());
+			
 		}
 
 		if (content != "")
@@ -64,6 +67,8 @@ fn void run(Context* context)
 	bool calling_tools = false;
 	bool init_message_added = false;
 
+	context.reset();
+
 	while RAT_LOOP: (true) @pool()
 	{
 		if (context.flag.enable_headless)
@@ -82,6 +87,7 @@ fn void run(Context* context)
 				};
 				print_message(&reply);
 				context.add_message(&reply);
+				init_message_added = true;
 			}
 		}
 		else if (calling_tools)

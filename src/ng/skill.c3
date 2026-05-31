@@ -82,21 +82,24 @@ fn SkillHub* SkillHub.init(&self, Allocator allocator)
 fn void SkillHub.load_skills(&self, Allocator allocator, Path[] paths)
 {
 	self.allocator = allocator;
-	self.data.init(allocator);
+	self.data.init(self.allocator);
 
 	foreach (path : paths)
 	{
-		Skill* skill = alloc::new(allocator, Skill);
-		skill.init(allocator, path);
+		io::printfn("[DEBUG] start load skill, path = %s", path);
+
+		Skill* skill = alloc::new(self.allocator, Skill);
+		skill.init(self.allocator, path);
 		if (skill.ready)
 		{
 			self.data.set(skill.name, skill);
+			io::printfn("[DEBUG] found %s", skill.name);
 		}
 		else
 		{
 			// 释放未 ready 的 skill
-			skill.free(allocator);
-			alloc::free(allocator, skill);
+			skill.free(self.allocator);
+			alloc::free(self.allocator, skill);
 		}
 	}
 }
@@ -105,7 +108,7 @@ fn String SkillHub.print_installed(&self, Allocator allocator)
 {
 	if (self.data.len() == 0)
 	{
-		return "";
+		return "No skill found";
 	}
 
 	DString buf = dstring::new(tmem);

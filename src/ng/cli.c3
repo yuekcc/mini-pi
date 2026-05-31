@@ -22,8 +22,8 @@ flags:
     --headless    设置为非交互模式，一轮对话后会自动退出
 
     --model    指定使用的模型 ID
-	--base-url    指定 Completions API base URL。默认 http://127.0.0.1:8001
-	--api-key    指定 Completions API key。默认 sk-1234
+    --base-url    指定 OpenAI-compatible API base URL，默认 'http://127.0.0.1:8001'
+    --api-key    指定 Completions API key， 默认 'sk-1234'
 
     --list-skills    列出全部可用 skill
 
