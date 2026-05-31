@@ -1,15 +1,16 @@
-module tools;
+module ng::tool;
 
 import std::io;
 import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import cmd;
+import ng::util::cmd;
 
 
-fn String? grep(
+fn void? grep(
 	Allocator allocator,
+	DString out,
 	String pattern,
 	String file_path = "",
 	String glob = "",
@@ -50,7 +51,7 @@ fn String? grep(
 	CommandResult result = cmd::execute(allocator, final_command.to_array(tmem))!;
 	if (result.code == 0)
 	{
-		return result.output.copy(allocator);
+		out.append(result.output.trim());
 	}
 
 	return EXECUTE_RIPGREP_COMMAND_ERROR~;
@@ -73,13 +74,13 @@ fn String GrepTool.schema(&self) @dynamic
 	return GREP_SCHEMA;
 }
 
-fn String? GrepTool.execute(&self, Allocator allocator, Object* args) @dynamic
+fn void? GrepTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
-	String pattern = args.get_string("pattern") ?? "";
+	String pattern   = args.get_string("pattern") ?? "";
 	String file_path = args.get_string("path") ?? "";
-	String glob = args.get_string("glob") ?? "";
+	String glob      = args.get_string("glob") ?? "";
 	bool ignore_case = args.get_bool("ignoreCase") ?? false;
-	bool literal = args.get_bool("literal") ?? false;
-	int context = args.get_int("context") ?? 0;
-	return grep(allocator, pattern, file_path, glob, ignore_case, literal, context);
+	bool literal     = args.get_bool("literal") ?? false;
+	int context      = args.get_int("context") ?? 0;
+	grep(allocator, out, pattern, file_path, glob, ignore_case, literal, context)!;
 }

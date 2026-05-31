@@ -5,8 +5,8 @@ import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import cmd;
-import util;
+import ng::util::cmd;
+import ng::util;
 
 fn void? read(Allocator allocator, DString out, String file_path, int offset = -1, int limit = -1)
 {

@@ -5,8 +5,8 @@ import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import cmd;
-import util;
+import ng::util::cmd;
+import ng::util;
 
 fn void? edit(Allocator allocator, DString out, String file_path, String old_text, String new_text)
 {

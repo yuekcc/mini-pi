@@ -5,7 +5,7 @@ import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import cmd;
+import ng::util::cmd;
 
 const String WRITE_SCHEMA = (String)$embed("write_tool_schema.json");
 

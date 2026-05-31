@@ -1,13 +1,13 @@
-module tools;
+module ng::tool;
 
 import std::io;
 import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import cmd;
+import ng::util::cmd;
 
-fn String? find(Allocator allocator, String pattern, String file_path = "", int limit = 1000)
+fn void? find(Allocator allocator, DString out, String pattern, String file_path = "", int limit = 1000)
 {
 	List{String} final_command;
 	final_command.init(tmem);
@@ -29,7 +29,8 @@ fn String? find(Allocator allocator, String pattern, String file_path = "", int 
 	CommandResult result = cmd::execute(allocator, final_command.to_array(tmem))!;
 	if (result.code == 0)
 	{
-		return result.output.copy(allocator);
+		out.append(result.output.trim());
+		return;
 	}
 
 	return EXECUTE_FD_COMMAND_ERROR~;
@@ -52,9 +53,9 @@ fn String FindTool.schema(&self) @dynamic
 	return FIND_SCHEMA;
 }
 
-fn String? FindTool.execute(&self, Allocator allocator, Object* args) @dynamic
+fn void? FindTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
 {
-	String pattern = args.get_string("pattern") ?? "";
+	String pattern   = args.get_string("pattern") ?? "";
 	String file_path = args.get_string("path") ?? "";
-	return find(allocator, pattern, file_path);
+	find(allocator, out, pattern, file_path)!;
 }

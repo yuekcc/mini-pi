@@ -5,8 +5,8 @@ import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import cmd;
-import util;
+import ng::util::cmd;
+import ng::util;
 
 
 fn void? execute_task(Allocator allocator, DString out, String agent_name, String prompt, String description)
