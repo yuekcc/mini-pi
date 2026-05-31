@@ -9,11 +9,20 @@ import skill;
 import context;
 import rat_loop;
 import global;
+import util;
 
 fn int main(String[] args)
 {
 	Flag flag;
 	flag.init(tmem, args)!!;
+
+	String session_id = util::timestamp_id(tmem);
+	Path log_file = flag.config_dir.append(tmem, string::tformat("log/%s.log", session_id))!!;
+	global::update(flag.config_dir, log_file, flag.enable_debug);
+
+	io::eprintfn("Using config dir: %s", global::config_dir());
+	io::eprintfn("Using log file: %s", global::log_file());
+	io::eprintfn("Debug mode: %s", global::debug() ? "on": "off");
 
 	if (flag.show_help)
 	{
@@ -40,9 +49,7 @@ fn int main(String[] args)
 	tool_hub.init(tmem, flag.tools.split(tmem, ","));
 
 	Context context;
-	context.init(tmem, &flag, &tool_hub, &skill_hub);
-
-	global::update(context.config_dir, context.log_file, context.debug());
+	context.init(tmem, session_id, &flag, &tool_hub, &skill_hub, log_file);
 
 	rat_loop::run(&context);
 

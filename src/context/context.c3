@@ -68,14 +68,14 @@ struct Context
 	Flag* flag;
 }
 
-fn Context* Context.init(&self, Allocator allocator, Flag* flag, ToolHub* tool_hub, SkillHub* skill_hub)
+fn Context* Context.init(&self, Allocator allocator, String session_id, Flag* flag, ToolHub* tool_hub, SkillHub* skill_hub, Path log_file)
 {
 	self.allocator = allocator;
 
-	self.session_id = util::timestamp_id(self.allocator);
+	self.session_id = session_id;
 	self.cwd = flag.cwd;
 	self.config_dir = flag.config_dir;
-	self.log_file = self.config_dir.append(self.allocator, string::tformat("log/%s.log", self.session_id))!!;
+	self.log_file = log_file;
 
 	self.messages.init(self.allocator);
 

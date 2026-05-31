@@ -77,10 +77,6 @@ fn Message* read_input(Allocator allocator)
 
 fn void run(Context* context)
 {
-	io::printfn("Using config dir: %s", global::config_dir());
-	io::printfn("Using log file: %s", global::log_file());
-	io::printfn("Debug mode: %s", global::debug() ? "on": "off");
-
 	bool calling_tools = false;
 	bool init_message_added = false;
 
