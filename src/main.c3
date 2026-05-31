@@ -8,6 +8,7 @@ import tool;
 import skill;
 import context;
 import rat_loop;
+import global;
 
 fn int main(String[] args)
 {
@@ -40,6 +41,8 @@ fn int main(String[] args)
 
 	Context context;
 	context.init(tmem, &flag, &tool_hub, &skill_hub);
+
+	global::update(context.config_dir, context.log_file, context.debug());
 
 	rat_loop::run(&context);
 
