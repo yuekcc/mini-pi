@@ -1,4 +1,4 @@
-module ng::util;
+module util;
 
 
 fn String normalize_line_endings(Allocator allocator, String str)

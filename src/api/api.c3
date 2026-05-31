@@ -1,11 +1,11 @@
-module ng::api;
+module api;
 
 import std::io;
 import std::collections::list;
 
 import c3x::object;
-import ng::context;
-import ng::util;
+import context;
+import util;
 
 faultdef
 	API_ERROR, EMPTY_RESPONSE

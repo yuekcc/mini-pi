@@ -1,4 +1,4 @@
-module ng::util::cmd;
+module util::cmd;
 
 import std::os::process;
 import std::io;

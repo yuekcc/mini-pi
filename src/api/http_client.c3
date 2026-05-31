@@ -1,4 +1,4 @@
-module ng::api;
+module api;
 
 import std::io;
 import std::collections::list;

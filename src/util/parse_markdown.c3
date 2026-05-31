@@ -1,4 +1,4 @@
-module ng::util;
+module util;
 
 import std::collections::object;
 import std::collections::list;

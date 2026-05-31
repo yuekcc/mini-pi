@@ -1,14 +1,14 @@
-module ng::rat_loop;
+module rat_loop;
 
 import std::io;
 import std::os;
 
 import c3x::object;
 
-import ng::context;
-import ng::cli;
-import ng::util;
-import ng::api;
+import context;
+import cli;
+import util;
+import api;
 
 fn void print_message(Message* msg)
 {

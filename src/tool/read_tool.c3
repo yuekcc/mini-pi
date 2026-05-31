@@ -1,12 +1,12 @@
-module ng::tool;
+module tool;
 
 import std::io;
 import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import ng::util::cmd;
-import ng::util;
+import util::cmd;
+import util;
 
 fn void? read(Allocator allocator, DString out, String file_path, int offset = -1, int limit = -1)
 {

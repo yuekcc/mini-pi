@@ -1,4 +1,4 @@
-module ng::util;
+module util;
 
 import std::io::path;
 import std::time;

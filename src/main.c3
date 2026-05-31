@@ -3,11 +3,11 @@ module mini_pi;
 import std::os;
 import std::io;
 
-import ng::cli;
-import ng::tool;
-import ng::skill;
-import ng::context;
-import ng::rat_loop;
+import cli;
+import tool;
+import skill;
+import context;
+import rat_loop;
 
 fn int main(String[] args)
 {

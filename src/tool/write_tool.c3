@@ -1,11 +1,11 @@
-module ng::tool;
+module tool;
 
 import std::io;
 import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import ng::util::cmd;
+import util::cmd;
 
 const String WRITE_SCHEMA = (String)$embed("write_tool_schema.json");
 
@@ -36,5 +36,7 @@ fn void? WriteTool.execute(&self, Allocator allocator, DString out, Object* args
 {
 	String file_path = args.get_string("path") ?? "";
 	String content   = args.get_string("content") ?? "";
+	if (file_path == "") return INVALID_PATH_PARAM~;
+
 	write(allocator, out, file_path, content)!;
 }

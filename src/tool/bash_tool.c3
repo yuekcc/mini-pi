@@ -1,11 +1,11 @@
-module ng::tool;
+module tool;
 
 import std::io;
 import std::io::path;
 import std::collections::list;
 
 import c3x::object;
-import ng::util::cmd;
+import util::cmd;
 
 fn void? bash(Allocator allocator, DString out, String command)
 {

@@ -1,4 +1,4 @@
-module ng::skill;
+module skill;
 
 import std::collections::map;
 import std::collections::list;
@@ -6,7 +6,7 @@ import std::io::path;
 import std::os::env;
 import std::io;
 
-import ng::util;
+import util;
 
 struct Skill
 {

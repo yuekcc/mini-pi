@@ -1,8 +1,8 @@
-module ng::cli;
+module cli;
 
 import std::io;
 import std::io::path;
-import ng::version;
+import version;
 
 const String DEFAULT_AGENT = "default";
 const String DEFAULT_MODEL = "Local/Any"; // "minimax.com/MiniMax-M2.7";

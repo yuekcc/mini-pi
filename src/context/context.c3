@@ -1,14 +1,14 @@
-module ng::context;
+module context;
 
 import std::collections::list;
 import std::io::path;
 import std::io::file;
 import std::time::datetime;
 
-import ng::skill;
-import ng::tool;
-import ng::util;
-import ng::cli;
+import skill;
+import tool;
+import util;
+import cli;
 
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 
