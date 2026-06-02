@@ -55,6 +55,8 @@ fn Message? completions(Context* ctx)
 {
 	@pool()
 	{
+		String request_id = util::timestamp_id(tmem);
+
 		Object* messages = object::new_obj(tmem);
 
 		foreach (&msg : &ctx.messages)
@@ -108,7 +110,7 @@ fn Message? completions(Context* ctx)
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", ctx.tool_hub.schema(tmem));
 		if (global::debug())
 		{
-			file::save(string::tformat("logs/req_%s.json", util::timestamp_id(tmem)), request_body_json)!!;
+			file::save(string::tformat("logs/req_%s.json", request_id), request_body_json)!!;
 		}
 
 		List{String} headers;
@@ -129,16 +131,15 @@ fn Message? completions(Context* ctx)
 		if (try Response response = client.post(url, request_body_json, &headers))
 		{
 			io::printfn("> Remote reply: status = %d, body = %s", response.status_code, response.body);
+			if (global::debug())
+			{
+				file::save(string::tformat("logs/req_%s_%d.json", request_id, response.status_code), response.body)!!;
+			}
 
 			if (response.status_code != 200)
 			{
 				io::printfn("HTTP request failed with status code: %d", response.status_code);
 				return API_ERROR~;
-			}
-
-			if (ctx.debug())
-			{
-				// util::dump("logs/resp_%s.json", response.body);
 			}
 			return read_response_to_message(ctx, response.body);
 		}
