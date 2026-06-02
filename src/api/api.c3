@@ -6,6 +6,7 @@ import std::collections::list;
 import c3x::object;
 import context;
 import util;
+import global;
 
 faultdef
 	API_ERROR, EMPTY_RESPONSE
@@ -105,9 +106,9 @@ fn Message? completions(Context* ctx)
 
 		String request_body_json = request_body.to_json(tmem);
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", ctx.tool_hub.schema(tmem));
-		if (ctx.debug())
+		if (global::debug())
 		{
-			// util::dump("logs/req_%s.json", request_body_json);
+			file::save(string::tformat("logs/req_%s.json", util::timestamp_id(tmem)), request_body_json)!!;
 		}
 
 		List{String} headers;
