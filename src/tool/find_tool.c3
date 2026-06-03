@@ -45,7 +45,7 @@ struct FindTool (Tool)
 
 fn String FindTool.name(&self) @dynamic
 {
-	return "find";
+	return "Glob";
 }
 
 fn String FindTool.schema(&self) @dynamic

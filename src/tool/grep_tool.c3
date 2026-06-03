@@ -66,7 +66,7 @@ struct GrepTool (Tool)
 
 fn String GrepTool.name(&self) @dynamic
 {
-	return "grep";
+	return "Grep";
 }
 
 fn String GrepTool.schema(&self) @dynamic

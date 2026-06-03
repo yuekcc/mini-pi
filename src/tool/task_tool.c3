@@ -49,7 +49,7 @@ struct TaskTool (Tool)
 
 fn String TaskTool.name(&self) @dynamic
 {
-	return "task";
+	return "Task";
 }
 
 fn String TaskTool.schema(&self) @dynamic

@@ -29,7 +29,7 @@ struct LsTool (Tool)
 
 fn String LsTool.name(&self) @dynamic
 {
-	return "ls";
+	return "ListDir";
 }
 
 fn String LsTool.schema(&self) @dynamic

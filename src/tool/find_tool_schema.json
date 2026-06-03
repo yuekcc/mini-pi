@@ -1,8 +1,7 @@
 {
   "type": "function",
   "function": {
-    "name": "find",
-    "label": "find",
+    "name": "Glob",
     "strict": true,
     "description": "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to 500 results.",
     "parameters": {

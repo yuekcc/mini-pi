@@ -1,8 +1,7 @@
 {
   "type": "function",
   "function": {
-    "name": "ls",
-    "label": "ls",
+    "name": "ListDir",
     "strict": true,
     "description": "List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles. Output is truncated to 500 entries.",
     "parameters": {

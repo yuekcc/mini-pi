@@ -1,8 +1,7 @@
 {
   "type": "function",
   "function": {
-    "name": "read",
-    "label": "read",
+    "name": "ReadFile",
     "strict": true,
     "description": "Read the contents of a text file. For text files, output is truncated to 2000 lines. Use offset/limit for large files. When you need the full file, continue with offset until complete.",
     "parameters": {

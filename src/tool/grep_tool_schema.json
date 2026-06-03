@@ -1,8 +1,7 @@
 {
   "type": "function",
   "function": {
-    "name": "grep",
-    "label": "grep",
+    "name": "Grep",
     "strict": true,
     "description": "Search file contents for a pattern. Returns matching lines with file paths and line numbers. Respects .gitignore. Output is truncated to 100 matches. Long lines are truncated to 500 chars.",
     "parameters": {

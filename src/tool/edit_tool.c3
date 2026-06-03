@@ -32,7 +32,7 @@ struct EditTool (Tool)
 
 fn String EditTool.name(&self) @dynamic
 {
-	return "edit";
+	return "EditFile";
 }
 
 fn String EditTool.schema(&self) @dynamic

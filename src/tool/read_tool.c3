@@ -63,7 +63,7 @@ struct ReadTool (Tool)
 
 fn String ReadTool.name(&self) @dynamic
 {
-	return "read";
+	return "ReadFile";
 }
 
 fn String ReadTool.schema(&self) @dynamic

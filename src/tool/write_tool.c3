@@ -24,7 +24,7 @@ struct WriteTool (Tool)
 
 fn String WriteTool.name(&self) @dynamic
 {
-	return "write";
+	return "WriteFile";
 }
 
 fn String WriteTool.schema(&self) @dynamic

@@ -59,7 +59,7 @@ struct BashTool (Tool)
 
 fn String BashTool.name(&self) @dynamic
 {
-	return "bash";
+	return "Bash";
 }
 
 fn String BashTool.schema(&self) @dynamic
