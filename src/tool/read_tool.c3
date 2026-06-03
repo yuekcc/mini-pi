@@ -75,6 +75,6 @@ fn void? ReadTool.execute(&self, Allocator allocator, DString out, Object* args)
 {
 	String file_path = args.get_string("path") ?? "";
 	int offset       = args.get_int("offset") ?? -1;
-	int limit        = args.get_int("limit") ?? -1;
+	int limit        = args.get_int("limit") ?? 2000;
 	read(allocator, out, file_path, offset, limit)!;
 }
