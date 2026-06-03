@@ -41,14 +41,14 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 		switch (tool_name.trim())
 		{
 			case "ReadFile": tools.push((Tool)alloc::new(allocator, ReadTool));
-			case "Base": tools.push((Tool)alloc::new(allocator, BashTool));
+			case "Bash": tools.push((Tool)alloc::new(allocator, BashTool));
 			case "EditFile": tools.push((Tool)alloc::new(allocator, EditTool));
 			case "WriteFile": tools.push((Tool)alloc::new(allocator, WriteTool));
 			case "Grep": tools.push((Tool)alloc::new(allocator, GrepTool));
 			case "Glob": tools.push((Tool)alloc::new(allocator, FindTool));
 			case "ListDir": tools.push((Tool)alloc::new(allocator, LsTool));
 			case "Task": tools.push((Tool)alloc::new(allocator, TaskTool));
-			default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s", tool_name.trim()));
+			default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s.", tool_name.trim()));
 		}
 	}
 
