@@ -8,7 +8,7 @@ const String DEFAULT_AGENT = "default";
 const String DEFAULT_MODEL = "Local/Any"; // "minimax.com/MiniMax-M2.7";
 const String DEFAULT_BASE_URL = "http://127.0.0.1:8001";
 const String DEFAULT_API_KEY = "sk-1234";
-const String DEFAULT_TOOLS = "read,bash,edit,write,grep,find,ls,task";
+const String DEFAULT_TOOLS = "ReadFile,Bash,EditFile,WriteFile,Grep,Glob,ListFile,Task";
 
 const String HELP_MESSAGE = `mp - a coding agent, my own coding agent.
 
@@ -32,14 +32,14 @@ flags:
     --debug    启动 DEBUG 模式
 
 tools:
-    - 'read'
-    - 'bash'
-    - 'edit'
-    - 'write'
-    - 'grep'
-    - 'find'
-    - 'ls'
-    - 'task'
+    - 'ReadFile'
+    - 'Bash'
+    - 'EditFile'
+    - 'WriteFile'
+    - 'Grep'
+    - 'Glob'
+    - 'ListFile'
+    - 'Task'
 `;
 
 struct Flag
