@@ -10,36 +10,14 @@ import util::cmd;
 import util;
 import global;
 
-fn Path load_store_dir(Allocator allocator, String task_id)
-{
-	Path store_dir;
-	Path config_dir = global::config_dir();
-	if (config_dir != "")
-	{
-		store_dir = config_dir.append(allocator, "task_store")!!;
-	}
-	else
-	{
-		Path user_home  = path::home_directory(allocator)!!;
-		store_dir = user_home.append(allocator, ".config/mp/task_store")!!;
-	}
-
-	if (!path::exists(store_dir))
-	{
-		path::mkdir(store_dir, true)!!;
-	}
-
-	return store_dir;
-}
-
 
 fn void? execute_task(Allocator allocator, DString out, String agent_name, String prompt, String description)
 {
 	String task_id =  util::timestamp_id(tmem);
-	Path store_dir = load_store_dir(tmem, task_id);
+	Path store_dir = load_store_dir(tmem);
 
-	Path output_file = store_dir.append(tmem, string::format(tmem, "%s_output.txt", task_id))!!;
-	Path input_file = store_dir.append(tmem, string::format(tmem, "%s_input.txt", task_id))!!;
+	Path output_file = store_dir.append(tmem, string::tformat("%s_output.txt", task_id))!!;
+	Path input_file = store_dir.append(tmem, string::tformat("%s_input.txt", task_id))!!;
 	file::save(input_file, prompt)!;
 
 	String[] final_command = { "mp", "--agent", agent_name, "--headless", "-f", input_file, "-o", output_file };

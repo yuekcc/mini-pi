@@ -1,25 +1,51 @@
 module tool;
 
 import std::io;
+import std::io::file;
 import std::io::path;
 import std::collections::list;
 
 import c3x::object;
 import util::cmd;
+import util;
+
+const LINE_LIMIT = 2000;
 
 fn void? bash(Allocator allocator, DString out, String command)
 {
+	String task_id =  util::timestamp_id(tmem);
+	Path store_dir = load_store_dir(tmem);
+
 	String[] final_command = { "sh", "-c", command };
+	CommandResult result = cmd::execute(allocator, final_command)!;
+
+	String command_output = result.output.trim();
+
+	Path output_file = store_dir.append(tmem, string::tformat("%s_output.txt", task_id))!!;
+	file::save(output_file, command_output)!!;
+
+	String[] all_lines = command_output.split(tmem, "\n");
+	bool should_truncated = all_lines.len > LINE_LIMIT;
+
+	// 回显执行的命令
 	out.appendf("$ %s\n\n", command);
 
-	CommandResult result = cmd::execute(allocator, final_command)!;
-	if (result.code == 0)
+	// 截断命令行输出，保留最后的 2000 行
+	usz start_idx = should_truncated ? (all_lines.len - LINE_LIMIT) : 0;
+	for (usz i = start_idx; i < LINE_LIMIT && i < all_lines.len; i++)
 	{
-		out.append(result.output.trim());
+		out.appendf("%s\n", all_lines[i]);	
 	}
-	else
+
+	// 截断了就增加提示
+	if (should_truncated)
 	{
-		out.append(result.output.trim());
+		out.appendf("... (truncated, full output stored at %s)\n", output_file);
+	}
+
+	// 非 0 结束增加提示
+	if (result.code != 0)
+	{
 		out.appendf("\n\nCommand exited with code %d", result.code);
 	}
 }
