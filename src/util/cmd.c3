@@ -2,6 +2,7 @@ module util::cmd;
 
 import std::os::process;
 import std::io;
+import libc;
 
 struct CommandResult
 {
@@ -14,7 +15,12 @@ fn CommandResult? execute(Allocator allocator, String[] command_line)
 	Process process = process::spawn(command_line, STDERR_TO_STDOUT | INHERIT_ENV | NO_WINDOW)!;
 	defer (void)process.destroy();
 
-	int exit_code = process.join()!;
+	// 手工关闭 stdin，避免一直在等待输入
+	if (process.stdin_file)
+	{
+		libc::fclose(process.stdin_file);
+		process.stdin_file = null;
+	}
 
 	@pool()
 	{
@@ -31,6 +37,7 @@ fn CommandResult? execute(Allocator allocator, String[] command_line)
 			result.write(buf[:len])!;
 		}
 
+		int exit_code = process.join()!;
 		return { .code = exit_code, .output = result.copy_str(allocator) };
 	};
 }
