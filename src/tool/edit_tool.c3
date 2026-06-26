@@ -16,10 +16,16 @@ fn void? edit(Allocator allocator, DString out, String file_path, String old_tex
 	String normalized_content = util::normalize_line_endings(tmem, content);
 	String normalized_old     = util::normalize_line_endings(tmem, old_text);
 	String normalized_new     = util::normalize_line_endings(tmem, new_text);
-	String updated            = normalized_content.replace(tmem, normalized_old, normalized_new);
+
+	if (catch excuse = normalized_content.index_of(normalized_old))
+	{
+		out.appendf("Could not find the exact text in %s. The old text must match exactly including all whitespace and newlines", path_obj);
+		return;
+	}
+	
+	String updated = normalized_content.replace(tmem, normalized_old, normalized_new);
 
 	file::save(path_obj, updated)!;
-
 	out.appendf("(Success, saved to %s)", path_obj);
 }
 
