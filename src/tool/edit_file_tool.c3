@@ -8,7 +8,7 @@ import c3x::object;
 import util::cmd;
 import util;
 
-fn void? edit(Allocator allocator, DString out, String file_path, String old_text, String new_text)
+fn void? edit(Allocator allocator, DString* out, String file_path, String old_text, String new_text)
 {
 	Path path_obj = path::new(tmem, file_path)!;
 
@@ -29,7 +29,7 @@ fn void? edit(Allocator allocator, DString out, String file_path, String old_tex
 	out.appendf("(Success, saved to %s)", path_obj);
 }
 
-const String EDIT_SCHEMA = (String)$embed("edit_tool_schema.json");
+const String EDIT_SCHEMA = (String)$embed("edit_file_tool_schema.json");
 
 struct EditTool (Tool)
 {
@@ -46,7 +46,7 @@ fn String EditTool.schema(&self) @dynamic
 	return EDIT_SCHEMA;
 }
 
-fn void? EditTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
+fn void? EditTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
 {
 	String file_path = args.get_string("path") ?? "";
 	String old_text  = args.get_string("oldText") ?? "";

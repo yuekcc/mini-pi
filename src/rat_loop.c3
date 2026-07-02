@@ -118,7 +118,7 @@ fn void run(Context* context)
 
 				Object* tool_args = object::parse(tmem, message.tool_call.arguments)!!;
 
-				if (catch excuse = context.tool_hub.do_dispatch(tmem, buf, message.tool_call.name, tool_args))
+				if (catch excuse = context.tool_hub.do_dispatch(tmem, &buf, message.tool_call.name, tool_args))
 				{
 					reply.content = string::format(tmem, "Execute tool '%s' fault, %s. You should retry carefully", message.tool_call.name, excuse);
 				}

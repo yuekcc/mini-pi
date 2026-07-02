@@ -11,7 +11,7 @@ import util;
 
 const LINE_LIMIT = 2000;
 
-fn void? bash(Allocator allocator, DString out, String command)
+fn void? bash(Allocator allocator, DString* out, String command)
 {
 	String task_id =  util::timestamp_id(tmem);
 	Path store_dir = load_store_dir(tmem);
@@ -67,7 +67,7 @@ fn String BashTool.schema(&self) @dynamic
 	return BASH_SCHEMA;
 }
 
-fn void? BashTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
+fn void? BashTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
 {
 	String command = args.get_string("command") ?? "";
 	if (command == "") return INVALID_COMMAND_PARAM~;

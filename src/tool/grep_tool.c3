@@ -10,7 +10,7 @@ import util::cmd;
 
 fn void? grep(
 	Allocator allocator,
-	DString out,
+	DString* out,
 	String pattern,
 	String file_path = "",
 	String glob = "",
@@ -52,6 +52,7 @@ fn void? grep(
 	if (result.code == 0)
 	{
 		out.append(result.output.trim());
+		return;
 	}
 
 	return EXECUTE_RIPGREP_COMMAND_ERROR~;
@@ -74,7 +75,7 @@ fn String GrepTool.schema(&self) @dynamic
 	return GREP_SCHEMA;
 }
 
-fn void? GrepTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
+fn void? GrepTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
 {
 	String pattern   = args.get_string("pattern") ?? "";
 	String file_path = args.get_string("path") ?? "";

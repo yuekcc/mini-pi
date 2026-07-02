@@ -21,7 +21,7 @@ interface Tool
 {
 	fn String name();
 	fn String schema();
-	fn void? execute(Allocator allocator, DString out, Object* args);
+	fn void? execute(Allocator allocator, DString* out, Object* args);
 }
 
 struct ToolHub
@@ -94,7 +94,7 @@ fn String ToolHub.schema(&self, Allocator allocator)
 	return self.schema_cache.copy(allocator);
 }
 
-fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString out, String name, Object* args)
+fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String name, Object* args)
 {
 	foreach (&tool : self.tools)
 	{

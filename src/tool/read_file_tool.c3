@@ -8,7 +8,7 @@ import c3x::object;
 import util::cmd;
 import util;
 
-fn void? read(Allocator allocator, DString out, String file_path, int offset = -1, int limit = -1)
+fn void? read(Allocator allocator, DString* out, String file_path, int offset = -1, int limit = -1)
 {
 	Path path_obj             = path::new(tmem, file_path)!;
 	String content            = (String)file::load_path(tmem, path_obj)!;
@@ -54,7 +54,7 @@ fn void? read(Allocator allocator, DString out, String file_path, int offset = -
 	out.appendf("\n(End of file. Total lines: %d, showing lines %d-%d)", total_lines, start_idx + 1, end_idx);
 }
 
-const String READ_SCHEMA = (String)$embed("read_tool_schema.json");
+const String READ_SCHEMA = (String)$embed("read_file_tool_schema.json");
 
 struct ReadTool (Tool)
 {
@@ -71,7 +71,7 @@ fn String ReadTool.schema(&self) @dynamic
 	return READ_SCHEMA;
 }
 
-fn void? ReadTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
+fn void? ReadTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
 {
 	String file_path = args.get_string("path") ?? "";
 	int offset       = args.get_int("offset") ?? -1;

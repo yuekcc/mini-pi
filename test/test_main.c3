@@ -2,7 +2,7 @@ import std::io;
 import std::collections::object;
 import std::collections::list;
 import std::encoding::json;
-import http;
+import api;
 import context;
 
 fn void test_http_request() @test

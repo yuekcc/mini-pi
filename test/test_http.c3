@@ -1,7 +1,7 @@
 import std::io;
 import std::collections::list;
 import curl;
-import http;
+import api;
 
 fn void print_curl_version() @test
 {
@@ -16,7 +16,7 @@ fn void test_http_get() @test
 	defer client.free();
 
 	// 测试 GET 请求
-	if (try Response response = client.get("https://httpbin.org/get"))
+	if (try Response response = client.get("https://httpspot.dev/get"))
 	{
 		io::printfn("GET Response status: %d", response.status_code);
 		io::printfn("GET Response body length: %d", response.body.len);
@@ -31,7 +31,7 @@ fn void test_http_post() @test
 	defer client.free();
 
 	// 测试 POST 请求
-	if (try Response response = client.post("https://httpbin.org/post", `{"test": "data"}`, null))
+	if (try Response response = client.post("https://httpspot.dev/post", `{"test": "data"}`, null))
 	{
 		io::printfn("POST Response status: %d", response.status_code);
 		io::printfn("POST Response body length: %d", response.body.len);
@@ -51,7 +51,7 @@ fn void test_http_post_with_headers() @test
 	defer headers.free();
 	headers.push("X-Custom-Header: test-value");
 
-	if (try Response response = client.post("https://httpbin.org/post", `{"test": "data"}`, &headers))
+	if (try Response response = client.post("https://httpspot.dev/post", `{"test": "data"}`, &headers))
 	{
 		io::printfn("POST with headers status: %d", response.status_code);
 		assert(response.status_code == 200, "POST with headers should return 200");
@@ -65,17 +65,17 @@ fn void test_http_client_reuse() @test
 	defer client.free();
 
 	// 测试客户端重用（连续发送多个请求）
-	if (try Response response1 = client.get("https://httpbin.org/get"))
+	if (try Response response1 = client.get("https://httpspot.dev/get"))
 	{
 		assert(response1.status_code == 200, "First GET should return 200");
 	}
 
-	if (try Response response2 = client.post("https://httpbin.org/post", `{"test": "reuse"}`, null))
+	if (try Response response2 = client.post("https://httpspot.dev/post", `{"test": "reuse"}`, null))
 	{
 		assert(response2.status_code == 200, "POST after GET should return 200");
 	}
 
-	if (try Response response3 = client.get("https://httpbin.org/get"))
+	if (try Response response3 = client.get("https://httpspot.dev/get"))
 	{
 		assert(response3.status_code == 200, "Second GET should return 200");
 	}

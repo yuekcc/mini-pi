@@ -7,7 +7,7 @@ import std::collections::list;
 import c3x::object;
 import util::cmd;
 
-fn void? find(Allocator allocator, DString out, String pattern, String file_path = "", int limit = 1000)
+fn void? find(Allocator allocator, DString* out, String pattern, String file_path = "", int limit = 1000)
 {
 	List{String} final_command;
 	final_command.init(tmem);
@@ -36,7 +36,7 @@ fn void? find(Allocator allocator, DString out, String pattern, String file_path
 	return EXECUTE_FD_COMMAND_ERROR~;
 }
 
-const String FIND_SCHEMA = (String)$embed("find_tool_schema.json");
+const String FIND_SCHEMA = (String)$embed("glob_tool_schema.json");
 
 struct FindTool (Tool)
 {
@@ -53,7 +53,7 @@ fn String FindTool.schema(&self) @dynamic
 	return FIND_SCHEMA;
 }
 
-fn void? FindTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
+fn void? FindTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
 {
 	String pattern   = args.get_string("pattern") ?? "";
 	String file_path = args.get_string("path") ?? "";

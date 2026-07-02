@@ -1,11 +1,12 @@
 import std::io;
 import std::collections::list;
 import skill;
+import util;
 
 fn void test_parse_markdown() @test
 {
 	String text = (String)file::load(tmem, "resources/skills/prd/SKILL.md")!!;
-	Markdown* result = skill::parse_markdown(text);
+	Markdown* result = util::parse_markdown(text);
 
 	assert(result.body.starts_with("# Product Requirements Document (PRD)"));
 	assert(result.body.ends_with("- **Pass Rate**: 90% must match expected citations."));
@@ -26,14 +27,8 @@ fn void find_skill_dirs() @test
 
 fn void test_skill_context() @test
 {
-	defer skill::free_skill_context();
-
 	SkillHub context;
-
-	List{Path} paths;
-	skill::find_skill_dirs(&paths);
-
-	context.init(mem, paths.to_array(tmem));
+	context.init(tmem);
 	defer context.free();
 
 	// SkillHub* hub = skill::use_skill_hub();
@@ -41,37 +36,30 @@ fn void test_skill_context() @test
 
 	// Skill* skill = hub.data["codemap"]!!;
 	// io::printfn("skill name: %s", skill.name);
-	// io::printfn("skill description: %s", skill.description);ukn
+	// io::printfn("skill description: %s", skill.description);
 }
 
 fn void test_use_skill_hub() @test
 {
-	// 第一次调用，应该初始化并返回 context
-	SkillHub* context1 = skill::use_skill_hub();
+	SkillHub context;
+	context.init(tmem);
+	defer context.free();
 
-	// 释放静态 context，避免内存泄漏检测失败
-	defer 	skill::free_skill_context();
-	
 	// 验证返回的不是 null
-	assert(context1 != null);
-	
-	// 再次调用，应该返回相同的实例（静态变量）
-	SkillHub* context2 = skill::use_skill_hub();
-	assert(context1 == context2);
-	
-	io::printfn("test_use_skill_hub: context1 == context2 (same pointer)");
-	
+	assert(context.data.len() >= 0);
+
+	io::printfn("test_use_skill_hub: context initialized");
+
 	// 验证可以访问 skill 数据（如果有的话）
 	// 遍历并打印已加载的 skill 名称
 	int skill_count = 0;
-	context1.data.@each(; name, skill)
+	context.data.@each(; name, skill)
 	{
 		skill_count++;
 		io::printfn("  Loaded skill: %s", name);
 	};
-	
+
 	io::printfn("test_use_skill_hub: total %d skills loaded", skill_count);
 
-
-	io::printfn("%s", context1.print_installed(tmem));
+	io::printfn("%s", context.print_installed(tmem));
 }

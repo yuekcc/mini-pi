@@ -11,7 +11,7 @@ import util;
 import global;
 
 
-fn void? execute_task(Allocator allocator, DString out, String agent_name, String prompt, String description)
+fn void? execute_task(Allocator allocator, DString* out, String agent_name, String prompt, String description)
 {
 	String task_id =  util::timestamp_id(tmem);
 	Path store_dir = load_store_dir(tmem);
@@ -57,7 +57,7 @@ fn String TaskTool.schema(&self) @dynamic
 	return TASK_SCHEMA;
 }
 
-fn void? TaskTool.execute(&self, Allocator allocator, DString out, Object* args) @dynamic
+fn void? TaskTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
 {
 	String agent_name  = args.get_string("agent") ?? "default";
 	String prompt      = args.get_string("prompt") ?? "";
