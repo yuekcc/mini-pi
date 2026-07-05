@@ -122,6 +122,20 @@ fn void Context.reset(&self)
 
 fn void Context.add_message(&self, Message* message)
 {
-	Message* cloned = alloc::clone(self.allocator, *message);
+	Message* cloned = alloc::new(self.allocator, Message);
+	cloned.id = message.id.copy(self.allocator);
+	cloned.role = message.role.copy(self.allocator);
+	cloned.content = message.content.copy(self.allocator);
+	cloned.reasoning_content = message.reasoning_content.copy(self.allocator);
+	cloned.tool_call_id = message.tool_call_id;
+
+	if (message.tool_call)
+	{
+		ToolCall* tool_call = alloc::new(self.allocator, ToolCall);
+		tool_call.name = message.tool_call.name.copy(self.allocator);
+		tool_call.arguments = message.tool_call.arguments.copy(self.allocator);
+		cloned.tool_call = tool_call;
+	}
+
 	self.messages.push(*cloned);
 }

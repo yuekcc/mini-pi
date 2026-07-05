@@ -124,6 +124,7 @@ fn void run(Context* context)
 				}
 				else
 				{
+					global::debug_log("Tool '%s' output: %s", message.tool_call.name, buf.tcopy());
 					reply.content = buf.copy_str(tmem);
 				}
 

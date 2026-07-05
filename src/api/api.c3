@@ -64,17 +64,17 @@ fn Message? completions(Context* ctx)
 			Object* message = object::new_obj(tmem);
 			messages.push(message);
 
-			message.set("role", msg.role.copy(tmem));
-			message.set("content", msg.content.copy(tmem));
+			message.set("role", msg.role);
+			message.set("content", msg.content);
 
 			if (msg.role == "assistant")
 			{
-				message.set("reasoning_content", msg.reasoning_content.copy(tmem));
+				message.set("reasoning_content", msg.reasoning_content);
 			}
 
 			if (msg.tool_call_id != "")
 			{
-				message.set("tool_call_id", msg.tool_call_id.copy(tmem));
+				message.set("tool_call_id", msg.tool_call_id);
 
 				if (msg.tool_call != null)
 				{
@@ -84,13 +84,13 @@ fn Message? completions(Context* ctx)
 					Object* tool_call = object::new_obj(tmem);
 					tool_calls.push(tool_call);
 
-					tool_call.set("id", msg.tool_call_id.copy(tmem));
+					tool_call.set("id", msg.tool_call_id);
 					tool_call.set("index", 0);
 					Object* function = object::new_obj(tmem);
 					tool_call.set("function", function);
 
-					function.set("name", msg.tool_call.name.copy(tmem));
-					function.set("arguments", msg.tool_call.arguments.copy(tmem));
+					function.set("name", msg.tool_call.name);
+					function.set("arguments", msg.tool_call.arguments);
 				}
 			}
 		}
