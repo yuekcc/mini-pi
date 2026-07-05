@@ -5,10 +5,10 @@ import std::io::path;
 import version;
 
 const String DEFAULT_AGENT = "default";
-const String DEFAULT_MODEL = "Local/Any"; // "minimax.com/MiniMax-M2.7";
-const String DEFAULT_BASE_URL = "http://127.0.0.1:8001";
+const String DEFAULT_MODEL = "Any"; // "minimax.com/MiniMax-M2.7";
+const String DEFAULT_BASE_URL = "http://127.0.0.1:5678";
 const String DEFAULT_API_KEY = "sk-1234";
-const String DEFAULT_TOOLS = "ReadFile,Bash,EditFile,WriteFile,Grep,Glob,ListFile,Task";
+const String DEFAULT_TOOLS = "ReadFile,Bash,EditFile,WriteFile,Grep,Glob,ListDir,Task";
 
 const String HELP_MESSAGE = `mp - a coding agent, my own coding agent.
 
@@ -21,8 +21,8 @@ flags:
     --output-file, -o    将最后一次 LLM 回复输出到指定文件
     --headless    设置为非交互模式，一轮对话后会自动退出
 
-    --model    指定使用的模型 ID
-    --base-url    指定 OpenAI-compatible API base URL，默认 'http://127.0.0.1:8001'
+    --model    指定使用的模型 ID，默认 'Any'
+    --base-url    指定 OpenAI-compatible API base URL，默认 'http://127.0.0.1:5678'
     --api-key    指定 Completions API key， 默认 'sk-1234'
 
     --list-skills    列出全部可用 skill
@@ -38,7 +38,7 @@ tools:
     - 'WriteFile'
     - 'Grep'
     - 'Glob'
-    - 'ListFile'
+    - 'ListDir'
     - 'Task'
 `;
 

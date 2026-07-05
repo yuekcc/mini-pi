@@ -5,6 +5,7 @@ import std::io::path;
 import std::collections::list;
 
 import c3x::object;
+import global;
 
 faultdef
 	EXECUTE_LS_COMMAND_ERROR, 
@@ -36,6 +37,8 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 	List{Tool} tools;
 	tools.init(tmem);
 
+	global::debug_log("init tool hub, allowed_tools = %s", allowed_tools);
+
 	foreach (tool_name : allowed_tools)
 	{
 		switch (tool_name.trim())
@@ -55,6 +58,8 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 	self.allocator = allocator;
 	self.schema_cache = "";
 	self.tools = tools.to_array(allocator);
+
+	global::debug_log("%d tool enabled", self.tools.len);
 	return self;
 }
 
@@ -96,13 +101,17 @@ fn String ToolHub.schema(&self, Allocator allocator)
 
 fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String name, Object* args)
 {
+	global::debug_log("dispatch tool with tool name = %s", name);
+
 	foreach (&tool : self.tools)
 	{
 		if (tool.name() == name)
 		{
 			tool.execute(allocator, out, args)!;
+			return;
 		}
 	}
 
+	global::debug_log("tool not found, tool name = %s", name);
 	return UNKNOWN_TOOL~;
 }
