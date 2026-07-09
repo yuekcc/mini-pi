@@ -1,4 +1,4 @@
-# mp (mini-pi)
+# mp
 
 **a pi coding agent clone, my own coding agent.**
 
