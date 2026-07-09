@@ -1,0 +1,10 @@
+{
+  "provides": "cjson",
+  "c-sources": ["./cJSON.c", "./cJSON.h"],
+  "targets": {
+    "linux-x64": {},
+    "windows-x64": {},
+    "macos-x64": {},
+    "macos-aarch64": {}
+  }
+}
