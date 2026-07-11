@@ -22,7 +22,7 @@ fn String load_system_prompt(Allocator allocator) @local
 		.replace(tmem, "{{date}}", now_str)
 		.replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)");
 
-	return final_system_prompt.copy(allocator);
+	return final_system_prompt.trim().copy(allocator);
 }
 
 fn String load_agents_md(Allocator allocator)
@@ -136,11 +136,11 @@ fn void Context.reset(&self)
 	
 	if (self.skill_hub != null)
 	{
-		buf.appendf("\n\n----\n\n");
 		String skill_list = self.skill_hub.print_installed(tmem);
 		if (skill_list != "")
 		{
-			buf.appendf("\n\n----\n\n%s", skill_list);
+			buf.appendf("\n\n----\n\n");
+			buf.appendf("%s\n\n", skill_list);
 		}
 	}
 
@@ -205,6 +205,8 @@ fn String Context.render_to_markdown(&self, Allocator allocator)
 			{
 				buf.appendfn("> %s", line);
 			}
+
+			buf.appendfn("");
 		}
 
 		if (content != "")
@@ -214,7 +216,7 @@ fn String Context.render_to_markdown(&self, Allocator allocator)
 
 			buf.appendfn("%s\n", content);
 
-			if (should_pack) buf.appendfn("```");
+			if (should_pack) buf.appendfn("```\n");
 		}
 
 		if (message.tool_calls.len() > 0)
