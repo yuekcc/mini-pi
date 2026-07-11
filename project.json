@@ -10,7 +10,7 @@
   "authors": [
     "Lefeng Zhan<yuekcc@qq.com>"
   ],
-  "version": "1.0.0",
+  "version": "0.1.0",
   "sources": [
     "src/**"
   ],
@@ -23,7 +23,7 @@
     "mp": {
       "type": "executable"
     }
-  }
-  // "cpu": "generic",
-  // "opt": "O2"
+  },
+  "cpu": "generic",
+  "opt": "O2"
 }
