@@ -77,6 +77,7 @@ fn String load_init_message(Allocator allocator, Flag* flag)
 
 fn Message* read_input(Allocator allocator, Context* context)
 {
+	bool should_quit = false;
 	while (true)
 	{
 		io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
@@ -95,6 +96,12 @@ fn Message* read_input(Allocator allocator, Context* context)
 				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Saved to %s)" +++ Ansi.RESET, output_file);
 				continue;
 			}
+			else if (input_trimmed == "/exit" || input_trimmed == "/e")
+			{
+				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Bye, last session ID is %s)" +++ Ansi.RESET, context.session_id);
+				should_quit = true;
+				break;
+			}
 		};
 
 		Message* result = alloc::new(allocator, Message);
@@ -102,6 +109,13 @@ fn Message* read_input(Allocator allocator, Context* context)
 		result.content = input_trimmed.copy(allocator);
 		return result;
 	}
+
+	if (should_quit)
+	{
+		os::exit(0);
+	}
+
+	return null;
 }
 
 
