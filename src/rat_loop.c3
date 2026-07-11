@@ -39,7 +39,7 @@ fn void print_message(Message* msg)
 		}
 
 		// assistant 调用工具
-		if (msg.role == "assistant" && content == "" && msg.tool_calls.len() > 0)
+		if (msg.role == "assistant" && msg.tool_calls.len() > 0)
 		{
 			foreach (&tc : msg.tool_calls)
 			{
