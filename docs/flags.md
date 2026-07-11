@@ -1,6 +1,6 @@
 # 命令行参数说明
 
-`mp` 是一个 pi coding agent 克隆程序，用于自动化编程辅助。
+`mp` 是一个 coding agent。
 
 ## 参数列表
 
@@ -8,8 +8,8 @@
 | ----------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
 | `--config, -c <path>`   | 指定配置目录                                                            | `~/.config/mp/`                          |
 | `--agent <name>`        | 指定智能体角色名称                                                      | `default`                                |
-| `--model <id>`          | 指定使用的模型 ID                                                       | `minimax.com/MiniMax-M2.7`               |
-| `--tools <list>`        | 允许使用的工具列表（逗号分隔）                                          | `read,bash,edit,write,grep,find,ls,task` |
+| `--model <id>`          | 指定使用的模型 ID                                                       | `Any`                                    |
+| `--tools <list>`        | 允许使用的工具列表（逗号分隔）                                          | `ReadFile,Bash,EditFile,WriteFile,Grep,Glob,ListDir,Task` |
 | `--headless`            | 启用非交互模式                                                          | 交互模式（默认）                         |
 | `--task, -t <msg>`      | 指定初始任务内容                                                        | -                                        |
 | `--task-file, -f <path>`| 从指定文件读取内容作为初始任务（与 `--task` 互斥，`--task-file` 优先）  | -                                        |
@@ -31,22 +31,22 @@
 
 ### `--model <id>`
 
-指定要使用的 AI 模型 ID，格式为 `provider/model-name`。可通过全局配置文件 `~/.config/mp/mp.json` 中的 `model_id` 字段设置默认值。
+指定要使用的 AI 模型 ID，格式为 `provider/model-name`。
 
 ### `--tools <list>`
 
 设置允许使用的工具列表，可用的工具包括：
 
-| 工具    | 说明                                          |
-| ------- | --------------------------------------------- |
-| `read`  | 读取文件内容，带行号显示                      |
-| `bash`  | 执行 shell 命令                               |
-| `edit`  | 对文件进行文本替换编辑                        |
-| `write` | 写入/创建文件                                 |
-| `grep`  | 基于 ripgrep 的文本搜索                       |
-| `find`  | 基于 fd 的文件查找                            |
-| `ls`    | 列出目录内容                                  |
-| `task`  | 启动子 agent 执行子任务（递归调用 `mp` 自身） |
+| 工具       | 说明                                          |
+| ---------- | --------------------------------------------- |
+| `ReadFile` | 读取文件内容，带行号显示                      |
+| `Bash`     | 执行 shell 命令                               |
+| `EditFile` | 对文件进行文本替换编辑                        |
+| `WriteFile`| 写入/创建文件                                 |
+| `Grep`     | 基于 ripgrep 的文本搜索                       |
+| `Glob`     | 基于 fd 的文件查找                            |
+| `ListDir`  | 列出目录内容                                  |
+| `Task`     | 启动子 agent 执行子任务（递归调用 `mp` 自身） |
 
 多个工具用逗号分隔。
 
@@ -82,19 +82,19 @@ mp --headless --file prompt.txt
 
 启用 DEBUG 模式。在此模式下，所有 HTTP 请求和响应会被转储到 `logs/` 目录（`logs/req_<timestamp>.json` 和 `logs/resp_<timestamp>.json`），方便排查 API 交互问题。
 
-## 配置文件
+## 配置文件（预留）
 
-全局配置文件位于 `~/.config/mp/mp.json`，可配置以下字段：
+全局配置文件位于 `~/.config/mp/mp.json`，计划支持以下字段：
 
 ```json
 {
   "api_key": "your-api-key",
-  "base_url": "http://127.0.0.1:1234",
-  "model_id": "minimax.com/MiniMax-M2.7"
+  "base_url": "http://127.0.0.1:5678",
+  "model": "Any"
 }
 ```
 
-配置文件的值会覆盖硬编码默认值，但会被 CLI 参数覆盖。
+> **注意**：配置文件读取尚未实现，目前所有参数使用硬编码默认值。
 
 ## 使用示例
 
@@ -118,7 +118,7 @@ mp --headless --task "请帮我创建一个 hello world 程序"
 mp --headless --file prompt.txt --output-file result.txt
 
 # 限制可用工具
-mp --tools read,grep,find
+mp --tools ReadFile,Grep,Glob
 
 # 启用 debug 模式
 mp --debug --headless --task "列出当前目录的文件"

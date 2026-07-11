@@ -1,6 +1,6 @@
 # mp
 
-**a pi coding agent clone, my own coding agent.**
+**my own coding agent, inspired by Pi**
 
 ## 特性
 
@@ -9,14 +9,14 @@
   - [x] 多轮对话
   - [x] 支持工具调用
 - [x] 内置工具
-  - [x] read
-  - [x] ls
-  - [x] grep (依赖 [rg](https://github.com/BurntSushi/ripgrep))
-  - [x] edit
-  - [x] write
-  - [x] bash
-  - [x] find (依赖 [fd](https://github.com/sharkdp/fd))
-  - [x] task
+  - [x] ReadFile — 读取文件内容，支持 `offset`/`limit` 分页（默认 2000 行），自动添加行号
+  - [x] ListDir — 列出目录内容（`ls -ahl`），支持指定路径，默认 500 条
+  - [x] Grep — 基于 [rg](https://github.com/BurntSushi/ripgrep) 搜索内容，支持正则、忽略大小写、literal 模式、上下文行、glob 过滤
+  - [x] EditFile — 精确编辑文件，通过 `oldText` 精确匹配后替换为 `newText`
+  - [x] WriteFile — 写入/创建文件，自动创建父目录
+  - [x] Bash — 执行 shell 命令，输出超过 2000 行自动截断并保存完整输出
+  - [x] Glob — 基于 [fd](https://github.com/sharkdp/fd) 按 glob 模式搜索文件名
+  - [x] Task — 启动子 agent 执行任务
 - [x] skill 支持
 - [x] 通过 task 工具启动一个子 agent
 - [ ] 多 agent 支持
@@ -49,7 +49,7 @@ c3c build
 sh scripts/release.sh
 ```
 
-### 架构
+### 架构设计
 
 见 [docs/arch.md](docs/arch.md)
 
