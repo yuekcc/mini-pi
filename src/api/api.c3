@@ -323,7 +323,7 @@ fn Message? completions(Context* ctx)
 		request_body.set("thinking", thinking_config);
 		request_body.set("messages", messages);
 
-		String request_body_json = request_body.to_string(tmem);
+		String request_body_json = string::format(tmem, "%s", request_body);
 		request_body.free();
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", ctx.tool_hub.schema(tmem));
 		if (global::debug())

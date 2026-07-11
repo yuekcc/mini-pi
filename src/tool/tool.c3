@@ -96,7 +96,7 @@ fn String ToolHub.schema(&self, Allocator allocator)
 	CJsonItem* schema_arr = cjson::parse((ZString)buf.str_view());
 	defer schema_arr.free();
 
-	self.schema_cache = schema_arr.to_string(self.allocator);
+	self.schema_cache = string::format(self.allocator, "%s", schema_arr);
 	return self.schema_cache.copy(allocator);
 }
 
