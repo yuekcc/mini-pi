@@ -25,22 +25,27 @@ fn String? ls(Allocator allocator, DString* out, String file_path = "", int limi
 
 const String LS_SCHEMA = (String)$embed("list_dir_tool_schema.json");
 
-struct LsTool (Tool)
+struct ListDirTool (Tool)
 {
 	bool _pad;
 }
 
-fn String LsTool.name(&self) @dynamic
+fn String ListDirTool.name(&self) @dynamic
 {
 	return "ListDir";
 }
 
-fn String LsTool.schema(&self) @dynamic
+fn String ListDirTool.description(&self) @dynamic
+{
+	return "List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles. Output is truncated to 500 entries.";
+}
+
+fn String ListDirTool.schema(&self) @dynamic
 {
 	return LS_SCHEMA;
 }
 
-fn void? LsTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? ListDirTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? ".";
 	ls(allocator, out, file_path)!;

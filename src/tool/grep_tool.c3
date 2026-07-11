@@ -70,6 +70,11 @@ fn String GrepTool.name(&self) @dynamic
 	return "Grep";
 }
 
+fn String GrepTool.description(&self) @dynamic
+{
+	return "Search file contents for a pattern. Returns matching lines with file paths and line numbers. Respects .gitignore. Output is truncated to 100 matches. Long lines are truncated to 500 chars.";
+}
+
 fn String GrepTool.schema(&self) @dynamic
 {
 	return GREP_SCHEMA;

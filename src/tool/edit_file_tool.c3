@@ -41,6 +41,11 @@ fn String EditTool.name(&self) @dynamic
 	return "EditFile";
 }
 
+fn String EditTool.description(&self) @dynamic
+{
+	return "Edit a file by replacing exact text. The oldText must match exactly (including whitespace). Use this for precise, surgical edits.";
+}
+
 fn String EditTool.schema(&self) @dynamic
 {
 	return EDIT_SCHEMA;

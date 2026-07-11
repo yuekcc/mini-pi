@@ -21,6 +21,7 @@ faultdef
 interface Tool
 {
 	fn String name();
+	fn String description();
 	fn String schema();
 	fn void? execute(Allocator allocator, DString* out, CJsonItem* args);
 }
@@ -43,13 +44,13 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 	{
 		switch (tool_name.trim())
 		{
-			case "ReadFile": tools.push((Tool)alloc::new(allocator, ReadTool));
+			case "ReadFile": tools.push((Tool)alloc::new(allocator, ReadFileTool));
 			case "Bash": tools.push((Tool)alloc::new(allocator, BashTool));
 			case "EditFile": tools.push((Tool)alloc::new(allocator, EditTool));
-			case "WriteFile": tools.push((Tool)alloc::new(allocator, WriteTool));
+			case "WriteFile": tools.push((Tool)alloc::new(allocator, WriteFileTool));
 			case "Grep": tools.push((Tool)alloc::new(allocator, GrepTool));
-			case "Glob": tools.push((Tool)alloc::new(allocator, FindTool));
-			case "ListDir": tools.push((Tool)alloc::new(allocator, LsTool));
+			case "Glob": tools.push((Tool)alloc::new(allocator, GlobTool));
+			case "ListDir": tools.push((Tool)alloc::new(allocator, ListDirTool));
 			case "Task": tools.push((Tool)alloc::new(allocator, TaskTool));
 			default: unreachable(string::format(tmem, "UNKNOWN_TOOL: %s.", tool_name.trim()));
 		}
@@ -61,6 +62,17 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 
 	global::debug_log("%d tool enabled", self.tools.len);
 	return self;
+}
+
+fn String ToolHub.printed_enabled_tools(&self, Allocator allocator)
+{
+	DString buf = dstring::new(tmem);
+	foreach (tool : self.tools)
+	{
+		buf.appendfn("- %s: %s", tool.name(), tool.description());
+	}
+
+	return buf.copy_str(allocator);
 }
 
 fn void ToolHub.free(&self)

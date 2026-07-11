@@ -52,6 +52,11 @@ fn String TaskTool.name(&self) @dynamic
 	return "Task";
 }
 
+fn String TaskTool.description(&self) @dynamic
+{
+	return "Run a subagent in a clean context and return a summary.";
+}
+
 fn String TaskTool.schema(&self) @dynamic
 {
 	return TASK_SCHEMA;

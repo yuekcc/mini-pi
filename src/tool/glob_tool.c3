@@ -38,22 +38,27 @@ fn void? find(Allocator allocator, DString* out, String pattern, String file_pat
 
 const String FIND_SCHEMA = (String)$embed("glob_tool_schema.json");
 
-struct FindTool (Tool)
+struct GlobTool (Tool)
 {
 	bool _pad;
 }
 
-fn String FindTool.name(&self) @dynamic
+fn String GlobTool.name(&self) @dynamic
 {
 	return "Glob";
 }
 
-fn String FindTool.schema(&self) @dynamic
+fn String GlobTool.description(&self) @dynamic
+{
+	return "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to 500 results.";
+}
+
+fn String GlobTool.schema(&self) @dynamic
 {
 	return FIND_SCHEMA;
 }
 
-fn void? FindTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? GlobTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
 	String pattern   = args.get_key_string("pattern", tmem) ?? "";
 	String file_path = args.get_key_string("path", tmem) ?? "";

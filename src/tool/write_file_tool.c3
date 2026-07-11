@@ -17,22 +17,27 @@ fn void? write(Allocator allocator, DString* out, String file_path, String conte
 	out.appendf("(Saved to %s)", path_obj);
 }
 
-struct WriteTool (Tool)
+struct WriteFileTool (Tool)
 {
 	bool _pad;
 }
 
-fn String WriteTool.name(&self) @dynamic
+fn String WriteFileTool.name(&self) @dynamic
 {
 	return "WriteFile";
 }
 
-fn String WriteTool.schema(&self) @dynamic
+fn String WriteFileTool.description(&self) @dynamic
+{
+	return "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.";
+}
+
+fn String WriteFileTool.schema(&self) @dynamic
 {
 	return WRITE_SCHEMA;
 }
 
-fn void? WriteTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? WriteFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
 	String content   = args.get_key_string("content", tmem) ?? "";

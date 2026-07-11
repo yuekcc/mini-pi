@@ -56,22 +56,27 @@ fn void? read(Allocator allocator, DString* out, String file_path, int offset = 
 
 const String READ_SCHEMA = (String)$embed("read_file_tool_schema.json");
 
-struct ReadTool (Tool)
+struct ReadFileTool (Tool)
 {
 	bool _pad;
 }
 
-fn String ReadTool.name(&self) @dynamic
+fn String ReadFileTool.name(&self) @dynamic
 {
 	return "ReadFile";
 }
 
-fn String ReadTool.schema(&self) @dynamic
+fn String ReadFileTool.description(&self) @dynamic
+{
+	return "Read the contents of a text file. For text files, output is truncated to 2000 lines. Use offset/limit for large files. When you need the full file, continue with offset until complete.";
+}
+
+fn String ReadFileTool.schema(&self) @dynamic
 {
 	return READ_SCHEMA;
 }
 
-fn void? ReadTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? ReadFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
 	int offset       = args.get_key_int("offset") ?? -1;
