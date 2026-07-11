@@ -9,8 +9,7 @@ import util;
 import global;
 
 faultdef
-	API_ERROR, EMPTY_RESPONSE
-;
+	API_ERROR, EMPTY_RESPONSE;
 
 fn Message? read_response_to_message(Allocator allocator, String json_doc)
 {
@@ -24,8 +23,8 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 
 	if (CJsonItem* message = last_choice.get_key("message"))
 	{
-		String role = message.get_key_string("role", tmem) ?? "assistant";
-		String content = message.get_key_string("content", tmem) ?? "";
+		String role              = message.get_key_string("role", tmem) ?? "assistant";
+		String content           = message.get_key_string("content", tmem) ?? "";
 		String reasoning_content = message.get_key_string("reasoning_content", tmem) ?? "";
 		Message result = {
 			.id = util::timestamp_id(allocator),
@@ -38,7 +37,7 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 
 		if (CJsonItem* tool_calls = message.get_key("tool_calls"))
 		{
-			usz tc_len = tool_calls.len();
+			usz tc_len = tool_calls.get_len();
 			for (usz i = 0; i < tc_len; i++)
 			{
 				CJsonItem* tc = tool_calls.get_at((sz)i);
@@ -60,12 +59,14 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 
 				if (parsed.name.len == 0) continue;
 
-				result.tool_calls.push({
-					.id = parsed.id.copy(allocator),
-					.index = parsed.index,
-					.name = parsed.name.copy(allocator),
-					.arguments = parsed.arguments.copy(allocator),
-				});
+				result.tool_calls.push(
+					{
+						.id = parsed.id.copy(allocator),
+						.index = parsed.index,
+						.name = parsed.name.copy(allocator),
+						.arguments = parsed.arguments.copy(allocator),
+					}
+				);
 			}
 
 			if (result.tool_calls.len() > 0)
@@ -83,7 +84,7 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 // 解析 OpenAI 兼容的 SSE 流式响应。
 // HttpClient 已经把整个响应体累积进 DString 并作为 response.body 返回，
 // 因此这里在请求结束后，一次性处理完整的 SSE 文本，不做打字机效果。
-//
+// 
 // 流式响应中，tools 调用以增量分片形式下发：每个 delta.tool_calls 是数组，
 // 元素通过 "index" 字段区分属于第几个工具调用；id 与 name 通常只在首个分片出现，
 // arguments 则跨多个分片拼接。这里按 index 分组累积，从而支持单次回复中的多个 tool_call。
@@ -91,18 +92,20 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 {
 	@pool()
 	{
-		DString content_buf = dstring::new(tmem);
+		DString content_buf   = dstring::new(tmem);
 		DString reasoning_buf = dstring::new(tmem);
 
 		String role = "assistant";
 
 		// 累积多个 tool_call，按 index 分组。
-		List{ToolCall} tool_calls_acc; tool_calls_acc.init(tmem);
-		List{DString} tool_args_bufs; tool_args_bufs.init(tmem);
+		List{ToolCall} tool_calls_acc;
+		tool_calls_acc.init(tmem);
+		List{DString} tool_args_bufs;
+		tool_args_bufs.init(tmem);
 		bool has_tool_call = false;
 
 		usz event_count = 0;
-		usz skipped = 0;
+		usz skipped     = 0;
 
 		// SSE 每行以 "data:" 开头，事件之间以空行分隔，结束标记为 "data: [DONE]"。
 		String[] lines = sse_body.split(tmem, "\n");
@@ -145,15 +148,19 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 			String reasoning_part = delta.get_key_string("reasoning_content", tmem) ?? "";
 			if (reasoning_part.len > 0) reasoning_buf.append(reasoning_part);
 
-			global::debug_log("stream event #%d: content +%d bytes, reasoning +%d bytes",
-				event_count, content_part.len, reasoning_part.len);
+			global::debug_log(
+				"stream event #%d: content +%d bytes, reasoning +%d bytes",
+				event_count,
+				content_part.len,
+				reasoning_part.len
+			);
 
 			if (CJsonItem* tool_calls = delta.get_key("tool_calls"))
 			{
-							usz tc_len = tool_calls.len();
-			for (usz i = 0; i < tc_len; i++)
-			{
-				CJsonItem* tool_call = tool_calls.get_at((sz)i);
+				usz tc_len = tool_calls.get_len();
+				for (usz i = 0; i < tc_len; i++)
+				{
+					CJsonItem* tool_call = tool_calls.get_at((sz)i);
 					if (tool_call == null) continue;
 
 					has_tool_call = true;
@@ -175,7 +182,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 					}
 
 					ToolCall* acc = tool_calls_acc.get_ref(idx);
-					DString* buf = tool_args_bufs.get_ref(idx);
+					DString* buf  = tool_args_bufs.get_ref(idx);
 
 					// id 与 name 通常只在首个分片中出现。
 					String id_part = tool_call.get_key_string("id", tmem) ?? "";
@@ -189,8 +196,14 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 						String args_part = function.get_key_string("arguments", tmem) ?? "";
 						if (args_part.len > 0) buf.append(args_part);
 
-						global::debug_log("stream event #%d: tool_call delta (index=%d id=%s name=%s, +%d args bytes)",
-							event_count, idx, acc.id, acc.name, args_part.len);
+						global::debug_log(
+							"stream event #%d: tool_call delta (index=%d id=%s name=%s, +%d args bytes)",
+							event_count,
+							idx,
+							acc.id,
+							acc.name,
+							args_part.len
+						);
 					}
 				}
 			}
@@ -205,32 +218,42 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 		};
 		result.tool_calls.init(allocator);
 
-		global::debug_log("stream parse complete: %d events parsed, %d skipped, content=%d chars, reasoning=%d chars, tool_call=%s",
-			event_count, skipped, content_buf.str_view().len, reasoning_buf.str_view().len,
-			has_tool_call ? "yes" : "no");
+		global::debug_log(
+			"stream parse complete: %d events parsed, %d skipped, content=%d chars, reasoning=%d chars, tool_call=%s",
+			event_count,
+			skipped,
+			content_buf.str_view()
+			.len, reasoning_buf.str_view().len, has_tool_call ? "yes" : "no");
 
 		if (has_tool_call)
 		{
 			for (sz i = 0; i < tool_calls_acc.len(); i++)
 			{
 				ToolCall* acc = tool_calls_acc.get_ref(i);
-				DString* buf = tool_args_bufs.get_ref(i);
+				DString* buf  = tool_args_bufs.get_ref(i);
 
 				// 跳过未完整接收（没有 name）的占位项，理论上不会发生。
 				if (acc.name.len == 0) continue;
 
 				if (global::debug())
 				{
-					io::printfn("> Detect tool call #%d: id = %s, name = %s, arguments = %s",
-						i, acc.id, acc.name, buf.str_view());
+					io::printfn(
+						"> Detect tool call #%d: id = %s, name = %s, arguments = %s",
+						i,
+						acc.id,
+						acc.name,
+						buf.str_view()
+					);
 				}
 
-				result.tool_calls.push({
-					.id = acc.id.copy(allocator),
-					.index = acc.index,
-					.name = acc.name.copy(allocator),
-					.arguments = buf.copy_str(allocator),
-				});
+				result.tool_calls.push(
+					{
+						.id = acc.id.copy(allocator),
+						.index = acc.index,
+						.name = acc.name.copy(allocator),
+						.arguments = buf.copy_str(allocator),
+					}
+				);
 			}
 		}
 

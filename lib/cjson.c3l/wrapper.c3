@@ -29,11 +29,10 @@ fn void CJsonItem.free(&self) => delete(self);
 // to_string allocates a String copy.
 fn String CJsonItem.to_string(&self, Allocator allocator)
 {
-	ZString s = print_unformatted(self);
-	return string::format(allocator, "%s", s);
+	return string::format(allocator, "%s", self);
 }
 
-fn sz? CJsonItem.to_format(&self, Formatter* formatter)
+fn sz? CJsonItem.to_format(&self, Formatter* formatter) @dynamic
 {
 	const int BUFFER_LEN = 4096;
 	char[BUFFER_LEN] buffer;
@@ -46,7 +45,6 @@ fn sz? CJsonItem.to_format(&self, Formatter* formatter)
 }
 
 fn CJsonItem* new_null(Allocator allocator) @inline => create_null();
-fn void CJsonItem.free_result(&self) @inline => delete(self);
 
 fn bool CJsonItem.is_null(&self)      @inline => is_null(self);
 fn bool CJsonItem.is_bool(&self)      @inline => is_bool(self);
@@ -204,12 +202,6 @@ fn bool? CJsonItem.get_bool(&self)
 	return MALFORMED_BOOL~;
 }
 
-fn double? CJsonItem.get_number(&self)
-{
-	if (!self.is_number()) return string::MALFORMED_FLOAT~;
-	return get_number_value(self);
-}
-
 // --- deletion ---------------------------------------------------------------
 
 // --- key-based typed getters (convenience) ---------------------------------
@@ -244,8 +236,7 @@ fn double? CJsonItem.get_number(&self)
 
 // --- length -----------------------------------------------------------------
 
-fn usz CJsonItem.length(&self) @inline => (usz)get_array_size(self);
-fn usz CJsonItem.len(&self) @inline => (usz)get_array_size(self);
+fn usz CJsonItem.get_len(&self) @inline => (usz)get_array_size(self);
 
 // --- construction helpers ---------------------------------------------------
 

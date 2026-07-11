@@ -1,5 +1,7 @@
 module cjson;
 
+import std::io;
+
 const int INVALID = 0; // cJSON_Invalid
 const int FALSE = (1 << 0);
 const int TRUE = (1 << 1);
@@ -20,7 +22,7 @@ const int VERSION_PATCH = 19;
 const int NESTING_LIMIT = 1000;
 const int CIRCULAR_LIMIT = 10000;
 
-struct CJsonItem
+struct CJsonItem (Printable)
 {
     CJsonItem* next;
     CJsonItem* prev;
