@@ -2,6 +2,7 @@ module rat_loop;
 
 import std::io;
 import std::os;
+import std::time::datetime;
 
 import cjson;
 
@@ -17,7 +18,9 @@ fn void print_message(Message* msg)
 	{
 		defer io::print("\n");
 
-		io::printfn(Ansi.BOLD +++ "%s:" +++ Ansi.RESET, msg.role);
+		DateTime now = datetime::now();
+
+		io::printfn(Ansi.BOLD +++ "%s %s:" +++ Ansi.RESET, now.to_local().format(tmem, DateTimeFormat.DATEONLY), msg.role);
 
 		String content = msg.content.trim().replace(tmem, "\t", "    ");
 		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
@@ -29,18 +32,19 @@ fn void print_message(Message* msg)
 
 		if (reasoning_content != "")
 		{
-			io::printfn(Ansi.BRIGHT_BLACK +++ Ansi.ITALIC +++ "Thinking ... %s" +++ Ansi.RESET, reasoning_content);
+			io::printfn(Ansi.BRIGHT_BLACK +++ Ansi.ITALIC +++ "\nThinking ... %s" +++ Ansi.RESET, reasoning_content);
 			
 		}
 
 		if (content != "")
 		{
-			io::printfn("%s", content);
+			io::printfn("\n%s", content);
 		}
 
 		// assistant 调用工具
 		if (msg.role == "assistant" && msg.tool_calls.len() > 0)
 		{
+			io::print("\n");
 			foreach (&tc : msg.tool_calls)
 			{
 				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Call tool: %s with %s)" +++ Ansi.RESET, tc.name, tc.arguments);
