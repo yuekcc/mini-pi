@@ -5,7 +5,7 @@ import std::io::file;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import util::cmd;
 import util;
 
@@ -67,9 +67,9 @@ fn String BashTool.schema(&self) @dynamic
 	return BASH_SCHEMA;
 }
 
-fn void? BashTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
+fn void? BashTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String command = args.get_string("command") ?? "";
+	String command = args.get_key_string("command", tmem) ?? "";
 	if (command == "") return INVALID_COMMAND_PARAM~;
 	bash(allocator, out, command)!;
 }

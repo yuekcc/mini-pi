@@ -3,7 +3,7 @@ module rat_loop;
 import std::io;
 import std::os;
 
-import c3x::object;
+import cjson;
 
 import context;
 import cli;
@@ -116,7 +116,15 @@ fn void run(Context* context)
 					.tool_call_id = message.tool_call_id,
 				};
 
-				Object* tool_args = object::parse(tmem, message.tool_call.arguments)!!;
+				CJsonItem* tool_args = cjson::parse((ZString)message.tool_call.arguments);
+				if (!tool_args)
+				{
+					reply.content = string::format(tmem, "Execute tool '%s' fault, malformed JSON arguments.", message.tool_call.name);
+					print_message(&reply);
+					context.add_message(&reply);
+					continue RAT_LOOP;
+				}
+				defer tool_args.free();
 
 				if (catch excuse = context.tool_hub.do_dispatch(tmem, &buf, message.tool_call.name, tool_args))
 				{

@@ -5,7 +5,7 @@ import std::io::file;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import util::cmd;
 import util;
 import global;
@@ -57,11 +57,11 @@ fn String TaskTool.schema(&self) @dynamic
 	return TASK_SCHEMA;
 }
 
-fn void? TaskTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
+fn void? TaskTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String agent_name  = args.get_string("agent") ?? "default";
-	String prompt      = args.get_string("prompt") ?? "";
-	String description = args.get_string("description") ?? "";
+	String agent_name  = args.get_key_string("agent", tmem) ?? "default";
+	String prompt      = args.get_key_string("prompt", tmem) ?? "";
+	String description = args.get_key_string("description", tmem) ?? "";
 
 	if (agent_name == "") return INVALID_AGENT_PARAM~;
 	if (prompt == "") return INVALID_PROMPT_PARAM~;

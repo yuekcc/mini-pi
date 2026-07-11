@@ -4,7 +4,7 @@ import std::io;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import util::cmd;
 import util;
 
@@ -71,10 +71,10 @@ fn String ReadTool.schema(&self) @dynamic
 	return READ_SCHEMA;
 }
 
-fn void? ReadTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
+fn void? ReadTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String file_path = args.get_string("path") ?? "";
-	int offset       = args.get_int("offset") ?? -1;
-	int limit        = args.get_int("limit") ?? 2000;
+	String file_path = args.get_key_string("path", tmem) ?? "";
+	int offset       = args.get_key_int("offset") ?? -1;
+	int limit        = args.get_key_int("limit") ?? 2000;
 	read(allocator, out, file_path, offset, limit)!;
 }

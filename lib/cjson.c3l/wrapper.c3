@@ -2,6 +2,7 @@ module cjson;
 
 import std::io;
 import std::core::mem;
+import std::core::string;
 
 
 faultdef MALFORMED_STRING, MALFORMED_BOOL;
@@ -211,8 +212,35 @@ fn double? CJsonItem.get_number(&self)
 
 // --- deletion ---------------------------------------------------------------
 
-fn void CJsonItem.delete_key(&self, String key) @inline => delete_item_from_object(self, (ZString)key);
-fn void CJsonItem.delete_at(&self, sz index) @inline => delete_item_from_array(self, (int)index);
+// --- key-based typed getters (convenience) ---------------------------------
+
+	fn String? CJsonItem.get_key_string(&self, String key, Allocator allocator)
+	{
+		CJsonItem* item = self.get_key(key);
+		if (!item || !item.is_string()) return MALFORMED_STRING~;
+		return item.get_string(allocator);
+	}
+
+	fn int? CJsonItem.get_key_int(&self, String key)
+	{
+		CJsonItem* item = self.get_key(key);
+		if (!item) return string::MALFORMED_INTEGER~;
+		int128? val = item.get_int();
+		if (catch exc = val) return string::MALFORMED_INTEGER~;
+		return (int)val;
+	}
+
+	fn bool? CJsonItem.get_key_bool(&self, String key)
+	{
+		CJsonItem* item = self.get_key(key);
+		if (!item) return MALFORMED_BOOL~;
+		return item.get_bool();
+	}
+
+// --- deletion ---------------------------------------------------------------
+
+	fn void CJsonItem.delete_key(&self, String key) @inline => delete_item_from_object(self, (ZString)key);
+	fn void CJsonItem.delete_at(&self, sz index) @inline => delete_item_from_array(self, (int)index);
 
 // --- length -----------------------------------------------------------------
 

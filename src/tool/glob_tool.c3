@@ -4,7 +4,7 @@ import std::io;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import util::cmd;
 
 fn void? find(Allocator allocator, DString* out, String pattern, String file_path = "", int limit = 1000)
@@ -53,9 +53,9 @@ fn String FindTool.schema(&self) @dynamic
 	return FIND_SCHEMA;
 }
 
-fn void? FindTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
+fn void? FindTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String pattern   = args.get_string("pattern") ?? "";
-	String file_path = args.get_string("path") ?? "";
+	String pattern   = args.get_key_string("pattern", tmem) ?? "";
+	String file_path = args.get_key_string("path", tmem) ?? "";
 	find(allocator, out, pattern, file_path)!;
 }

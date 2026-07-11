@@ -4,7 +4,7 @@ import std::io;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import global;
 
 faultdef
@@ -22,7 +22,7 @@ interface Tool
 {
 	fn String name();
 	fn String schema();
-	fn void? execute(Allocator allocator, DString* out, Object* args);
+	fn void? execute(Allocator allocator, DString* out, CJsonItem* args);
 }
 
 struct ToolHub
@@ -93,13 +93,14 @@ fn String ToolHub.schema(&self, Allocator allocator)
 	buf.append("]");
 
 	// 利用序列化/反序列化进行格式化
-	Object* schema_arr = object::parse(tmem, buf.str_view())!!;
+	CJsonItem* schema_arr = cjson::parse((ZString)buf.str_view());
+	defer schema_arr.free();
 
-	self.schema_cache = schema_arr.to_json(self.allocator);
+	self.schema_cache = schema_arr.to_string(self.allocator);
 	return self.schema_cache.copy(allocator);
 }
 
-fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String name, Object* args)
+fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String name, CJsonItem* args)
 {
 	global::debug_log("dispatch tool with tool name = %s", name);
 

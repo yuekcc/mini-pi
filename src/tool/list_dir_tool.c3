@@ -4,7 +4,7 @@ import std::io;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import util::cmd;
 
 
@@ -40,8 +40,8 @@ fn String LsTool.schema(&self) @dynamic
 	return LS_SCHEMA;
 }
 
-fn void? LsTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
+fn void? LsTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String file_path = args.get_string("path") ?? ".";
+	String file_path = args.get_key_string("path", tmem) ?? ".";
 	ls(allocator, out, file_path)!;
 }

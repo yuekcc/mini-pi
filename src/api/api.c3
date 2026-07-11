@@ -3,7 +3,7 @@ module api;
 import std::io;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import context;
 import util;
 import global;
@@ -14,15 +14,19 @@ faultdef
 
 fn Message? read_response_to_message(Context* ctx, String json_doc)
 {
-	Object* res = object::parse(tmem, json_doc)!;
-	Object* choices = res.get("choices")!;
-	Object* last_choice = choices.get_at(0);
+	CJsonItem* res = cjson::parse((ZString)json_doc);
+	if (!res) return EMPTY_RESPONSE~;
+	defer res.free();
 
-	if (try Object* message = last_choice.get("message"))
+	CJsonItem* choices = res.get_key("choices");
+	if (!choices) return EMPTY_RESPONSE~;
+	CJsonItem* last_choice = choices.get_at(0);
+
+	if (CJsonItem* message = last_choice.get_key("message"))
 	{
-		String role = message.get_string("role") ?? "assistant";
-		String content = message.get_string("content") ?? "";
-		String reasoning_content = message.get_string("reasoning_content") ?? "";
+		String role = message.get_key_string("role", tmem) ?? "assistant";
+		String content = message.get_key_string("content", tmem) ?? "";
+		String reasoning_content = message.get_key_string("reasoning_content", tmem) ?? "";
 		Message result = {
 			.id = util::timestamp_id(ctx.allocator),
 			.role = role.copy(ctx.allocator),
@@ -31,17 +35,18 @@ fn Message? read_response_to_message(Context* ctx, String json_doc)
 			.tool_call_id = "",
 			.tool_call = null,
 		};
-		if (try Object* tool_calls = message.get("tool_calls"))
+		if (CJsonItem* tool_calls = message.get_key("tool_calls"))
 		{
 			io::printfn("> Detect tool calls, %s", tool_calls);
-			Object* tool_call = tool_calls.get_at(0);
+			CJsonItem* tool_call = tool_calls.get_at(0);
 			if (tool_call != null)
 			{
-				result.tool_call_id = tool_call.get_string("id")!!.copy(ctx.allocator);
+				result.tool_call_id = tool_call.get_key_string("id", tmem)!!.copy(ctx.allocator);
 				result.tool_call = alloc::new(ctx.allocator, ToolCall);
-				Object* function = tool_call.get("function")!!;
-				result.tool_call.name = function.get_string("name")!!.copy(ctx.allocator);
-				result.tool_call.arguments = function.get_string("arguments")!!.copy(ctx.allocator);
+				CJsonItem* function = tool_call.get_key("function");
+				if (!function) return EMPTY_RESPONSE~;
+				result.tool_call.name = function.get_key_string("name", tmem)!!.copy(ctx.allocator);
+				result.tool_call.arguments = function.get_key_string("arguments", tmem)!!.copy(ctx.allocator);
 			}
 		}
 
@@ -57,12 +62,12 @@ fn Message? completions(Context* ctx)
 	{
 		String request_id = util::timestamp_id(tmem);
 
-		Object* messages = object::new_obj(tmem);
+		CJsonItem* messages = cjson::new_array(tmem);
 
 		foreach (&msg : &ctx.messages)
 		{
-			Object* message = object::new_obj(tmem);
-			messages.push(message);
+			CJsonItem* message = cjson::new_object(tmem);
+			messages.push_back(message);
 
 			message.set("role", msg.role);
 			message.set("content", msg.content);
@@ -78,15 +83,15 @@ fn Message? completions(Context* ctx)
 
 				if (msg.tool_call != null)
 				{
-					Object* tool_calls = object::new_obj(tmem);
+					CJsonItem* tool_calls = cjson::new_array(tmem);
 					message.set("tool_calls", tool_calls);
 
-					Object* tool_call = object::new_obj(tmem);
-					tool_calls.push(tool_call);
+					CJsonItem* tool_call = cjson::new_object(tmem);
+					tool_calls.push_back(tool_call);
 
 					tool_call.set("id", msg.tool_call_id);
 					tool_call.set("index", 0);
-					Object* function = object::new_obj(tmem);
+					CJsonItem* function = cjson::new_object(tmem);
 					tool_call.set("function", function);
 
 					function.set("name", msg.tool_call.name);
@@ -95,18 +100,19 @@ fn Message? completions(Context* ctx)
 			}
 		}
 
-		Object* request_body = object::new_obj(tmem);
+		CJsonItem* request_body = cjson::new_object(tmem);
 		request_body.set("model", ctx.flag.model);
 		request_body.set("tools", "{{tools_schema}}"); // 设置为模板
 		request_body.set("tool_choice", "auto");
 		request_body.set("stream", false);
 
-		Object* thinking_config = object::new_obj(tmem);
+		CJsonItem* thinking_config = cjson::new_object(tmem);
 		thinking_config.set("type", "enabled");
 		request_body.set("thinking", thinking_config);
 		request_body.set("messages", messages);
 
-		String request_body_json = request_body.to_json(tmem);
+		String request_body_json = request_body.to_string(tmem);
+		request_body.free();
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", ctx.tool_hub.schema(tmem));
 		if (global::debug())
 		{

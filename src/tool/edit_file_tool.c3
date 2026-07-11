@@ -4,7 +4,7 @@ import std::io;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import util::cmd;
 import util;
 
@@ -46,11 +46,11 @@ fn String EditTool.schema(&self) @dynamic
 	return EDIT_SCHEMA;
 }
 
-fn void? EditTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
+fn void? EditTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String file_path = args.get_string("path") ?? "";
-	String old_text  = args.get_string("oldText") ?? "";
-	String new_text  = args.get_string("newText") ?? "";
+	String file_path = args.get_key_string("path", tmem) ?? "";
+	String old_text  = args.get_key_string("oldText", tmem) ?? "";
+	String new_text  = args.get_key_string("newText", tmem) ?? "";
 
 	if (file_path == "") return INVALID_PATH_PARAM~;
 	if (old_text == "") return INVALID_OLD_TEXT_PARAM~;

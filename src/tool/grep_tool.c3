@@ -4,7 +4,7 @@ import std::io;
 import std::io::path;
 import std::collections::list;
 
-import c3x::object;
+import cjson;
 import util::cmd;
 
 
@@ -75,13 +75,13 @@ fn String GrepTool.schema(&self) @dynamic
 	return GREP_SCHEMA;
 }
 
-fn void? GrepTool.execute(&self, Allocator allocator, DString* out, Object* args) @dynamic
+fn void? GrepTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String pattern   = args.get_string("pattern") ?? "";
-	String file_path = args.get_string("path") ?? "";
-	String glob      = args.get_string("glob") ?? "";
-	bool ignore_case = args.get_bool("ignoreCase") ?? false;
-	bool literal     = args.get_bool("literal") ?? false;
-	int context      = args.get_int("context") ?? 0;
+	String pattern   = args.get_key_string("pattern", tmem) ?? "";
+	String file_path = args.get_key_string("path", tmem) ?? "";
+	String glob      = args.get_key_string("glob", tmem) ?? "";
+	bool ignore_case = args.get_key_bool("ignoreCase") ?? false;
+	bool literal     = args.get_key_bool("literal") ?? false;
+	int context      = args.get_key_int("context") ?? 0;
 	grep(allocator, out, pattern, file_path, glob, ignore_case, literal, context)!;
 }
