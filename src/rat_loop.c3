@@ -23,7 +23,7 @@ fn void print_message(Message* msg)
 		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
 		if (msg.role == "tool" && content != "" )
 		{
-			io::printfn(Ansi.BG_BRIGHT_BLACK +++ Ansi.WHITE +++ "\n%s\n" +++ Ansi.RESET, content);
+			io::printfn(Ansi.BG_BRIGHT_BLACK +++ Ansi.WHITE +++ "\n%s" +++ Ansi.RESET, content);
 			return;
 		}
 
@@ -148,7 +148,7 @@ fn void run(Context* context)
 		{
 			if (init_message_added)
 			{
-				io::printfn("DONE");
+				io::printfn(Ansi.BRIGHT_YELLOW +++ "(DONE)" +++ Ansi.RESET);
 				os::exit(0);
 			}
 			else
@@ -169,7 +169,6 @@ fn void run(Context* context)
 		}
 
 		// 发送请求
-
 		if (try Message message =  api::completions(context))
 		{
 			print_message(&message);

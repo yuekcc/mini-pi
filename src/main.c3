@@ -23,6 +23,7 @@ fn int main(String[] args)
 	io::eprintfn("Using config dir: %s", global::config_dir());
 	io::eprintfn("Using log file: %s", global::log_file());
 	io::eprintfn("Debug mode: %s", global::debug() ? "on": "off");
+	io::eprint("\n");
 
 	if (flag.show_help)
 	{
