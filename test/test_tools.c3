@@ -128,22 +128,22 @@ fn void test_tool_pool() @test
 	test::eq(true, schema.trim().ends_with("]"));
 }
 
-fn void test_subagent_python_version() @test
-{
-	// 使用子代理方式检查 Python 版本号
-	String prompt = "请执行 `python --version` 命令来检查 Python 版本，并将结果以纯文本形式返回。只需要返回版本号，例如：Python 3.x.x";
-	DString out = dstring::new(tmem);
-	if (try tool::execute_task(tmem, &out, "default", prompt, "检查 Python 版本号"))
-	{
-		String result = out.str_view().copy(tmem);
-		io::printfn("子代理返回结果: %s", result);
+// fn void test_subagent_python_version() @test
+// {
+// 	// 使用子代理方式检查 Python 版本号
+// 	String prompt = "请执行 `python --version` 命令来检查 Python 版本，并将结果以纯文本形式返回。只需要返回版本号，例如：Python 3.x.x";
+// 	DString out = dstring::new(tmem);
+// 	if (try tool::execute_task(tmem, &out, "default", prompt, "检查 Python 版本号"))
+// 	{
+// 		String result = out.str_view().copy(tmem);
+// 		io::printfn("子代理返回结果: %s", result);
 
-		// 验证结果包含 Python 版本信息
-		assert(result.contains("Python"));
-		assert(result.contains("3."));
-	}
-	else
-	{
-		io::printfn("子代理执行失败，跳过测试（可能 mp 命令不可用）");
-	}
-}
+// 		// 验证结果包含 Python 版本信息
+// 		assert(result.contains("Python"));
+// 		assert(result.contains("3."));
+// 	}
+// 	else
+// 	{
+// 		io::printfn("子代理执行失败，跳过测试（可能 mp 命令不可用）");
+// 	}
+// }

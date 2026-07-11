@@ -1,9 +1,25 @@
 module cjson;
 
 import std::io;
+import std::core::mem;
 
 
 faultdef MALFORMED_STRING, MALFORMED_BOOL;
+
+// --- c3 mem allocator bridge -------------------------------------------------
+
+fn void* cjson_mem_alloc(usz size) @export => mem::new(usz, size);
+fn void cjson_mem_free(void* ptr) @export => mem::free(ptr);
+
+macro init_mem_hooks()
+{
+    init_hooks(&(Hook) {
+        .malloc_fn = (MallocFn*)&cjson_mem_alloc,
+        .free_fn = (FreeFn*)&cjson_mem_free,
+    });
+}
+
+fn void reset_hooks() @inline => init_hooks(null);
 
 
 fn void CJsonItem.free(&self) => delete(self);
