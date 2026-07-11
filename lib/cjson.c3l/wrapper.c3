@@ -25,23 +25,10 @@ fn void reset_hooks() @inline => init_hooks(null);
 
 fn void CJsonItem.free(&self) => delete(self);
 
-// Printable — to_format gives the printable interface,
-// to_string allocates a String copy.
-fn String CJsonItem.to_string(&self, Allocator allocator)
-{
-	return string::format(allocator, "%s", self);
-}
-
 fn sz? CJsonItem.to_format(&self, Formatter* formatter) @dynamic
 {
-	const int BUFFER_LEN = 4096;
-	char[BUFFER_LEN] buffer;
-	ZString zstr = (ZString)&buffer[0];
-	if (print_preallocated(self, zstr, BUFFER_LEN, true))
-	{
-		return formatter.printf("%s", zstr)!;
-	}
-	return formatter.printf("<>")!;
+	ZString zstr = print_unformatted(self);
+	return formatter.printf("%s", zstr)!;
 }
 
 fn CJsonItem* new_null(Allocator allocator) @inline => create_null();
