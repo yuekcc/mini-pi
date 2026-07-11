@@ -23,7 +23,7 @@ fn void print_message(Message* msg)
 		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
 		if (msg.role == "tool" && content != "" )
 		{
-			io::printfn("%s", content);
+			io::printfn(Ansi.BG_BRIGHT_BLACK +++ Ansi.WHITE +++ "%s" +++ Ansi.RESET, content);
 			return;
 		}
 
@@ -43,7 +43,7 @@ fn void print_message(Message* msg)
 		{
 			foreach (&tc : msg.tool_calls)
 			{
-				io::printfn("(Call tool: %s with %s)", tc.name, tc.arguments);
+				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Call tool: %s with %s)" +++ Ansi.RESET, tc.name, tc.arguments);
 			}
 		}
 	}
