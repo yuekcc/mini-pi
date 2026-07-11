@@ -71,7 +71,7 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 
 			if (result.tool_calls.len() > 0)
 			{
-				io::printfn("> Detect %d tool calls", result.tool_calls.len());
+				global::debug_log("> Detect %d tool calls", result.tool_calls.len());
 			}
 		}
 
@@ -235,16 +235,13 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 				// 跳过未完整接收（没有 name）的占位项，理论上不会发生。
 				if (acc.name.len == 0) continue;
 
-				if (global::debug())
-				{
-					io::printfn(
-						"> Detect tool call #%d: id = %s, name = %s, arguments = %s",
-						i,
-						acc.id,
-						acc.name,
-						buf.str_view()
-					);
-				}
+				global::debug_log(
+					"> Detect tool call #%d: id = %s, name = %s, arguments = %s",
+					i,
+					acc.id,
+					acc.name,
+					buf.str_view()
+				);
 
 				result.tool_calls.push(
 					{
@@ -350,7 +347,7 @@ fn Message? completions(Context* ctx)
 
 		if (try Response response = client.post(url, request_body_json, &headers))
 		{
-			io::printfn("> Remote reply: status = %d, body = %s", response.status_code, response.body);
+			global::debug_log("> Remote reply: status = %d, body = %s", response.status_code, response.body);
 			if (global::debug())
 			{
 				file::save(string::tformat("logs/req_%s_%d.json", request_id, response.status_code), response.body)!!;
@@ -358,14 +355,14 @@ fn Message? completions(Context* ctx)
 
 			if (response.status_code != 200)
 			{
-				io::printfn("HTTP request failed with status code: %d", response.status_code);
+				global::debug_log("HTTP request failed with status code: %d", response.status_code);
 				return API_ERROR~;
 			}
 			return read_stream_to_message(ctx.allocator, response.body);
 		}
 		else
 		{
-			io::printfn("HTTP request failed");
+			global::debug_log("HTTP request failed");
 			return API_ERROR~;
 		}
 	};
