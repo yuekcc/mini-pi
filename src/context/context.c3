@@ -177,33 +177,40 @@ fn String Context.render_to_markdown(&self, Allocator allocator)
 	buf.appendfn("---");
 	buf.appendfn("Session ID: %s", self.session_id);
 	buf.appendfn("Started At: %s", self.started_at.to_local().format(allocator, DateTimeFormat.DATETIME));
-	buf.appendfn("Updated At: %s", self.started_at.to_local().format(allocator, DateTimeFormat.DATETIME));
+	buf.appendfn("Updated At: %s", self.updated_at.to_local().format(allocator, DateTimeFormat.DATETIME));
 	buf.appendfn("---\n");
 
 	foreach (message : self.messages)
 	{
+		buf.appendfn("# %s %s\n", message.timestamp.to_local().format(allocator, DateTimeFormat.DATETIME), message.role);
 
-		buf.appendf("# %s %s\n", message.timestamp.to_local().format(allocator, DateTimeFormat.DATETIME), message.role);
+		String reasoning_content = message.reasoning_content.trim();
+		String content = message.content.trim();
 
 		if (message.tool_call_id != "")
 		{
-			buf.appendfn("(Tool call ID: `%s`\n)", message.tool_call_id);
+			buf.appendfn("(Tool call ID: `%s`)\n", message.tool_call_id);
 		}
 
 
-		if (message.reasoning_content != "")
+		if (reasoning_content != "")
 		{
 			buf.appendfn("> Thinking:");
 			buf.appendfn("> ");
-			foreach (line : message.reasoning_content.split(allocator, "\n"))
+			foreach (line : reasoning_content.split(allocator, "\n"))
 			{
 				buf.appendfn("> %s", line);
 			}
 		}
 
-		if (message.content != "")
+		if (content != "")
 		{
-			buf.appendfn("%s\n", message.content);
+			bool should_pack = message.tool_call_id != "";
+			if (should_pack) buf.appendfn("```");
+
+			buf.appendfn("%s\n", content);
+
+			if (should_pack) buf.appendfn("```");
 		}
 
 		if (message.tool_calls.len() > 0)
