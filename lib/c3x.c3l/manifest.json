@@ -1,9 +1,0 @@
-{
-  "provides": "c3x",
-  "targets": {
-    "macos-x64": {},
-    "macos-aarch64": {},
-    "linux-x64": {},
-    "windows-x64": {}
-  }
-}
