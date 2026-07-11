@@ -19,8 +19,8 @@ fn void print_message(Message* msg)
 
 		io::printfn(Ansi.BOLD +++ "%s:" +++ Ansi.RESET, msg.role);
 
-		String content = msg.content.trim();
-		String reasoning_content = msg.reasoning_content.trim();
+		String content = msg.content.trim().replace(tmem, "\t", "    ");
+		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
 		if (msg.role == "tool" && content != "" )
 		{
 			io::printfn("%s", content);
