@@ -217,6 +217,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 			.content = content_buf.copy_str(allocator),
 			.reasoning_content = reasoning_buf.copy_str(allocator),
 			.tool_call_id = "",
+			.timestamp = datetime::now(),
 		};
 		result.tool_calls.init(allocator);
 
