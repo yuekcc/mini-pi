@@ -12,7 +12,7 @@ import cli;
 
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 
-fn String load_system_prompt(Allocator allocator) @local
+fn String load_system_prompt(Allocator allocator, String toolsList) @local
 {
 	DateTime now = datetime::now();
 	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
@@ -20,7 +20,8 @@ fn String load_system_prompt(Allocator allocator) @local
 
 	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd)
 		.replace(tmem, "{{date}}", now_str)
-		.replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)");
+		.replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)")
+		.replace(tmem, "{{toolsList}}", toolsList);
 
 	return final_system_prompt.trim().copy(allocator);
 }
@@ -124,7 +125,7 @@ fn void Context.reset(&self)
 
 	DString buf = dstring::new(tmem);
 
-	buf.appendf("%s", load_system_prompt(tmem));
+	buf.appendf("%s", load_system_prompt(tmem, self.tool_hub.printed_enabled_tools(tmem)));
 	String agents_md = load_agents_md(tmem);
 	if (agents_md != "")
 	{
