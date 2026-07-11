@@ -51,6 +51,7 @@ struct Message
 	String reasoning_content;
 	String tool_call_id;        // 仅 role=tool 消息使用，指向其回应的 tool_call id
 	List{ToolCall} tool_calls; // 仅 role=assistant 消息使用，支持单次回复中的多个工具调用
+	DateTime timestamp;
 }
 
 // 初始化一个 Message，role 拷贝进 allocator，tool_calls 列表也用同一 allocator 建立。
@@ -63,6 +64,7 @@ fn void message_init(Message* m, Allocator allocator, String role)
 	m.reasoning_content = "";
 	m.tool_call_id = "";
 	m.tool_calls.init(allocator);
+	m.timestamp = datetime::now();
 }
 
 struct Context
@@ -143,6 +145,7 @@ fn void Context.add_message(&self, Message* message)
 	cloned.content = message.content.copy(self.allocator);
 	cloned.reasoning_content = message.reasoning_content.copy(self.allocator);
 	cloned.tool_call_id = message.tool_call_id.copy(self.allocator);
+	cloned.timestamp = message.timestamp;
 
 	cloned.tool_calls.init(self.allocator);
 	foreach (&tc : message.tool_calls)
