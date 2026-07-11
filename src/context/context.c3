@@ -128,15 +128,19 @@ fn void Context.reset(&self)
 	String agents_md = load_agents_md(tmem);
 	if (agents_md != "")
 	{
-		buf.appendf("\n----\n%s", agents_md);
+		buf.appendf("\n\n----\n\n");
+		buf.appendf("<project_context>\nProject-specific instructions and guidelines:\n\n");
+		buf.appendf("<project_instructions path=\"AGENTS.md\">\n%s\n</project_instructions>\n", agents_md);
+		buf.appendf("</project_context>\n\n");
 	}
 	
 	if (self.skill_hub != null)
 	{
+		buf.appendf("\n\n----\n\n");
 		String skill_list = self.skill_hub.print_installed(tmem);
 		if (skill_list != "")
 		{
-			buf.appendf("\n----\n%s", skill_list);
+			buf.appendf("\n\n----\n\n%s", skill_list);
 		}
 	}
 

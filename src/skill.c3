@@ -125,7 +125,7 @@ fn String SkillHub.print_installed(&self, Allocator allocator)
 		buf.append("<skill>\n");
 		buf.appendf("  <name>%s</name>\n", escape_xml(name));
 		buf.appendf("  <description>%s</description>\n", escape_xml(skill.description));
-		buf.appendf("  <location>%s</location>\n", escape_xml(skill.path));
+		buf.appendf("  <location>%s</location>\n", escape_xml(skill.path.replace(tmem, "\\", "/")));
 		buf.append("</skill>\n");
 	};
 	defer buf.free();
