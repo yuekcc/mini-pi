@@ -37,9 +37,12 @@ fn void print_message(Message* msg)
 		}
 
 		// assistant 调用工具
-		if (msg.role == "assistant" && content == "" && msg.tool_call_id != "" && msg.tool_call)
+		if (msg.role == "assistant" && content == "" && msg.tool_calls.len() > 0)
 		{
-			io::printfn("(Call tool: %s with %s)\n", msg.tool_call.name, msg.tool_call.arguments);
+			foreach (&tc : msg.tool_calls)
+			{
+				io::printfn("(Call tool: %s with %s)\n", tc.name, tc.arguments);
+			}
 		}
 	}
 }
@@ -75,7 +78,7 @@ fn Message* read_input(Allocator allocator)
 	io::print(Ansi.RESET);
 
 	Message* result = alloc::new(allocator, Message);
-	result.role = "user";
+	context::message_init(result, allocator, "user");
 	result.content = input.copy(allocator);
 	return result;
 }
@@ -85,12 +88,61 @@ fn void run(Context* context)
 {
 	bool calling_tools = false;
 	bool init_message_added = false;
+	sz tool_call_cursor = 0;     // 当前 assistant 消息中已执行的 tool_call 数量
+	sz pending_assistant_idx = 0; // 待执行 tool_call 所属的 assistant 消息在列表中的下标
 
 	context.reset();
 
 	while RAT_LOOP: (true) @pool()
 	{
-		if (context.flag.enable_headless)
+		if (calling_tools)
+		{
+			// 逐个执行当前 assistant 消息中的 tool_call，全部执行完后再向模型请求。
+			Message* assistant = context.messages.get_ref(pending_assistant_idx);
+			if (tool_call_cursor < assistant.tool_calls.len())
+			{
+				ToolCall* tc = assistant.tool_calls.get_ref(tool_call_cursor);
+
+				// 先复制所需字段，避免后续 add_message 触发列表重分配后指针失效。
+				String tc_id = tc.id.copy(tmem);
+				String tc_name = tc.name.copy(tmem);
+				String tc_args = tc.arguments.copy(tmem);
+				usz tc_index = tc.index;
+
+				DString buf = dstring::new(tmem);
+				Message reply;
+				context::message_init(&reply, tmem, "tool");
+				reply.tool_call_id = tc_id.copy(tmem);
+
+				CJsonItem* tool_args = cjson::parse((ZString)tc_args);
+				if (!tool_args)
+				{
+					reply.content = string::format(tmem, "Execute tool '%s' fault, malformed JSON arguments.", tc_name);
+					print_message(&reply);
+					context.add_message(&reply);
+					tool_call_cursor++;
+					continue RAT_LOOP;
+				}
+				defer tool_args.free();
+
+				if (catch excuse = context.tool_hub.do_dispatch(tmem, &buf, tc_name, tool_args))
+				{
+					reply.content = string::format(tmem, "Execute tool '%s' fault, %s. You should retry carefully", tc_name, excuse);
+				}
+				else
+				{
+					global::debug_log("Tool '%s' (index %d) output: %s", tc_name, tc_index, buf.tcopy());
+					reply.content = buf.copy_str(tmem);
+				}
+
+				print_message(&reply);
+				context.add_message(&reply);
+				tool_call_cursor++;
+				continue RAT_LOOP;
+			}
+			// 所有 tool_call 均已执行，落入下方继续向模型请求
+		}
+		else if (context.flag.enable_headless)
 		{
 			if (init_message_added)
 			{
@@ -99,51 +151,12 @@ fn void run(Context* context)
 			}
 			else
 			{
-				Message reply = {
-					.id = util::timestamp_id(tmem),
-					.role = "user",
-					.content = load_init_message(tmem, context.flag),
-				};
+				Message reply;
+				context::message_init(&reply, tmem, "user");
+				reply.content = load_init_message(tmem, context.flag);
 				print_message(&reply);
 				context.add_message(&reply);
 				init_message_added = true;
-			}
-		}
-		else if (calling_tools)
-		{
-			Message message = context.messages.last()!!;
-			if (message.tool_call != null)
-			{
-				DString buf = dstring::new(tmem);
-				Message reply = {
-					.id = util::timestamp_id(tmem),
-					.role = "tool",
-
-					.tool_call_id = message.tool_call_id,
-				};
-
-				CJsonItem* tool_args = cjson::parse((ZString)message.tool_call.arguments);
-				if (!tool_args)
-				{
-					reply.content = string::format(tmem, "Execute tool '%s' fault, malformed JSON arguments.", message.tool_call.name);
-					print_message(&reply);
-					context.add_message(&reply);
-					continue RAT_LOOP;
-				}
-				defer tool_args.free();
-
-				if (catch excuse = context.tool_hub.do_dispatch(tmem, &buf, message.tool_call.name, tool_args))
-				{
-					reply.content = string::format(tmem, "Execute tool '%s' fault, %s. You should retry carefully", message.tool_call.name, excuse);
-				}
-				else
-				{
-					global::debug_log("Tool '%s' output: %s", message.tool_call.name, buf.tcopy());
-					reply.content = buf.copy_str(tmem);
-				}
-
-				print_message(&reply);
-				context.add_message(&reply);
 			}
 		}
 		else
@@ -159,7 +172,16 @@ fn void run(Context* context)
 		{
 			print_message(&message);
 			context.add_message(&message);
-			calling_tools = message.tool_call != null;
+			if (message.tool_calls.len() > 0)
+			{
+				calling_tools = true;
+				tool_call_cursor = 0;
+				pending_assistant_idx = context.messages.len() - 1;
+			}
+			else
+			{
+				calling_tools = false;
+			}
 		}
 		continue RAT_LOOP;
 	};

@@ -37,6 +37,8 @@ fn String load_agents_md(Allocator allocator)
 
 struct ToolCall
 {
+	String id;       // 模型返回的 tool_call id，例如 "call_xxx"
+	usz index;       // 模型返回的工具调用序号，从 0 递增
 	String name;
 	String arguments;
 }
@@ -47,8 +49,20 @@ struct Message
 	String role;
 	String content;
 	String reasoning_content;
-	String tool_call_id;
-	ToolCall* tool_call;
+	String tool_call_id;        // 仅 role=tool 消息使用，指向其回应的 tool_call id
+	List{ToolCall} tool_calls; // 仅 role=assistant 消息使用，支持单次回复中的多个工具调用
+}
+
+// 初始化一个 Message，role 拷贝进 allocator，tool_calls 列表也用同一 allocator 建立。
+// 其余字段留空，调用方按需填充。
+fn void message_init(Message* m, Allocator allocator, String role)
+{
+	m.id = "";
+	m.role = role.copy(allocator);
+	m.content = "";
+	m.reasoning_content = "";
+	m.tool_call_id = "";
+	m.tool_calls.init(allocator);
 }
 
 struct Context
@@ -96,7 +110,8 @@ fn void Context.reset(&self)
 	// TODO 内存问题？
 	self.messages.clear();
 
-	Message system_msg = { .role = "system", };
+	Message system_msg;
+	message_init(&system_msg, tmem, "system");
 
 	DString buf = dstring::new(tmem);
 
@@ -127,14 +142,17 @@ fn void Context.add_message(&self, Message* message)
 	cloned.role = message.role.copy(self.allocator);
 	cloned.content = message.content.copy(self.allocator);
 	cloned.reasoning_content = message.reasoning_content.copy(self.allocator);
-	cloned.tool_call_id = message.tool_call_id;
+	cloned.tool_call_id = message.tool_call_id.copy(self.allocator);
 
-	if (message.tool_call)
+	cloned.tool_calls.init(self.allocator);
+	foreach (&tc : message.tool_calls)
 	{
-		ToolCall* tool_call = alloc::new(self.allocator, ToolCall);
-		tool_call.name = message.tool_call.name.copy(self.allocator);
-		tool_call.arguments = message.tool_call.arguments.copy(self.allocator);
-		cloned.tool_call = tool_call;
+		ToolCall cloned_tc;
+		cloned_tc.id = tc.id.copy(self.allocator);
+		cloned_tc.index = tc.index;
+		cloned_tc.name = tc.name.copy(self.allocator);
+		cloned_tc.arguments = tc.arguments.copy(self.allocator);
+		cloned.tool_calls.push(cloned_tc);
 	}
 
 	self.messages.push(*cloned);
