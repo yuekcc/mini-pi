@@ -89,9 +89,10 @@ fn Message* read_input(Allocator allocator, Context* context)
 		{
 			if (input_trimmed == "/export")
 			{
-
 				String markdown = context.render_to_markdown(tmem);
-				file::save(context.cwd.append(tmem, string::format(tmem, "%s.md", context.session_id)), markdown)!!;
+				Path output_file = context.cwd.append(tmem, string::format(tmem, "%s.md", context.session_id))!!;
+				file::save(output_file, markdown)!!;
+				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Saved to %s)" +++ Ansi.RESET, output_file);
 				continue;
 			}
 		};
