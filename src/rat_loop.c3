@@ -23,13 +23,13 @@ fn void print_message(Message* msg)
 		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
 		if (msg.role == "tool" && content != "" )
 		{
-			io::printfn(Ansi.BG_BRIGHT_BLACK +++ Ansi.WHITE +++ "%s" +++ Ansi.RESET, content);
+			io::printfn(Ansi.BG_BRIGHT_BLACK +++ Ansi.WHITE +++ "\n%s\n" +++ Ansi.RESET, content);
 			return;
 		}
 
 		if (reasoning_content != "")
 		{
-			io::printfn(Ansi.BRIGHT_BLACK +++ "Thinking ... %s" +++ Ansi.RESET, reasoning_content);
+			io::printfn(Ansi.BRIGHT_BLACK +++ Ansi.ITALIC +++ "Thinking ... %s" +++ Ansi.RESET, reasoning_content);
 			
 		}
 
