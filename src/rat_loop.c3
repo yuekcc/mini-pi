@@ -20,7 +20,7 @@ fn void print_message(Message* msg)
 
 		DateTime now = datetime::now();
 
-		io::printfn(Ansi.BOLD +++ "%s %s:" +++ Ansi.RESET, now.to_local().format(tmem, DateTimeFormat.DATEONLY), msg.role);
+		io::printfn(Ansi.BOLD +++ "%s %s:" +++ Ansi.RESET, now.to_local().format(tmem, DateTimeFormat.DATETIME), msg.role);
 
 		String content = msg.content.trim().replace(tmem, "\t", "    ");
 		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
