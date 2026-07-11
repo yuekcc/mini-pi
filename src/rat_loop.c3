@@ -15,7 +15,7 @@ fn void print_message(Message* msg)
 {
 	if (msg)
 	{
-		io::printfn(Ansi.BOLD +++ "%s:" +++ Ansi.RESET, msg.role);
+		io::printfn(Ansi.BOLD +++ "\n%s:" +++ Ansi.RESET, msg.role);
 
 		String content = msg.content.trim();
 		String reasoning_content = msg.reasoning_content.trim();
@@ -27,13 +27,19 @@ fn void print_message(Message* msg)
 
 		if (reasoning_content != "")
 		{
-			io::printfn(Ansi.BRIGHT_BLACK +++ "Thinking ... %s\n" +++ Ansi.RESET, reasoning_content.trim_left());
+			io::printfn(Ansi.BRIGHT_BLACK +++ "Thinking ... %s\n" +++ Ansi.RESET, reasoning_content);
 			
 		}
 
 		if (content != "")
 		{
 			io::printfn("%s\n", content);
+		}
+
+		// assistant 调用工具
+		if (msg.role == "assistant" && content == "" && msg.tool_call_id != "" && msg.tool_call)
+		{
+			io::printfn("(Call tool: %s with %s)\n", msg.tool_call.name, msg.tool_call.arguments);
 		}
 	}
 }

@@ -11,3 +11,4 @@ apikey.txt
 /logs/**/resp_*.json
 
 /docs.html
+.workbuddy
