@@ -16,7 +16,7 @@ fn int main(String[] args)
 	Flag flag;
 	flag.init(tmem, args)!!;
 
-	String session_id = util::timestamp_id(tmem);
+	String session_id = string::format(tmem, "ses_%s", util::timestamp_id(tmem));
 	Path log_file = flag.config_dir.append(tmem, string::tformat("log/%s.log", session_id))!!;
 	global::update(flag.config_dir, log_file, flag.enable_debug);
 

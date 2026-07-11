@@ -75,16 +75,32 @@ fn String load_init_message(Allocator allocator, Flag* flag)
 	return message.copy(allocator);
 }
 
-fn Message* read_input(Allocator allocator)
+fn Message* read_input(Allocator allocator, Context* context)
 {
-	io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
-	String input = io::readline(tmem)!!;
-	io::print(Ansi.RESET);
+	while (true)
+	{
+		io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
+		String input = io::readline(tmem)!!;
+		io::print(Ansi.RESET);
 
-	Message* result = alloc::new(allocator, Message);
-	context::message_init(result, allocator, "user");
-	result.content = input.copy(allocator);
-	return result;
+		String input_trimmed = input.trim();
+
+		@pool()
+		{
+			if (input_trimmed == "/export")
+			{
+
+				String markdown = context.render_to_markdown(tmem);
+				file::save(context.cwd.append(tmem, string::format(tmem, "%s.md", context.session_id)), markdown)!!;
+				continue;
+			}
+		};
+
+		Message* result = alloc::new(allocator, Message);
+		context::message_init(result, allocator, "user");
+		result.content = input_trimmed.copy(allocator);
+		return result;
+	}
 }
 
 
@@ -166,7 +182,7 @@ fn void run(Context* context)
 		else
 		{
 			// 非 headless 模式，支持用户输入
-			Message* user_input = read_input(tmem);
+			Message* user_input = read_input(tmem, context);
 			context.add_message(user_input);
 		}
 

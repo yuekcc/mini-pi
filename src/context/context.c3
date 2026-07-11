@@ -82,6 +82,9 @@ struct Context
 	SkillHub* skill_hub;
 	ToolHub* tool_hub;
 	Flag* flag;
+
+	DateTime started_at;
+	DateTime updated_at;
 }
 
 fn Context* Context.init(&self, Allocator allocator, String session_id, Flag* flag, ToolHub* tool_hub, SkillHub* skill_hub, Path log_file)
@@ -98,6 +101,10 @@ fn Context* Context.init(&self, Allocator allocator, String session_id, Flag* fl
 	self.tool_hub = tool_hub;
 	self.skill_hub = skill_hub;
 	self.flag = flag;
+
+	DateTime now = datetime::now();
+	self.started_at = now;
+	self.updated_at = now;
 
 	return self;
 }
@@ -159,4 +166,54 @@ fn void Context.add_message(&self, Message* message)
 	}
 
 	self.messages.push(*cloned);
+	self.updated_at = datetime::now();
+}
+
+
+fn String Context.render_to_markdown(&self, Allocator allocator)
+{
+	DString buf = dstring::new(allocator);
+
+	buf.appendfn("---");
+	buf.appendfn("Session ID: %s", self.session_id);
+	buf.appendfn("Started At: %s", self.started_at.to_local().format(allocator, DateTimeFormat.DATETIME));
+	buf.appendfn("Updated At: %s", self.started_at.to_local().format(allocator, DateTimeFormat.DATETIME));
+	buf.appendfn("---\n");
+
+	foreach (message : self.messages)
+	{
+
+		buf.appendf("# %s %s\n", message.timestamp.to_local().format(allocator, DateTimeFormat.DATETIME), message.role);
+
+		if (message.tool_call_id != "")
+		{
+			buf.appendfn("(Tool call ID: `%s`\n)", message.tool_call_id);
+		}
+
+
+		if (message.reasoning_content != "")
+		{
+			buf.appendfn("> Thinking:");
+			buf.appendfn("> ");
+			foreach (line : message.reasoning_content.split(allocator, "\n"))
+			{
+				buf.appendfn("> %s", line);
+			}
+		}
+
+		if (message.content != "")
+		{
+			buf.appendfn("%s\n", message.content);
+		}
+
+		if (message.tool_calls.len() > 0)
+		{
+			foreach (tool_call: message.tool_calls)
+			{
+				buf.appendfn("(Call tool, id = `%s`, name = `%s`, arguments = `%s`)\n", tool_call.id, tool_call.name, tool_call.arguments);
+			}
+		}
+	}
+
+	return buf.str_view();
 }
