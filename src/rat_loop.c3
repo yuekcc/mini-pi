@@ -18,7 +18,7 @@ fn void print_message(Message* msg)
 	{
 		defer io::print("\n");
 
-		io::printfn(Ansi.BOLD +++ "%s %s:" +++ Ansi.RESET, msg.timestamp.format(tmem, DateTimeFormat.DATETIME), msg.role);
+		io::printfn(Ansi.BOLD +++ "%s %s:" +++ Ansi.RESET, msg.timestamp.to_local().format(tmem, DateTimeFormat.DATETIME), msg.role);
 
 		String content = msg.content.trim().replace(tmem, "\t", "    ");
 		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
