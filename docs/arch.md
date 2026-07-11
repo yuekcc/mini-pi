@@ -42,13 +42,13 @@
 │ (tool.c3)    │              │ (HTTP 封装)   │
 └──────┬──────┘              └───────────────┘
        │
-       ├─► ReadTool     ──► cmd::execute / file::load
+       ├─► ReadFileTool     ──► cmd::execute / file::load
        ├─► BashTool     ──► cmd::execute (sh -c)
        ├─► EditTool     ──► file::load / file::save
-       ├─► WriteTool    ──► file::save
+       ├─► WriteFileTool    ──► file::save
        ├─► GrepTool     ──► cmd::execute (rg)
-       ├─► FindTool     ──► cmd::execute (fd)
-       ├─► LsTool       ──► cmd::execute (ls -ahl)
+       ├─► GlobTool     ──► cmd::execute (fd)
+       ├─► ListDirTool       ──► cmd::execute (ls -ahl)
        └─► TaskTool     ──► cmd::execute (mp --headless ...)
 ```
 

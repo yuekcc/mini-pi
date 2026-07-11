@@ -24,10 +24,19 @@
   - [ ] 通过 --agent-list 列出全部 agent
   - [ ] 支持不同的 agent 配置不同的工具
 - [x] 支持 Ralph Loop 长任务模式：通过子agent方式可以实现类似效果，参考 [ralph-loop-task.md](docs/ralph-loop-task.md)
-- [ ] 内置 PDCA-based SDD 流程
 - [x] 支持 AGENTS.md 文件(只支持当前目录)
 - [x] 审计日志 `~/.config/mp/workspace/${project_name}/${sessionId}.jsonl`
 - [x] 全局设置文件 `~/.config/mp/mp.json`
+- [ ] 部分兼容 claude code 生态（CLAUDE.md，.claude, 部分 claude code plugins）
+
+## 交互式命令
+
+在交互模式下，`mp` 支持以下内置命令（不需要经过 LLM）：
+
+| 命令         | 说明                                                           |
+| ------------ | -------------------------------------------------------------- |
+| `/export`    | 将当前对话导出为 Markdown 文件，文件名 `<session_id>.md`       |
+| `/exit`, `/e`| 退出会话，同时显示当前 Session ID                              |
 
 ## 命令行用法
 
