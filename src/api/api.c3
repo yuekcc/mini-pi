@@ -2,6 +2,7 @@ module api;
 
 import std::io;
 import std::collections::list;
+import std::time::datetime;
 
 import cjson;
 import context;
@@ -32,6 +33,7 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 			.content = content.copy(allocator),
 			.reasoning_content = reasoning_content.copy(allocator),
 			.tool_call_id = "",
+			.timestamp = datetime::now(),
 		};
 		result.tool_calls.init(allocator);
 
