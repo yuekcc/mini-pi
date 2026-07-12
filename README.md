@@ -13,6 +13,7 @@
   - [x] ListDir — 列出目录内容（`ls -ahl`），支持指定路径，默认 500 条
   - [x] Grep — 基于 [rg](https://github.com/BurntSushi/ripgrep) 搜索内容，支持正则、忽略大小写、literal 模式、上下文行、glob 过滤
   - [x] EditFile — 精确编辑文件，通过 `oldText` 精确匹配后替换为 `newText`
+  - [x] HashEditFile — 基于行哈希的精确编辑，通过 `line`+`hash` 锚定行后执行替换/删除/插入/区间替换；支持批量原子提交（全部通过或全部拒绝）
   - [x] WriteFile — 写入/创建文件，自动创建父目录
   - [x] Bash — 执行 shell 命令，输出超过 2000 行自动截断并保存完整输出
   - [x] Glob — 基于 [fd](https://github.com/sharkdp/fd) 按 glob 模式搜索文件名

@@ -5,7 +5,7 @@ import std::io::path;
 import std::collections::list;
 
 import cjson;
-import global;
+import log;
 
 faultdef
 	EXECUTE_LS_COMMAND_ERROR, 
@@ -38,7 +38,7 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 	List{Tool} tools;
 	tools.init(tmem);
 
-	global::debug_log("init tool hub, allowed_tools = %s", allowed_tools);
+	log::debug("init tool hub, allowed_tools = %s", allowed_tools);
 
 	foreach (tool_name : allowed_tools)
 	{
@@ -47,6 +47,7 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 			case "ReadFile": tools.push((Tool)alloc::new(allocator, ReadFileTool));
 			case "Bash": tools.push((Tool)alloc::new(allocator, BashTool));
 			case "EditFile": tools.push((Tool)alloc::new(allocator, EditTool));
+			case "HashEditFile": tools.push((Tool)alloc::new(allocator, HashEditFileTool));
 			case "WriteFile": tools.push((Tool)alloc::new(allocator, WriteFileTool));
 			case "Grep": tools.push((Tool)alloc::new(allocator, GrepTool));
 			case "Glob": tools.push((Tool)alloc::new(allocator, GlobTool));
@@ -60,7 +61,7 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 	self.schema_cache = "";
 	self.tools = tools.to_array(allocator);
 
-	global::debug_log("%d tool enabled", self.tools.len);
+	log::debug("%d tool enabled", self.tools.len);
 	return self;
 }
 
@@ -114,7 +115,7 @@ fn String ToolHub.schema(&self, Allocator allocator)
 
 fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String name, CJsonItem* args)
 {
-	global::debug_log("dispatch tool with tool name = %s", name);
+	log::debug("dispatch tool with tool name = %s", name);
 
 	foreach (&tool : self.tools)
 	{
@@ -125,6 +126,6 @@ fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String na
 		}
 	}
 
-	global::debug_log("tool not found, tool name = %s", name);
+	log::debug("tool not found, tool name = %s", name);
 	return UNKNOWN_TOOL~;
 }

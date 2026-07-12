@@ -1,0 +1,54 @@
+{
+  "type": "function",
+  "function": {
+    "name": "HashEditFile",
+    "strict": true,
+    "description": "Edit a file using hash-anchored line references. First read the file with ReadFile (it returns lines tagged as `line:hash|content`). To edit, reference the exact `line` and `hash` you saw. Supports replace (default), range replace (endLine+endHash), insertAfter (insertAfter=true), and delete (empty content). ALL anchors are verified before any write: if any anchor is stale (the file changed since you read it, or the hash is wrong), the whole batch is rejected and nothing is changed. Edits must NOT overlap or duplicate each other (each edit's line range must be strictly after the previous edit's end); insertAfter and endLine are mutually exclusive. On success, the result reports the outcome of every edit applied.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the file to edit (relative or absolute)"
+        },
+        "edits": {
+          "type": "array",
+          "description": "List of edit operations applied atomically in one batch.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "line": {
+                "type": "integer",
+                "description": "1-based line number of the anchor (must match the `line` from a ReadFile output)"
+              },
+              "hash": {
+                "type": "string",
+                "description": "2-char content hash of the anchor line (must match the `hash` from a ReadFile output)"
+              },
+              "content": {
+                "type": "string",
+                "description": "New content for the line(s). Empty string deletes the line(s). Use \\n for multi-line content."
+              },
+              "endLine": {
+                "type": "integer",
+                "description": "For range edits only: 1-based END line (inclusive). Omit for a single-line edit."
+              },
+              "endHash": {
+                "type": "string",
+                "description": "For range edits only: 2-char hash of the end line."
+              },
+              "insertAfter": {
+                "type": "boolean",
+                "description": "If true, insert `content` AFTER the anchor line instead of replacing it."
+              }
+            },
+            "required": ["line", "hash", "content"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["path", "edits"],
+      "additionalProperties": false
+    }
+  }
+}

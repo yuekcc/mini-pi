@@ -40,18 +40,16 @@ fn void? read(Allocator allocator, DString* out, String file_path, int offset = 
 		}
 	}
 
-	// 计算行号宽度
-	usz width = (usz)string::format(tmem, "%d", total_lines).len;
-
-	// 截取需要显示的行并添加行号
+	// 截取需要显示的行，输出 hashline 格式：行号:哈希|内容
 	for (usz i = start_idx; i < end_idx; i++)
 	{
-		int line_num        = (int)(i + 1); // 1-indexed
-		String line_num_str = string::format(tmem, "%d", line_num);
-		out.appendf("%s%s: %s\n", util::pad_start(tmem, width - line_num_str.len, "0"), line_num_str, all_lines[i]);
+		int   line_num = (int)(i + 1); // 1-indexed
+		String h        = util::line_hash(tmem, all_lines[i], i + 1);
+		out.appendf("%d:%s|%s\n", line_num, h, all_lines[i]);
 	}
 
 	out.appendf("\n(End of file. Total lines: %d, showing lines %d-%d)", total_lines, start_idx + 1, end_idx);
+	out.appendf("\n(Each line is tagged as `line:hash|content`. To edit, reference the exact line:hash with HashEditFile.)");
 }
 
 const String READ_SCHEMA = (String)$embed("read_file_tool_schema.json");
