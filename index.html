@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mp · 我的编码智能体</title>
+  <meta name="description" content="mp 是一个使用 C3 语言实现的编码智能体（coding agent），灵感源自 Pi。原生、轻量、可审计。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- 纸纹与印章水印 -->
+  <div class="paper-grain" aria-hidden="true"></div>
+  <div class="watermark" aria-hidden="true">码</div>
+
+  <!-- 顶栏 -->
+  <header class="masthead" id="top">
+    <a class="brand" href="#top" aria-label="mp 首页">
+      <span class="seal" aria-hidden="true"><span class="seal__inner">mp</span></span>
+      <span class="brand__text">
+        <span class="brand__name">mp</span>
+        <span class="brand__sub">编码智能体</span>
+      </span>
+    </a>
+    <nav class="nav" aria-label="主导航">
+      <a href="#intro" class="nav__link">简介</a>
+      <a href="#features" class="nav__link">特性</a>
+      <a href="#architecture" class="nav__link">架构</a>
+      <a href="#cli" class="nav__link">命令行</a>
+      <a href="#build" class="nav__link">构建</a>
+      <a class="nav__link nav__link--ext" href="https://github.com/yuekcc/mini-pi" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="展开导航" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <main>
+    <!-- 首屏 -->
+    <section class="hero" id="hero">
+      <div class="hero__inner">
+        <h1 class="hero__title reveal" style="--d:1">
+          <span class="hero__word">mp</span>
+        </h1>
+        <p class="hero__zh reveal" style="--d:2">我的编码智能体 · 以 C3 写就，灵感源自 Pi</p>
+        <p class="hero__en reveal" style="--d:3">A coding agent written in C3 — native, lightweight, and auditable.</p>
+
+        <div class="hero__meta reveal" style="--d:4">
+          <span><b>语言</b> C3</span>
+          <span class="dot">·</span>
+          <span><b>版本</b> 0.2.0</span>
+          <span class="dot">·</span>
+          <span><b>协议</b> MIT</span>
+          <span class="dot">·</span>
+          <span><b>作者</b> Lefeng Zhan</span>
+        </div>
+
+        <div class="hero__actions reveal" style="--d:5">
+          <div class="cmdline" data-copy="git clone https://github.com/yuekcc/mini-pi.git">
+            <span class="cmdline__prompt">$</span>
+            <code>git clone https://github.com/yuekcc/mini-pi.git</code>
+            <button class="cmdline__copy" aria-label="复制命令">复制</button>
+          </div>
+          <a class="btn btn--primary" href="https://github.com/yuekcc/mini-pi" target="_blank" rel="noopener">查看仓库</a>
+          <a class="btn btn--ghost" href="#build">快速开始</a>
+        </div>
+      </div>
+      <div class="hero__rule" aria-hidden="true">
+        <span></span><span class="diamond">◆</span><span></span>
+      </div>
+    </section>
+
+    <!-- 简介 -->
+    <section class="section" id="intro">
+      <div class="section__head reveal">
+        <span class="section__no">壹</span>
+        <h2 class="section__title">项目简介</h2>
+      </div>
+      <div class="prose reveal">
+        <p class="dropcap"><span class="dropcap__ch">mp</span> 是一个使用 <b>C3 语言</b>从零实现的编码智能体（coding agent），灵感取自 Pi。它以内置工具与智能体循环（Agent Loop）为核心，对接 OpenAI Chat Completions 兼容接口，在本地完成多轮对话、文件读写、命令执行与子任务编排。</p>
+        <p>整个项目不依赖重型运行时，编译产物为单一可执行文件。所有与模型的交互均留有审计日志，工程化与可观测性是其设计底色。</p>
+        <ul class="keylist">
+          <li><b>原生</b>：纯 C3 实现，仅依赖 libcurl 与 cJSON 两个绑定库。</li>
+          <li><b>轻量</b>：编译为单一二进制，无运行时下载，启动即用。</li>
+          <li><b>可审计</b>：每次会话写入 <code>~/.config/mp/workspace/&lt;project&gt;/&lt;sessionId&gt;.jsonl</code> 审计日志。</li>
+          <li><b>可扩展</b>：内置 Skill 系统，从全局与本地目录加载 <code>SKILL.md</code>。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 特性 -->
+    <section class="section" id="features">
+      <div class="section__head reveal">
+        <span class="section__no">贰</span>
+        <h2 class="section__title">核心特性</h2>
+      </div>
+
+      <div class="cards">
+        <article class="card reveal">
+          <h3 class="card__title">智能体循环</h3>
+          <p class="card__body">支持交互模式与 Headless 模式，兼容 OpenAI Chat Completions API，具备多轮对话与工具调用调度能力。</p>
+        </article>
+        <article class="card reveal" style="--d:1">
+          <h3 class="card__title">内置工具集</h3>
+          <p class="card__body">开箱即用的九件工具：文件读写、文本与行哈希双重精确编辑、正则检索、目录列举、Shell 执行与子任务编排。</p>
+        </article>
+        <article class="card reveal" style="--d:2">
+          <h3 class="card__title">Skill 系统</h3>
+          <p class="card__body">自动发现并加载 <code>~/.agents/skills/</code> 与 <code>.agents/skills/</code> 下的能力模块，供系统提示词直接引用。</p>
+        </article>
+        <article class="card reveal">
+          <h3 class="card__title">审计日志</h3>
+          <p class="card__body">每一轮会话落盘为 JSONL，完整记录请求、工具调用与结果，便于回溯与排查。</p>
+        </article>
+        <article class="card reveal" style="--d:1">
+          <h3 class="card__title">AGENTS.md</h3>
+          <p class="card__body">支持项目级 <code>AGENTS.md</code>，将工程约定注入系统提示词，让智能体理解你的项目。</p>
+        </article>
+        <article class="card reveal" style="--d:2">
+          <h3 class="card__title">子 Agent 编排</h3>
+          <p class="card__body">通过 <code>Task</code> 工具以子进程方式递归调用 <code>mp</code> 自身，将复杂任务拆解为可独立执行的子任务。</p>
+        </article>
+      </div>
+
+      <h3 class="subhead reveal">内置工具</h3>
+      <div class="tools">
+        <div class="tool reveal"><span class="tool__name">ReadFile</span><span class="tool__desc">读取文件，带行号与分页</span></div>
+        <div class="tool reveal" style="--d:1"><span class="tool__name">Bash</span><span class="tool__desc">执行 Shell 命令，超长输出自动截断</span></div>
+        <div class="tool reveal" style="--d:2"><span class="tool__name">EditFile</span><span class="tool__desc">按文本精确替换编辑</span></div>
+        <div class="tool reveal" style="--d:3"><span class="tool__name">HashEditFile</span><span class="tool__desc">基于行哈希的精确编辑，支持批量原子提交</span></div>
+        <div class="tool reveal"><span class="tool__name">WriteFile</span><span class="tool__desc">写入或新建文件，自动建目录</span></div>
+        <div class="tool reveal" style="--d:1"><span class="tool__name">Grep</span><span class="tool__desc">基于 ripgrep 的正则检索</span></div>
+        <div class="tool reveal" style="--d:2"><span class="tool__name">Glob</span><span class="tool__desc">基于 fd 的文件名查找</span></div>
+        <div class="tool reveal" style="--d:3"><span class="tool__name">ListDir</span><span class="tool__desc">列举目录内容（ls -ahl）</span></div>
+        <div class="tool reveal"><span class="tool__name">Task</span><span class="tool__desc">启动子 Agent 执行子任务</span></div>
+      </div>
+    </section>
+
+    <!-- 架构 -->
+    <section class="section" id="architecture">
+      <div class="section__head reveal">
+        <span class="section__no">叁</span>
+        <h2 class="section__title">架构设计</h2>
+      </div>
+      <p class="prose reveal">程序自入口层启动，构建核心状态与能力系统，进入智能体主循环；循环中按需调用 API 层与工具系统，外部命令最终经由命令执行层落地。</p>
+
+      <div class="spine">
+        <div class="layer reveal">
+          <div class="layer__rail"><span class="layer__dot"></span></div>
+          <div class="layer__body">
+            <span class="layer__tag">入口层</span>
+            <div class="chips"><span class="chip">main.c3</span><span class="chip chip--soft">cli.c3</span><span class="chip chip--soft">version.c3</span></div>
+          </div>
+        </div>
+        <div class="layer reveal">
+          <div class="layer__rail"><span class="layer__dot"></span></div>
+          <div class="layer__body">
+            <span class="layer__tag">核心层</span>
+            <div class="chips"><span class="chip">context.c3</span><span class="chip">global.c3</span><span class="chip chip--soft">system_prompt_template.md</span></div>
+          </div>
+        </div>
+        <div class="layer reveal">
+          <div class="layer__rail"><span class="layer__dot"></span></div>
+          <div class="layer__body">
+            <span class="layer__tag">循环层</span>
+            <div class="chips"><span class="chip">rat_loop.c3</span><span class="chip chip--soft">交互 / Headless</span></div>
+          </div>
+        </div>
+        <div class="layer reveal">
+          <div class="layer__rail"><span class="layer__dot"></span></div>
+          <div class="layer__body">
+            <span class="layer__tag">能力层</span>
+            <div class="chips">
+              <span class="chip">api.c3</span><span class="chip">http_client.c3</span>
+              <span class="chip">tool.c3 · ToolHub</span><span class="chip">skill.c3 · SkillHub</span>
+            </div>
+          </div>
+        </div>
+        <div class="layer reveal">
+          <div class="layer__rail"><span class="layer__dot"></span></div>
+          <div class="layer__body">
+            <span class="layer__tag">执行层</span>
+            <div class="chips">
+              <span class="chip chip--soft">util/cmd.c3</span><span class="chip chip--soft">util/id.c3</span>
+              <span class="chip chip--soft">util/strings.c3</span><span class="chip chip--soft">util/parse_markdown.c3</span>
+            </div>
+          </div>
+        </div>
+        <div class="layer layer--base reveal">
+          <div class="layer__rail"><span class="layer__dot"></span></div>
+          <div class="layer__body">
+            <span class="layer__tag">外部依赖</span>
+            <div class="chips"><span class="chip chip--base">curl.c3l</span><span class="chip chip--base">cjson.c3l</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 命令行 -->
+    <section class="section" id="cli">
+      <div class="section__head reveal">
+        <span class="section__no">肆</span>
+        <h2 class="section__title">命令行用法</h2>
+      </div>
+
+      <div class="table-wrap reveal">
+        <table class="doctable">
+          <thead>
+            <tr><th>参数</th><th>说明</th><th>默认</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--config, -c</code></td><td>指定配置目录</td><td><code>~/.config/mp/</code></td></tr>
+            <tr><td><code>--agent</code></td><td>指定智能体角色名称</td><td><code>default</code></td></tr>
+            <tr><td><code>--model</code></td><td>指定模型 ID（provider/model）</td><td><code>Any</code></td></tr>
+            <tr><td><code>--tools</code></td><td>允许使用的工具列表（逗号分隔）</td><td>全部九件</td></tr>
+            <tr><td><code>--headless</code></td><td>非交互模式，完成任务后退出</td><td>交互模式</td></tr>
+            <tr><td><code>--task, -t</code></td><td>指定初始任务内容</td><td>—</td></tr>
+            <tr><td><code>--task-file, -f</code></td><td>从文件读取初始任务</td><td>—</td></tr>
+            <tr><td><code>--output-file, -o</code></td><td>将末次回复写入文件</td><td>—</td></tr>
+            <tr><td><code>--list-skills</code></td><td>列出全部可用 Skill</td><td>—</td></tr>
+            <tr><td><code>--debug</code></td><td>转储 HTTP 请求/响应用于排查</td><td>—</td></tr>
+            <tr><td><code>--help, -h</code> / <code>--version, -v</code></td><td>帮助信息 / 版本号</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subhead reveal">使用示例</h3>
+      <div class="examples">
+        <figure class="example">
+          <figcaption>交互模式（默认）</figcaption>
+          <div class="codeblock" data-copy="mp">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>mp</code></pre>
+          </div>
+        </figure>
+        <figure class="example">
+          <figcaption>非交互执行任务</figcaption>
+          <div class="codeblock" data-copy="mp --headless --task &quot;请帮我创建一个 hello world 程序&quot;">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>mp --headless --task "请帮我创建一个 hello world 程序"</code></pre>
+          </div>
+        </figure>
+        <figure class="example">
+          <figcaption>从文件读任务并落盘结果</figcaption>
+          <div class="codeblock" data-copy="mp --headless --task-file prompt.txt --output-file result.txt">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>mp --headless --file prompt.txt --output-file result.txt</code></pre>
+          </div>
+        </figure>
+        <figure class="example">
+          <figcaption>限制可用工具</figcaption>
+          <div class="codeblock" data-copy="mp --tools ReadFile,Grep,Glob">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>mp --tools ReadFile,Grep,Glob</code></pre>
+          </div>
+        </figure>
+      </div>
+
+      <h3 class="subhead reveal">交互式命令</h3>
+      <p class="prose reveal">在交互模式下，<code>mp</code> 支持以下内置命令（不经过 LLM）：</p>
+      <div class="table-wrap reveal">
+        <table class="doctable">
+          <thead>
+            <tr><th>命令</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/export</code></td><td>将当前对话导出为 Markdown 文件，文件名 <code>&lt;session_id&gt;.md</code></td></tr>
+            <tr><td><code>/clear</code></td><td>清空当前对话历史，开启新会话并生成新的 session ID</td></tr>
+            <tr><td><code>/exit</code>、<code>/e</code></td><td>退出会话，同时显示当前 Session ID</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 构建 -->
+    <section class="section" id="build">
+      <div class="section__head reveal">
+        <span class="section__no">伍</span>
+        <h2 class="section__title">构建与开始</h2>
+      </div>
+      <p class="prose reveal">需要最新版本的 <a href="https://github.com/c3lang/c3c/releases/tag/latest-prerelease-tag" target="_blank" rel="noopener">c3c</a> 编译器。</p>
+      <div class="examples">
+        <figure class="example">
+          <figcaption>获取源码</figcaption>
+          <div class="codeblock" data-copy="git clone https://github.com/yuekcc/mini-pi.git&#10;cd mini-pi">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>git clone https://github.com/yuekcc/mini-pi.git
+cd mini-pi</code></pre>
+          </div>
+        </figure>
+        <figure class="example">
+          <figcaption>构建</figcaption>
+          <div class="codeblock" data-copy="c3c build">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>c3c build</code></pre>
+          </div>
+        </figure>
+        <figure class="example">
+          <figcaption>运行单元测试</figcaption>
+          <div class="codeblock" data-copy="c3c test">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>c3c test</code></pre>
+          </div>
+        </figure>
+        <figure class="example">
+          <figcaption>发布</figcaption>
+          <div class="codeblock" data-copy="sh scripts/release.sh">
+            <button class="codeblock__copy" aria-label="复制代码">复制</button>
+            <pre><code>sh scripts/release.sh</code></pre>
+          </div>
+        </figure>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__rule" aria-hidden="true"><span></span><span class="diamond">◆</span><span></span></div>
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="seal seal--sm" aria-hidden="true"><span class="seal__inner">mp</span></span>
+        <div>
+          <p class="footer__name">mp — 我的编码智能体</p>
+          <p class="footer__note">以 C3 语言实现 · 灵感源自 Pi</p>
+        </div>
+      </div>
+      <nav class="footer__nav" aria-label="页脚导航">
+        <a href="https://github.com/yuekcc/mini-pi" target="_blank" rel="noopener">仓库</a>
+        <a href="https://github.com/yuekcc/mini-pi/blob/main/LICENSE" target="_blank" rel="noopener">MIT 协议</a>
+        <a href="#top">回到顶部</a>
+      </nav>
+    </div>
+    <p class="footer__copy">© <span id="year"></span> Lefeng Zhan · 版本 0.2.0 · 本项目以 MIT 协议开源</p>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
