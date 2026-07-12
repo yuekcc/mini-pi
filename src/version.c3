@@ -1,3 +1,3 @@
 module version;
 
-const String VERSION = "0.1.0";
+const String VERSION = "0.2.0";
