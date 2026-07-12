@@ -93,12 +93,19 @@ fn Message* read_input(Allocator allocator, Context* context)
 				String markdown = context.render_to_markdown(tmem);
 				Path output_file = context.cwd.append(tmem, string::format(tmem, "%s.md", context.session_id))!!;
 				file::save(output_file, markdown)!!;
-				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Saved to %s)" +++ Ansi.RESET, output_file);
+				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Saved to %s)" +++ Ansi.RESET +++ "\n", output_file);
+				continue;
+			}
+			else if (input_trimmed == "/clear")
+			{
+				context.reset();
+				context.session_id = string::format(context.allocator, "ses_%s", util::timestamp_id(tmem));
+				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Start new session, session ID is %s)" +++ Ansi.RESET +++ "\n", context.session_id);
 				continue;
 			}
 			else if (input_trimmed == "/exit" || input_trimmed == "/e")
 			{
-				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Bye, last session ID is %s)" +++ Ansi.RESET, context.session_id);
+				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Bye, last session ID is %s)" +++ Ansi.RESET +++ "\n", context.session_id);
 				should_quit = true;
 				break;
 			}
