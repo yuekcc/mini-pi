@@ -8,6 +8,7 @@ import cjson;
 import context;
 import util;
 import global;
+import log;
 
 faultdef
 	API_ERROR, EMPTY_RESPONSE;
@@ -73,7 +74,7 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 
 			if (result.tool_calls.len() > 0)
 			{
-				global::debug_log("> Detect %d tool calls", result.tool_calls.len());
+				log::debug("> Detect %d tool calls", result.tool_calls.len());
 			}
 		}
 
@@ -111,7 +112,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 
 		// SSE 每行以 "data:" 开头，事件之间以空行分隔，结束标记为 "data: [DONE]"。
 		String[] lines = sse_body.split(tmem, "\n");
-		global::debug_log("parsing SSE stream response: %d lines", lines.len);
+		log::debug("parsing SSE stream response: %d lines", lines.len);
 		foreach (String raw_line : lines)
 		{
 			String line = raw_line.trim();
@@ -125,7 +126,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 			CJsonItem* chunk = cjson::parse(payload.zstr_copy(tmem));
 			if (!chunk)
 			{
-				global::debug_log("skipping unparseable SSE chunk: %s", payload);
+				log::debug("skipping unparseable SSE chunk: %s", payload);
 				skipped++;
 				continue;
 			}
@@ -150,7 +151,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 			String reasoning_part = delta.get_key_string("reasoning_content", tmem) ?? "";
 			if (reasoning_part.len > 0) reasoning_buf.append(reasoning_part);
 
-			global::debug_log(
+			log::debug(
 				"stream event #%d: content +%d bytes, reasoning +%d bytes",
 				event_count,
 				content_part.len,
@@ -198,7 +199,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 						String args_part = function.get_key_string("arguments", tmem) ?? "";
 						if (args_part.len > 0) buf.append(args_part);
 
-						global::debug_log(
+						log::debug(
 							"stream event #%d: tool_call delta (index=%d id=%s name=%s, +%d args bytes)",
 							event_count,
 							idx,
@@ -221,7 +222,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 		};
 		result.tool_calls.init(allocator);
 
-		global::debug_log(
+		log::debug(
 			"stream parse complete: %d events parsed, %d skipped, content=%d chars, reasoning=%d chars, tool_call=%s",
 			event_count,
 			skipped,
@@ -238,7 +239,7 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 				// 跳过未完整接收（没有 name）的占位项，理论上不会发生。
 				if (acc.name.len == 0) continue;
 
-				global::debug_log(
+				log::debug(
 					"> Detect tool call #%d: id = %s, name = %s, arguments = %s",
 					i,
 					acc.id,
@@ -346,11 +347,11 @@ fn Message? completions(Context* ctx)
 		// TODO 从配置读出 baseUrl，而不是直接使用 .flag.baseUrl
 		String url = string::format(tmem, "%s/chat/completions", ctx.flag.baseUrl);
 
-		global::debug_log("streaming completions request: model=%s -> %s", ctx.flag.model, url);
+		log::debug("streaming completions request: model=%s -> %s", ctx.flag.model, url);
 
 		if (try Response response = client.post(url, request_body_json, &headers))
 		{
-			global::debug_log("> Remote reply: status = %d, body = %s", response.status_code, response.body);
+			log::debug("> Remote reply: status = %d, body = %s", response.status_code, response.body);
 			if (global::debug())
 			{
 				file::save(string::tformat("logs/req_%s_%d.json", request_id, response.status_code), response.body)!!;
@@ -358,14 +359,14 @@ fn Message? completions(Context* ctx)
 
 			if (response.status_code != 200)
 			{
-				global::debug_log("HTTP request failed with status code: %d", response.status_code);
+				log::debug("HTTP request failed with status code: %d", response.status_code);
 				return API_ERROR~;
 			}
 			return read_stream_to_message(ctx.allocator, response.body);
 		}
 		else
 		{
-			global::debug_log("HTTP request failed");
+			log::debug("HTTP request failed");
 			return API_ERROR~;
 		}
 	};

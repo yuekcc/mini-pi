@@ -2,7 +2,6 @@ module rat_loop;
 
 import std::io;
 import std::os;
-import std::time::datetime;
 
 import cjson;
 
@@ -10,46 +9,8 @@ import context;
 import cli;
 import util;
 import api;
-import global;
-
-fn void print_message(Message* msg)
-{
-	if (msg)
-	{
-		defer io::print("\n");
-
-		io::printfn(Ansi.BOLD +++ "%s %s:" +++ Ansi.RESET, msg.timestamp.to_local().format(tmem, DateTimeFormat.DATETIME), msg.role);
-
-		String content = msg.content.trim().replace(tmem, "\t", "    ");
-		String reasoning_content = msg.reasoning_content.trim().replace(tmem, "\t", "    ");
-		if (msg.role == "tool" && content != "" )
-		{
-			io::printfn(Ansi.BG_BRIGHT_BLACK +++ Ansi.WHITE +++ "\n%s" +++ Ansi.RESET, content);
-			return;
-		}
-
-		if (reasoning_content != "")
-		{
-			io::printfn(Ansi.BRIGHT_BLACK +++ Ansi.ITALIC +++ "\nThinking ... %s" +++ Ansi.RESET, reasoning_content);
-			
-		}
-
-		if (content != "")
-		{
-			io::printfn("\n%s", content);
-		}
-
-		// assistant 调用工具
-		if (msg.role == "assistant" && msg.tool_calls.len() > 0)
-		{
-			io::print("\n");
-			foreach (&tc : msg.tool_calls)
-			{
-				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Call tool: %s with %s)" +++ Ansi.RESET, tc.name, tc.arguments);
-			}
-		}
-	}
-}
+import log;
+import ui;
 
 fn String load_init_message(Allocator allocator, Flag* flag)
 {
@@ -62,14 +23,14 @@ fn String load_init_message(Allocator allocator, Flag* flag)
 	char[]? content = file::load(tmem, flag.task_file);
 	if (catch excuse = content)
 	{
-		io::eprintfn("Load task file error, %s", excuse);
+		log::error("Load task file error, %s", excuse);
 		os::exit(1);
 	}
 
 	message = (String)content;
 	if (message == "")
 	{
-		io::eprintfn("Empty task, skipped");
+		log::error("Empty task, skipped");
 		os::exit(1);
 	}
 	return message.copy(allocator);
@@ -80,10 +41,7 @@ fn Message* read_input(Allocator allocator, Context* context)
 	bool should_quit = false;
 	while (true)
 	{
-		io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
-		String input = io::readline(tmem)!!;
-		io::print(Ansi.RESET);
-
+		String input = ui::read_prompt(tmem);
 		String input_trimmed = input.trim();
 
 		@pool()
@@ -93,19 +51,19 @@ fn Message* read_input(Allocator allocator, Context* context)
 				String markdown = context.render_to_markdown(tmem);
 				Path output_file = context.cwd.append(tmem, string::format(tmem, "%s.md", context.session_id))!!;
 				file::save(output_file, markdown)!!;
-				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Saved to %s)" +++ Ansi.RESET +++ "\n", output_file);
+				ui::notice("Saved to %s", output_file);
 				continue;
 			}
 			else if (input_trimmed == "/clear")
 			{
 				context.reset();
 				context.session_id = string::format(context.allocator, "ses_%s", util::timestamp_id(tmem));
-				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Start new session, session ID is %s)" +++ Ansi.RESET +++ "\n", context.session_id);
+				ui::notice("Start new session, session ID is %s", context.session_id);
 				continue;
 			}
 			else if (input_trimmed == "/exit" || input_trimmed == "/e")
 			{
-				io::printfn(Ansi.BRIGHT_YELLOW +++ "(Bye, last session ID is %s)" +++ Ansi.RESET +++ "\n", context.session_id);
+				ui::notice("Bye, last session ID is %s", context.session_id);
 				should_quit = true;
 				break;
 			}
@@ -160,7 +118,7 @@ fn void run(Context* context)
 				if (!tool_args)
 				{
 					reply.content = string::format(tmem, "Execute tool '%s' fault, malformed JSON arguments.", tc_name);
-					print_message(&reply);
+					ui::render_message(&reply);
 					context.add_message(&reply);
 					tool_call_cursor++;
 					continue RAT_LOOP;
@@ -173,11 +131,11 @@ fn void run(Context* context)
 				}
 				else
 				{
-					global::debug_log("Tool '%s' (index %d) output: %s", tc_name, tc_index, buf.tcopy());
+					log::debug("Tool '%s' (index %d) output: %s", tc_name, tc_index, buf.tcopy());
 					reply.content = buf.copy_str(tmem);
 				}
 
-				print_message(&reply);
+				ui::render_message(&reply);
 				context.add_message(&reply);
 				tool_call_cursor++;
 				continue RAT_LOOP;
@@ -188,7 +146,7 @@ fn void run(Context* context)
 		{
 			if (init_message_added)
 			{
-				io::printfn(Ansi.BRIGHT_YELLOW +++ "(DONE)" +++ Ansi.RESET);
+				ui::notice("DONE");
 				os::exit(0);
 			}
 			else
@@ -196,7 +154,7 @@ fn void run(Context* context)
 				Message reply;
 				context::message_init(&reply, tmem, "user");
 				reply.content = load_init_message(tmem, context.flag);
-				print_message(&reply);
+				ui::render_message(&reply);
 				context.add_message(&reply);
 				init_message_added = true;
 			}
@@ -211,7 +169,7 @@ fn void run(Context* context)
 		// 发送请求
 		if (try Message message =  api::completions(context))
 		{
-			print_message(&message);
+			ui::render_message(&message);
 			context.add_message(&message);
 			if (message.tool_calls.len() > 0)
 			{

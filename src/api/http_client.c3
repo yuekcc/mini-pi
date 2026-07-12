@@ -3,6 +3,7 @@ module api;
 import std::io;
 import std::collections::list;
 import curl;
+import log;
 
 faultdef HTTP_ERROR;
 
@@ -90,7 +91,7 @@ fn Response? HttpClient.request(&self, String url, String method, List{String}* 
 	if ((int)result != 0) // 0 is CurlResult.OK
 	{
 		char* err = curl::easy_strerror(result);
-		io::printf("Curl error code %d: %s\n", (int)result, err);
+		log::error("Curl error code %d: %s", (int)result, err);
 		return HTTP_ERROR~;
 	}
 

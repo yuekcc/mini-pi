@@ -7,7 +7,7 @@ import std::os::env;
 import std::io;
 
 import util;
-import global;
+import log;
 
 struct Skill
 {
@@ -87,14 +87,14 @@ fn void SkillHub.load_skills(&self, Allocator allocator, Path[] paths)
 
 	foreach (path : paths)
 	{
-		global::debug_log("start load skill, path = %s", path);
+		log::debug("start load skill, path = %s", path);
 
 		Skill* skill = alloc::new(self.allocator, Skill);
 		skill.init(self.allocator, path);
 		if (skill.ready)
 		{
 			self.data.set(skill.name, skill);
-			global::debug_log("found %s", skill.name);
+			log::debug("found %s", skill.name);
 		}
 		else
 		{

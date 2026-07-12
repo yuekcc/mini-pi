@@ -9,6 +9,7 @@ import cjson;
 import util::cmd;
 import util;
 import global;
+import ui;
 
 
 fn void? execute_task(Allocator allocator, DString* out, String agent_name, String prompt, String description)
@@ -26,7 +27,7 @@ fn void? execute_task(Allocator allocator, DString* out, String agent_name, Stri
 	{
 		if (try output = (String)file::load_path(tmem, output_file))
 		{
-			io::printfn("> Subagent completed, output saved to %s", output_file);
+			ui::notice("Subagent completed, output saved to %s", output_file);
 			if (output != "")
 			{
 				out.append(output);

@@ -32,11 +32,3 @@ fn bool debug()
 {
 	return global_store.enable_debug;
 }
-
-macro void debug_log(String $format, args...)
-{
-	if (debug())
-	{
-		io::eprintfn("[DEBUG] " +++ $format, ...args);
-	}
-}
