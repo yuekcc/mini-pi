@@ -21,14 +21,7 @@ fn int main(String[] args)
 	String session_id = string::format(tmem, "ses_%s", util::timestamp_id(tmem));
 	Path log_file = flag.config_dir.append(tmem, string::tformat("log/%s.log", session_id))!!;
 	global::update(flag.config_dir, log_file, flag.enable_debug);
-	ui::init();
-
-	if (!flag.enable_headless)
-	{
-		ui::banner(version::VERSION, global::config_dir(), global::log_file(), global::debug());
-	}
-
-
+	
 	if (flag.show_help)
 	{
 		flag.print_help();
@@ -45,6 +38,12 @@ fn int main(String[] args)
 		skill_hub.init(tmem);
 		io::printfn("%s", skill_hub.print_installed(tmem));
 		os::exit(0);
+	}
+
+	ui::init();
+	if (!flag.enable_headless)
+	{
+		ui::banner(version::VERSION, global::config_dir(), global::log_file(), global::debug());
 	}
 
 	SkillHub skill_hub;

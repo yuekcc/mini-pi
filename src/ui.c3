@@ -89,7 +89,7 @@ fn void render_message(Message* msg)
 // 启动横幅。仅交互模式调用，走 stderr。
 fn void banner(String version, Path config_dir, Path log_file, bool debug_on)
 {
-	io::eprintfn("\n mp %s", version);
+	io::eprintfn("\n %s v%s", Ansi.BOLD +++ "mp" +++ Ansi.RESET, version);
 	io::eprintfn(" Using config dir: %s", config_dir);
 	io::eprintfn(" Using log file: %s", log_file);
 	io::eprintfn(" Debug mode: %s", debug_on ? "on" : "off");
