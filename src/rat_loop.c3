@@ -72,6 +72,7 @@ fn Message* read_input(Allocator allocator, Context* context)
 		Message* result = alloc::new(allocator, Message);
 		context::message_init(result, allocator, "user");
 		result.content = input_trimmed.copy(allocator);
+		io::printfn("");
 		return result;
 	}
 
