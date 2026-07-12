@@ -10,6 +10,7 @@ import context;
 import rat_loop;
 import global;
 import util;
+import version;
 
 fn int main(String[] args)
 {
@@ -20,10 +21,16 @@ fn int main(String[] args)
 	Path log_file = flag.config_dir.append(tmem, string::tformat("log/%s.log", session_id))!!;
 	global::update(flag.config_dir, log_file, flag.enable_debug);
 
-	io::eprintfn("Using config dir: %s", global::config_dir());
-	io::eprintfn("Using log file: %s", global::log_file());
-	io::eprintfn("Debug mode: %s", global::debug() ? "on": "off");
-	io::eprint("\n");
+	if (!flag.enable_headless)
+	{
+		io::eprintfn("\n mp %s", version::VERSION);
+		io::eprintfn(" Using config dir: %s", global::config_dir());
+		io::eprintfn(" Using log file: %s", global::log_file());
+		io::eprintfn(" Debug mode: %s", global::debug() ? "on": "off");
+		io::eprintfn(" /exit exit ・ /clear clean history ・ /export export history");
+		io::eprint("\n");
+	}
+
 
 	if (flag.show_help)
 	{
