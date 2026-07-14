@@ -1,0 +1,13 @@
+{
+  "langrev": "1",
+  "warnings": ["no-unused"],
+  "sources": ["../cjson.c3i"],
+  "c-sources": ["../src/cJSON.c"],
+  "output": "../windows-x64",
+  "build-dir": "build",
+  "targets": {
+    "cjson": { "type": "static-lib" }
+  },
+  "cpu": "generic",
+  "opt": "O2"
+}
