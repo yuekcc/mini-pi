@@ -33,7 +33,7 @@ fn String run_edit_json(String path, String edits_json)
 fn void test_hash_edit_replace_single() @test
 {
 	String data = "line one\nline two\nline three";
-	write_test_file("th_replace.txt", data);
+	write_test_file("testdata/th_replace.txt", data);
 
 	String h2 = util::line_hash(tmem, "line two", 2);
 	tool::EditOp op;
@@ -47,9 +47,9 @@ fn void test_hash_edit_replace_single() @test
 	List{tool::EditOp} ops;
 	ops.init(tmem);
 	ops.push(op);
-	run_edit("th_replace.txt", ops.to_array(tmem));
+	run_edit("testdata/th_replace.txt", ops.to_array(tmem));
 
-	String content = (String)file::load(tmem, "th_replace.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_replace.txt")!!;
 	io::printfn("replace -> \n%s", content);
 	assert(content.count("line TWO edited") == 1);
 	assert(content.count("line two") == 0);
@@ -60,7 +60,7 @@ fn void test_hash_edit_replace_single() @test
 fn void test_hash_edit_delete() @test
 {
 	String data = "line one\nline two\nline three";
-	write_test_file("th_delete.txt", data);
+	write_test_file("testdata/th_delete.txt", data);
 
 	String h2 = util::line_hash(tmem, "line two", 2);
 	tool::EditOp op;
@@ -74,9 +74,9 @@ fn void test_hash_edit_delete() @test
 	List{tool::EditOp} ops;
 	ops.init(tmem);
 	ops.push(op);
-	run_edit("th_delete.txt", ops.to_array(tmem));
+	run_edit("testdata/th_delete.txt", ops.to_array(tmem));
 
-	String content = (String)file::load(tmem, "th_delete.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_delete.txt")!!;
 	io::printfn("delete -> \n%s", content);
 	assert(content.count("line two") == 0);
 	assert(content.count("line one") == 1);
@@ -86,7 +86,7 @@ fn void test_hash_edit_delete() @test
 fn void test_hash_edit_insert_after() @test
 {
 	String data = "line one\nline two\nline three";
-	write_test_file("th_insert.txt", data);
+	write_test_file("testdata/th_insert.txt", data);
 
 	String h1 = util::line_hash(tmem, "line one", 1);
 	tool::EditOp op;
@@ -100,9 +100,9 @@ fn void test_hash_edit_insert_after() @test
 	List{tool::EditOp} ops;
 	ops.init(tmem);
 	ops.push(op);
-	run_edit("th_insert.txt", ops.to_array(tmem));
+	run_edit("testdata/th_insert.txt", ops.to_array(tmem));
 
-	String content = (String)file::load(tmem, "th_insert.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_insert.txt")!!;
 	io::printfn("insert -> \n%s", content);
 	assert(content.count("inserted line") == 1);
 	assert(content.count("line one") == 1);
@@ -113,7 +113,7 @@ fn void test_hash_edit_insert_after() @test
 fn void test_hash_edit_range() @test
 {
 	String data = "line one\nline two\nline three";
-	write_test_file("th_range.txt", data);
+	write_test_file("testdata/th_range.txt", data);
 
 	String h1 = util::line_hash(tmem, "line one", 1);
 	String h3 = util::line_hash(tmem, "line three", 3);
@@ -128,9 +128,9 @@ fn void test_hash_edit_range() @test
 	List{tool::EditOp} ops;
 	ops.init(tmem);
 	ops.push(op);
-	run_edit("th_range.txt", ops.to_array(tmem));
+	run_edit("testdata/th_range.txt", ops.to_array(tmem));
 
-	String content = (String)file::load(tmem, "th_range.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_range.txt")!!;
 	io::printfn("range -> \n%s", content);
 	assert(content.count("REPLACED ALL") == 1);
 	assert(content.count("line one") == 0);
@@ -141,7 +141,7 @@ fn void test_hash_edit_range() @test
 fn void test_hash_edit_batch() @test
 {
 	String data = "alpha\nbeta\ngamma\ndelta";
-	write_test_file("th_batch.txt", data);
+	write_test_file("testdata/th_batch.txt", data);
 
 	String hb = util::line_hash(tmem, "beta", 2);
 	String hg = util::line_hash(tmem, "gamma", 3);
@@ -158,9 +158,9 @@ fn void test_hash_edit_batch() @test
 	o2.end_line = 0; o2.end_hash = "".copy(tmem); o2.insert_after = false;
 	ops.push(o2);
 
-	run_edit("th_batch.txt", ops.to_array(tmem));
+	run_edit("testdata/th_batch.txt", ops.to_array(tmem));
 
-	String content = (String)file::load(tmem, "th_batch.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_batch.txt")!!;
 	io::printfn("batch -> \n%s", content);
 	assert(content.count("BETA") == 1);
 	assert(content.count("GAMMA") == 1);
@@ -171,7 +171,7 @@ fn void test_hash_edit_batch() @test
 fn void test_hash_edit_stale_rejected() @test
 {
 	String data = "line one\nline two\nline three";
-	write_test_file("th_stale.txt", data);
+	write_test_file("testdata/th_stale.txt", data);
 
 	// 故意使用错误哈希，模拟文件自读取后发生变化
 	tool::EditOp op;
@@ -187,14 +187,14 @@ fn void test_hash_edit_stale_rejected() @test
 	ops.push(op);
 
 	DString out = dstring::new(tmem);
-	tool::hash_edit(tmem, &out, "th_stale.txt", ops.to_array(tmem))!!;
+	tool::hash_edit(tmem, &out, "testdata/th_stale.txt", ops.to_array(tmem))!!;
 
 	String msg = out.str_view().copy(tmem);
 	io::printfn("stale -> %s", msg);
 	assert(msg.contains("rejected"));
 
 	// 文件内容不应被修改
-	String content = (String)file::load(tmem, "th_stale.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_stale.txt")!!;
 	assert(content.count("line two") == 1);
 	assert(content.count("should not apply") == 0);
 }
@@ -202,16 +202,16 @@ fn void test_hash_edit_stale_rejected() @test
 fn void test_hash_edit_via_json() @test
 {
 	String data = "line one\nline two\nline three";
-	write_test_file("th_json.txt", data);
+	write_test_file("testdata/th_json.txt", data);
 
 	String h2 = util::line_hash(tmem, "line two", 2);
 	DString json = dstring::new(tmem);
-	json.appendf("{\"path\":\"th_json.txt\",\"edits\":[{\"line\":2,\"hash\":\"%s\",\"content\":\"JSON EDIT\"}]}", h2);
+	json.appendf("{\"path\":\"testdata/th_json.txt\",\"edits\":[{\"line\":2,\"hash\":\"%s\",\"content\":\"JSON EDIT\"}]}", h2);
 
-	String msg = run_edit_json("th_json.txt", json.str_view());
+	String msg = run_edit_json("testdata/th_json.txt", json.str_view());
 	io::printfn("json -> %s", msg);
 
-	String content = (String)file::load(tmem, "th_json.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_json.txt")!!;
 	assert(content.count("JSON EDIT") == 1);
 	assert(content.count("line two") == 0);
 }
@@ -220,7 +220,7 @@ fn void test_hash_edit_via_json() @test
 fn void test_hash_edit_overlap_rejected() @test
 {
 	String data = "a\nb\nc\nd\ne";
-	write_test_file("th_overlap.txt", data);
+	write_test_file("testdata/th_overlap.txt", data);
 
 	String h1 = util::line_hash(tmem, "a", 1);
 	String h2 = util::line_hash(tmem, "b", 2);
@@ -240,7 +240,7 @@ fn void test_hash_edit_overlap_rejected() @test
 	ops.push(o2);
 
 	DString out = dstring::new(tmem);
-	tool::hash_edit(tmem, &out, "th_overlap.txt", ops.to_array(tmem))!!;
+	tool::hash_edit(tmem, &out, "testdata/th_overlap.txt", ops.to_array(tmem))!!;
 
 	String msg = out.str_view().copy(tmem);
 	io::printfn("overlap -> %s", msg);
@@ -248,7 +248,7 @@ fn void test_hash_edit_overlap_rejected() @test
 	assert(msg.contains("overlaps"));
 
 	// 文件未被修改
-	String content = (String)file::load(tmem, "th_overlap.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_overlap.txt")!!;
 	assert(content.count("a") == 1);
 	assert(content.count("X") == 0);
 	assert(content.count("Y") == 0);
@@ -258,7 +258,7 @@ fn void test_hash_edit_overlap_rejected() @test
 fn void test_hash_edit_duplicate_anchor_rejected() @test
 {
 	String data = "a\nb\nc";
-	write_test_file("th_dup.txt", data);
+	write_test_file("testdata/th_dup.txt", data);
 
 	String h2 = util::line_hash(tmem, "b", 2);
 
@@ -276,14 +276,14 @@ fn void test_hash_edit_duplicate_anchor_rejected() @test
 	ops.push(o2);
 
 	DString out = dstring::new(tmem);
-	tool::hash_edit(tmem, &out, "th_dup.txt", ops.to_array(tmem))!!;
+	tool::hash_edit(tmem, &out, "testdata/th_dup.txt", ops.to_array(tmem))!!;
 
 	String msg = out.str_view().copy(tmem);
 	io::printfn("dup -> %s", msg);
 	assert(msg.contains("rejected"));
 	assert(msg.contains("overlaps"));
 
-	String content = (String)file::load(tmem, "th_dup.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_dup.txt")!!;
 	assert(content.count("b") == 1);
 	assert(content.count("B1") == 0);
 	assert(content.count("B2") == 0);
@@ -293,7 +293,7 @@ fn void test_hash_edit_duplicate_anchor_rejected() @test
 fn void test_hash_edit_insert_after_with_endline_rejected() @test
 {
 	String data = "a\nb\nc";
-	write_test_file("th_combo.txt", data);
+	write_test_file("testdata/th_combo.txt", data);
 
 	String h1 = util::line_hash(tmem, "a", 1);
 	String h3 = util::line_hash(tmem, "c", 3);
@@ -307,14 +307,14 @@ fn void test_hash_edit_insert_after_with_endline_rejected() @test
 	ops.push(op);
 
 	DString out = dstring::new(tmem);
-	tool::hash_edit(tmem, &out, "th_combo.txt", ops.to_array(tmem))!!;
+	tool::hash_edit(tmem, &out, "testdata/th_combo.txt", ops.to_array(tmem))!!;
 
 	String msg = out.str_view().copy(tmem);
 	io::printfn("combo -> %s", msg);
 	assert(msg.contains("rejected"));
 	assert(msg.contains("insertAfter and endLine cannot be combined"));
 
-	String content = (String)file::load(tmem, "th_combo.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_combo.txt")!!;
 	assert(content.count("a") == 1);
 	assert(content.count("NEW") == 0);
 }
@@ -323,15 +323,15 @@ fn void test_hash_edit_insert_after_with_endline_rejected() @test
 fn void test_hash_edit_success_report() @test
 {
 	String data = "alpha\nbeta\ngamma\ndelta";
-	write_test_file("th_report.txt", data);
+	write_test_file("testdata/th_report.txt", data);
 
 	String hb = util::line_hash(tmem, "beta", 2);
 	String hg = util::line_hash(tmem, "gamma", 3);
 
 	DString json = dstring::new(tmem);
-	json.appendf("{\"path\":\"th_report.txt\",\"edits\":[{\"line\":2,\"hash\":\"%s\",\"content\":\"BETA\"},{\"line\":3,\"hash\":\"%s\",\"content\":\"GAMMA\\nGAMMA2\"}]}", hb, hg);
+	json.appendf("{\"path\":\"testdata/th_report.txt\",\"edits\":[{\"line\":2,\"hash\":\"%s\",\"content\":\"BETA\"},{\"line\":3,\"hash\":\"%s\",\"content\":\"GAMMA\\nGAMMA2\"}]}", hb, hg);
 
-	String msg = run_edit_json("th_report.txt", json.str_view());
+	String msg = run_edit_json("testdata/th_report.txt", json.str_view());
 	io::printfn("report -> %s", msg);
 
 	assert(msg.contains("Success"));
@@ -339,7 +339,7 @@ fn void test_hash_edit_success_report() @test
 	assert(msg.contains("line 2: replaced"));
 	assert(msg.contains("line 3: replaced with 2 line(s)"));
 
-	String content = (String)file::load(tmem, "th_report.txt")!!;
+	String content = (String)file::load(tmem, "testdata/th_report.txt")!!;
 	assert(content.count("BETA") == 1);
 	assert(content.count("GAMMA2") == 1);
 }

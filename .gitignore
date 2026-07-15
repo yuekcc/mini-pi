@@ -11,5 +11,7 @@ apikey.txt
 /logs/**/req_*.json
 /logs/**/resp_*.json
 
+/testdata/*.txt
 /docs.html
 .workbuddy
+

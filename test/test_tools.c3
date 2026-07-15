@@ -14,11 +14,11 @@ fn void test_write_tool() @test
 {
 	String demo_data = "aaabbbcccdddeeefff\naaaggghhhiiijjjkkk\nlllmmmnnn\n中文英文\n中文英文\n中文英文😀😀😀";
 	DString out = dstring::new(tmem);
-	tool::write(tmem, &out, "test.txt", demo_data)!!;
+	tool::write(tmem, &out, "testdata/test.txt", demo_data)!!;
 	String result = out.str_view().copy(tmem);
 	io::printfn("\n%s", result);
 
-	String content = (String)file::load(tmem, "test.txt")!!;
+	String content = (String)file::load(tmem, "testdata/test.txt")!!;
 	io::printfn("content-> \n%s", content);
 
 	assert(content.contains("aaabbbcccdddeeefff"));
@@ -30,11 +30,11 @@ fn void test_edit_tool() @test
 {
 	String demo_data = "aaabbbcccdddeeefff\naaaggghhhiiijjjkkk\nlllmmmnnn\n中文英文\n中文英文\n中文英文😀😀😀";
 	DString out = dstring::new(tmem);
-	tool::write(tmem, &out, "test_edit.txt", demo_data)!!;
+	tool::write(tmem, &out, "testdata/test_edit.txt", demo_data)!!;
 
 	DString edit_out = dstring::new(tmem);
-	tool::edit(tmem, &edit_out, "test_edit.txt", "aaa", "🤖🤖🤖")!!;
-	String content = (String)file::load(tmem, "test_edit.txt")!!;
+	tool::edit(tmem, &edit_out, "testdata/test_edit.txt", "aaa", "🤖🤖🤖")!!;
+	String content = (String)file::load(tmem, "testdata/test_edit.txt")!!;
 	io::printfn("content-> \n%s", content);
 	assert(content.count("🤖") == 6);
 }
@@ -70,7 +70,7 @@ fn void test_read_tool_offset_limit() @test
 {
 	// 测试 offset 功能 - 从第3行开始读取
 	DString out = dstring::new(tmem);
-	tool::read(tmem, &out, "test_read_lines.txt", 3, -1)!!;
+	tool::read(tmem, &out, "testdata/test_read_lines.txt", 3, -1)!!;
 	String content = out.str_view().copy(tmem);
 	io::printfn("content with offset=3 -> \n%s", content);
 	// 应该显示第3-7行
@@ -79,7 +79,7 @@ fn void test_read_tool_offset_limit() @test
 
 	// 测试 limit 功能 - 只读取3行
 	DString out2 = dstring::new(tmem);
-	tool::read(tmem, &out2, "test_read_lines.txt", -1, 3)!!;
+	tool::read(tmem, &out2, "testdata/test_read_lines.txt", -1, 3)!!;
 	content = out2.str_view().copy(tmem);
 	io::printfn("content with limit=3 -> \n%s", content);
 	// 应该只显示第1-3行
@@ -89,7 +89,7 @@ fn void test_read_tool_offset_limit() @test
 
 	// 测试 offset + limit 组合
 	DString out3 = dstring::new(tmem);
-	tool::read(tmem, &out3, "test_read_lines.txt", 2, 3)!!;
+	tool::read(tmem, &out3, "testdata/test_read_lines.txt", 2, 3)!!;
 	content = out3.str_view().copy(tmem);
 	io::printfn("content with offset=2, limit=3 -> \n%s", content);
 	// 应该显示第2-4行
@@ -100,7 +100,7 @@ fn void test_read_tool_offset_limit() @test
 
 	// 测试 offset 超出范围
 	DString out4 = dstring::new(tmem);
-	tool::read(tmem, &out4, "test_read_lines.txt", 100, -1)!!;
+	tool::read(tmem, &out4, "testdata/test_read_lines.txt", 100, -1)!!;
 	content = out4.str_view().copy(tmem);
 	io::printfn("content with offset=100 (out of range) -> \n%s", content);
 	assert(content.contains("Error"));
