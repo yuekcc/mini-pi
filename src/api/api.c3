@@ -27,12 +27,18 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 	{
 		String role              = message.get_key_string("role", tmem) ?? "assistant";
 		String content           = message.get_key_string("content", tmem) ?? "";
-		String reasoning_content = message.get_key_string("reasoning_content", tmem) ?? "";
+		// 文档标准字段为 "reasoning"（ChatAssistantMessage.reasoning）。
+		// "reasoning_content" 是 DeepSeek 私有扩展，作为兼容回退。
+		String reasoning = message.get_key_string("reasoning", tmem) ?? "";
+		if (reasoning.len == 0)
+		{
+			reasoning = message.get_key_string("reasoning_content", tmem) ?? "";
+		}
 		Message result = {
 			.id = util::timestamp_id(allocator),
 			.role = role.copy(allocator),
 			.content = content.copy(allocator),
-			.reasoning_content = reasoning_content.copy(allocator),
+			.reasoning_content = reasoning.copy(allocator),
 			.tool_call_id = "",
 			.timestamp = datetime::now(),
 		};
@@ -148,7 +154,13 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 			String content_part = delta.get_key_string("content", tmem) ?? "";
 			if (content_part.len > 0) content_buf.append(content_part);
 
-			String reasoning_part = delta.get_key_string("reasoning_content", tmem) ?? "";
+			// 文档标准字段为 "reasoning"（ChatStreamDelta.reasoning）。
+			// "reasoning_content" 是 DeepSeek 私有扩展，作为兼容回退。
+			String reasoning_part = delta.get_key_string("reasoning", tmem) ?? "";
+			if (reasoning_part.len == 0)
+			{
+				reasoning_part = delta.get_key_string("reasoning_content", tmem) ?? "";
+			}
 			if (reasoning_part.len > 0) reasoning_buf.append(reasoning_part);
 
 			log::debug(
@@ -268,65 +280,7 @@ fn Message? completions(Context* ctx)
 	{
 		String request_id = util::timestamp_id(tmem);
 
-		CJsonItem* messages = cjson::new_array(tmem);
-
-		foreach (&msg : &ctx.messages)
-		{
-			CJsonItem* message = cjson::new_object(tmem);
-			messages.push_back(message);
-
-			message.set("role", msg.role);
-			message.set("content", msg.content);
-
-			if (msg.role == "assistant")
-			{
-				message.set("reasoning_content", msg.reasoning_content);
-
-				// 回传模型产生的全部 tool_calls（单个或多个），供模型继续对话。
-				if (msg.tool_calls.len() > 0)
-				{
-					CJsonItem* tool_calls = cjson::new_array(tmem);
-					message.set("tool_calls", tool_calls);
-
-					foreach (&tc : msg.tool_calls)
-					{
-						CJsonItem* tool_call = cjson::new_object(tmem);
-						tool_calls.push_back(tool_call);
-
-						tool_call.set("id", tc.id);
-						tool_call.set("index", (int)tc.index);
-						CJsonItem* function = cjson::new_object(tmem);
-						tool_call.set("function", function);
-
-						function.set("name", tc.name);
-						function.set("arguments", tc.arguments);
-					}
-				}
-			}
-			else if (msg.role == "tool")
-			{
-				// 工具结果消息只携带 tool_call_id，标识它回应的是哪一个 tool_call。
-				if (msg.tool_call_id != "")
-				{
-					message.set("tool_call_id", msg.tool_call_id);
-				}
-			}
-		}
-
-		CJsonItem* request_body = cjson::new_object(tmem);
-		request_body.set("model", ctx.flag.model);
-		request_body.set("tools", "{{tools_schema}}"); // 设置为模板
-		request_body.set("tool_choice", "auto");
-		request_body.set("stream", true);
-
-		CJsonItem* thinking_config = cjson::new_object(tmem);
-		thinking_config.set("type", "enabled");
-		request_body.set("thinking", thinking_config);
-		request_body.set("messages", messages);
-
-		String request_body_json = string::format(tmem, "%s", request_body);
-		request_body.free();
-		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", ctx.tool_hub.schema(tmem));
+		String request_body_json = build_request_body(tmem, ctx);
 		if (global::debug())
 		{
 			file::save(string::tformat("logs/req_%s.json", request_id), request_body_json)!!;
@@ -369,5 +323,90 @@ fn Message? completions(Context* ctx)
 			log::debug("HTTP request failed");
 			return API_ERROR~;
 		}
+	};
+}
+
+// 构造 /chat/completions 请求体 JSON。
+//
+// 依据 docs/chat-completion-api.md 的 ChatRequest schema：
+//   - required: [messages]；model 虽未列入 required 但实际必传
+//   - 不存在 "thinking" 字段（非标准，严格 provider 会 400/422）
+//   - assistant 消息的推理内容使用标准字段 "reasoning"（ChatAssistantMessage.reasoning）
+//   - 非流式 tool_calls 使用标准 ChatToolCall 结构：required = [id, type, function]
+//     不带 index（index 只存在于流式 ChatStreamToolCall delta）
+//   - tool_choice / tools 仅在有可用工具时才下发
+fn String build_request_body(Allocator allocator, Context* ctx)
+{
+	@pool()
+	{
+		CJsonItem* messages = cjson::new_array(tmem);
+
+		foreach (&msg : &ctx.messages)
+		{
+			CJsonItem* message = cjson::new_object(tmem);
+			messages.push_back(message);
+
+			message.set("role", msg.role);
+			message.set("content", msg.content);
+
+			if (msg.role == "assistant")
+			{
+				// 标准 ChatAssistantMessage.reasoning（非 DeepSeek 私有的 reasoning_content）
+				if (msg.reasoning_content.len > 0)
+				{
+					message.set("reasoning", msg.reasoning_content);
+				}
+
+				// 回传模型产生的全部 tool_calls（单个或多个），供模型继续对话。
+				if (msg.tool_calls.len() > 0)
+				{
+					CJsonItem* tool_calls = cjson::new_array(tmem);
+					message.set("tool_calls", tool_calls);
+
+					foreach (&tc : msg.tool_calls)
+					{
+						CJsonItem* tool_call = cjson::new_object(tmem);
+						tool_calls.push_back(tool_call);
+
+						// 标准 ChatToolCall: required = [id, type, function]
+						tool_call.set("id", tc.id);
+						tool_call.set("type", "function");
+						CJsonItem* function = cjson::new_object(tmem);
+						tool_call.set("function", function);
+
+						function.set("name", tc.name);
+						function.set("arguments", tc.arguments);
+					}
+				}
+			}
+			else if (msg.role == "tool")
+			{
+				// 工具结果消息只携带 tool_call_id，标识它回应的是哪一个 tool_call。
+				if (msg.tool_call_id != "")
+				{
+					message.set("tool_call_id", msg.tool_call_id);
+				}
+			}
+		}
+
+		CJsonItem* request_body = cjson::new_object(tmem);
+		request_body.set("model", ctx.flag.model);
+		request_body.set("messages", messages);
+		request_body.set("stream", true);
+
+		// tools / tool_choice 仅在有可用工具时才下发。
+		// 部分 provider 在收到空 tools 数组 + tool_choice 时会报错。
+		String tools_schema = ctx.tool_hub.schema(tmem);
+		if (tools_schema.len > 0 && tools_schema != "[]")
+		{
+			request_body.set("tools", "{{tools_schema}}"); // 模板占位，序列化后替换
+			request_body.set("tool_choice", "auto");
+		}
+
+		String request_body_json = string::format(tmem, "%s", request_body);
+		request_body.free();
+		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", tools_schema);
+
+		return request_body_json.copy(allocator);
 	};
 }
