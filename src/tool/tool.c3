@@ -31,6 +31,7 @@ struct ToolHub
 	Allocator allocator;
 	String schema_cache;
 	Tool[] tools;
+	bool enable_bash_tool;
 }
 
 fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
@@ -45,7 +46,11 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 		switch (tool_name.trim())
 		{
 			case "ReadFile": tools.push((Tool)alloc::new(allocator, ReadFileTool));
-			case "Bash": tools.push((Tool)alloc::new(allocator, BashTool));
+			case "Bash":
+			{
+				tools.push((Tool)alloc::new(allocator, BashTool));
+				self.enable_bash_tool = true;
+			}
 			case "EditFile": tools.push((Tool)alloc::new(allocator, EditTool));
 			case "HashEditFile": tools.push((Tool)alloc::new(allocator, HashEditFileTool));
 			case "WriteFile": tools.push((Tool)alloc::new(allocator, WriteFileTool));
