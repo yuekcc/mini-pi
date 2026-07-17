@@ -340,6 +340,7 @@ fn String build_request_body(Allocator allocator, Context* ctx)
 	@pool()
 	{
 		CJsonItem* messages = cjson::new_array(tmem);
+		defer messages.free();
 
 		foreach (&msg : &ctx.messages)
 		{
@@ -389,10 +390,16 @@ fn String build_request_body(Allocator allocator, Context* ctx)
 			}
 		}
 
+		CJsonItem* enable_thinking = cjson::new_object(tmem);
+		defer enable_thinking.free();
+		enable_thinking.set("type", "enabled");
+
 		CJsonItem* request_body = cjson::new_object(tmem);
+		defer request_body.free();
 		request_body.set("model", ctx.flag.model);
 		request_body.set("messages", messages);
 		request_body.set("stream", true);
+		request_body.set("thinking", enable_thinking);
 
 		// tools / tool_choice 仅在有可用工具时才下发。
 		// 部分 provider 在收到空 tools 数组 + tool_choice 时会报错。
@@ -404,7 +411,6 @@ fn String build_request_body(Allocator allocator, Context* ctx)
 		}
 
 		String request_body_json = string::format(tmem, "%s", request_body);
-		request_body.free();
 		request_body_json = request_body_json.replace(tmem, "\"{{tools_schema}}\"", tools_schema);
 
 		return request_body_json.copy(allocator);
