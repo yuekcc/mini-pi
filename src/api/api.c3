@@ -340,7 +340,7 @@ fn String build_request_body(Allocator allocator, Context* ctx)
 	@pool()
 	{
 		CJsonItem* messages = cjson::new_array(tmem);
-		defer messages.free();
+		// defer messages.free();
 
 		foreach (&msg : &ctx.messages)
 		{
@@ -391,11 +391,11 @@ fn String build_request_body(Allocator allocator, Context* ctx)
 		}
 
 		CJsonItem* enable_thinking = cjson::new_object(tmem);
-		defer enable_thinking.free();
+		// defer enable_thinking.free();
 		enable_thinking.set("type", "enabled");
 
 		CJsonItem* request_body = cjson::new_object(tmem);
-		defer request_body.free();
+		// defer request_body.free();
 		request_body.set("model", ctx.flag.model);
 		request_body.set("messages", messages);
 		request_body.set("stream", true);
