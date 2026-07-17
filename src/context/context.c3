@@ -11,15 +11,17 @@ import util;
 import cli;
 
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
-const String BASH_TOOL_MEMO = (String)$embed("bash_tool_memo.md");
+const String TOOLS_MEMO_TPL = (String)$embed("tools memo_template.md");
 
-fn String load_system_prompt(Allocator allocator, String tools_list, bool enable_bash_tool) @local
+fn String load_system_prompt(Allocator allocator, String tools_list, bool enable_tools) @local
 {
 	DateTime now = datetime::now();
 	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
 	Path cwd = path::cwd(tmem)!!;
 
-	String tools_list_prompt = enable_bash_tool ? string::format(tmem, "%s\n\n---\n\n%s", tools_list, BASH_TOOL_MEMO) : tools_list;
+	String tools_list_prompt = enable_tools 
+		? string::format(tmem, "%s\n\n---\n\n%s", tools_list.trim(), TOOLS_MEMO_TPL.trim())
+		: "(NONE)";
 
 	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd)
 		.replace(tmem, "{{date}}", now_str)
@@ -128,7 +130,7 @@ fn void Context.reset(&self)
 
 	DString buf = dstring::new(tmem);
 
-	buf.appendf("%s", load_system_prompt(tmem, self.tool_hub.printed_enabled_tools(tmem), self.tool_hub.enable_bash_tool));
+	buf.appendf("%s", load_system_prompt(tmem, self.tool_hub.printed_enabled_tools(tmem), self.tool_hub.tools.len > 0));
 	String agents_md = load_agents_md(tmem);
 	if (agents_md != "")
 	{

@@ -1,6 +1,6 @@
-**Bash Tool Memo**:
+**Tools memo**:
 
-Base Tool executes a given bash command and returns its output. The shell environment is initialized from the user's profile.
+Use Bash Tool to executes a given bash command and returns its output. The shell environment is initialized from the user's profile.
 
 IMPORTANT: Avoid using this tool to run `find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo` commands, unless explicitly instructed or after you have verified that a dedicated tool cannot accomplish your task. Instead, use the appropriate dedicated tool as this will provide a much better experience for the user:
 
@@ -31,3 +31,13 @@ While the Bash tool can do similar things, it’s better to use the built-in too
   - Do not retry failing commands in a sleep loop — diagnose the root cause.
   - If you must poll an external process, use a check command (e.g. `gh run view`) rather than sleeping first.
   - If you must sleep, keep the duration short (1-5 seconds) to avoid blocking the user.
+
+Use read to examine files before editing. You must use this tool instead of cat or sed. Read output tags every line as `line:hash|content` — these are hashline anchors.
+
+For precise edits, prefer HashEditFile: reference the exact `line` and `hash` you saw in the read output (no need to reproduce the old text). It supports replace, range replace (endLine+endHash), insertAfter, and delete (empty content). All anchors are verified before writing; a stale hash rejects the whole batch safely.EditFile (exact oldText match) is available as a fallback when you already have the exact text.
+
+Use WriteFile only for new files or complete rewrites.
+
+Show file paths clearly when working with files.
+
+Prefer `Task` when require launch a subagent or just need a result.
