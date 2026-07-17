@@ -12,6 +12,7 @@ import global;
 import util;
 import version;
 import ui;
+import log;
 
 fn int main(String[] args)
 {
@@ -21,6 +22,10 @@ fn int main(String[] args)
 	String session_id = string::format(tmem, "ses_%s", util::timestamp_id(tmem));
 	Path log_file = flag.config_dir.append(tmem, string::tformat("log/%s.log", session_id))!!;
 	global::update(flag.config_dir, log_file, flag.enable_debug);
+
+	// 打开日志文件句柄（追加模式），后续 log::info/warn/error/debug 会同时写入文件。
+	// 失败时静默降级为仅控制台输出，不影响运行。
+	log::init();
 	
 	if (flag.show_help)
 	{
