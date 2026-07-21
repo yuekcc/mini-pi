@@ -1,3 +1,7 @@
-module version;
+module version @if($feature(RELEASE));
 
-const String VERSION = "0.2.0";
+$exec("bash", {"../scripts/version.sh"});
+
+module version @if(!$feature(RELEASE));
+
+const String VERSION = "1.0.0";
