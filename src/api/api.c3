@@ -313,14 +313,14 @@ fn Message? completions(Context* ctx)
 
 			if (response.status_code != 200)
 			{
-				log::debug("HTTP request failed with status code: %d", response.status_code);
+				log::warn("LLM API HTTP error: status=%d", response.status_code);
 				return API_ERROR~;
 			}
 			return read_stream_to_message(ctx.allocator, response.body);
 		}
 		else
 		{
-			log::debug("HTTP request failed");
+			log::warn("LLM API request failed (network or HTTP client error)");
 			return API_ERROR~;
 		}
 	};

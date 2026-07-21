@@ -168,8 +168,22 @@ fn void run(Context* context)
 		}
 
 		// 发送请求
-		if (try Message message =  api::completions(context))
+		Message? result = api::completions(context);
+		if (catch excuse = result)
 		{
+			// 接口异常（502 / 429 / 网络错误等）：api.c3 已打印一行告警。
+			// - headless 模式直接退出，避免无意义循环占用。
+			// - 交互模式复位工具调用状态后回到用户输入，杜绝卡死。
+			if (context.flag.enable_headless)
+			{
+				os::exit(1);
+			}
+			calling_tools = false;
+			continue RAT_LOOP;
+		}
+		else
+		{
+			Message message = result;
 			ui::render_message(&message);
 			context.add_message(&message);
 			if (message.tool_calls.len() > 0)
