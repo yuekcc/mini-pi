@@ -80,8 +80,8 @@ macro void debug(String $format, args...)
 	if (global::debug())
 	{
 		io::eprintfn("[DEBUG] " +++ $format, ...args);
-		_to_file("DEBUG", $format, ...args);
 	}
+	_to_file("DEBUG", $format, ...args);
 }
 
 macro void info(String $format, args...)
