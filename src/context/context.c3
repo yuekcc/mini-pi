@@ -15,8 +15,8 @@ const String TOOLS_MEMO_TPL = (String)$embed("tools memo_template.md");
 
 fn String load_system_prompt(Allocator allocator, String tools_list, bool enable_tools) @local
 {
-	DateTime now = datetime::now();
-	String now_str = now.to_local().format(tmem, DateTimeFormat.DATEONLY);
+	DateTime now = datetime::now().to_local();
+	String now_str = now.format(tmem, DateTimeFormat.DATEONLY);
 	Path cwd = path::cwd(tmem)!!;
 
 	String tools_list_prompt = enable_tools 
@@ -70,7 +70,7 @@ fn void message_init(Message* m, Allocator allocator, String role)
 	m.reasoning_content = "";
 	m.tool_call_id = "";
 	m.tool_calls.init(allocator);
-	m.timestamp = datetime::now();
+	m.timestamp = datetime::now().to_local();
 }
 
 struct Context
@@ -108,7 +108,7 @@ fn Context* Context.init(&self, Allocator allocator, String session_id, Flag* fl
 	self.skill_hub = skill_hub;
 	self.flag = flag;
 
-	DateTime now = datetime::now();
+	DateTime now = datetime::now().to_local();
 	self.started_at = now;
 	self.updated_at = now;
 
@@ -176,7 +176,7 @@ fn void Context.add_message(&self, Message* message)
 	}
 
 	self.messages.push(*cloned);
-	self.updated_at = datetime::now();
+	self.updated_at = datetime::now().to_local();
 }
 
 

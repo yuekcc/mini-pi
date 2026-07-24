@@ -40,7 +40,7 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 			.content = content.copy(allocator),
 			.reasoning_content = reasoning.copy(allocator),
 			.tool_call_id = "",
-			.timestamp = datetime::now(),
+			.timestamp = datetime::now().to_local(),
 		};
 		result.tool_calls.init(allocator);
 
@@ -230,11 +230,11 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 			.content = content_buf.copy_str(allocator),
 			.reasoning_content = reasoning_buf.copy_str(allocator),
 			.tool_call_id = "",
-			.timestamp = datetime::now(),
+			.timestamp = datetime::now().to_local(),
 		};
-		result.tool_calls.init(allocator);
+	result.tool_calls.init(allocator);
 
-		log::debug(
+	log::debug(
 			"stream parse complete: %d events parsed, %d skipped, content=%d chars, reasoning=%d chars, tool_call=%s",
 			event_count,
 			skipped,

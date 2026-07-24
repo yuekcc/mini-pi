@@ -22,6 +22,9 @@ fn String hash_path(Path file_path)
 
 fn String timestamp(Allocator allocator, DateTime dt)
 {
+	// datetime::now() 返回 UTC，这里统一转为本地时间再取分量，
+	// 保证 session id / 文件名 / 各类 id 都使用本地时间。
+	dt = dt.to_local();
 	return string::format(
 		allocator,
 		"%04d%02d%02d_%02d%02d%02d",
