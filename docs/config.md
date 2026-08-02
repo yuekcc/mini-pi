@@ -4,7 +4,7 @@
 
 **内容**
 
-```sh
+```bash
 ~/.config/mp/
     log/    # 日志
     temp/   # 临时文件
@@ -15,4 +15,6 @@
         my-slash-command.md
         ...
     config.json # 配置
+    SYSTEM.md # 自定义的系统提示词
+    SYSTEM_APPEND.md # 系统提示词追加内容，可以不重写内置的系统提示词情况下，追加新内容
 ```
