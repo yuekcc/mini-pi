@@ -34,7 +34,7 @@ While the Bash tool can do similar things, it’s better to use the built-in too
 
 Use ReadFile to examine files before editing. You must use this tool instead of cat or sed. Read output tags every line as `line:hash|content` — these are hashline anchors.
 
-For precise edits, prefer HashEditFile: reference the exact `line` and `hash` you saw in the read output (no need to reproduce the old text). It supports replace, range replace (endLine+endHash), insertAfter, and delete (empty content). All anchors are verified before writing; a stale hash rejects the whole batch safely. If HashEditFile fails, re-read and retry; fall back to EditFile only when you can confirm the exact match.
+For precise edits, prefer HashEditFile: reference the exact `line` and `hash` you saw in the read output (no need to reproduce the old text). It supports replace, range replace (endLine+endHash), insertAfter, and delete (empty content). All anchors are verified before writing; a stale hash rejects the whole batch safely. 
 
 Use WriteFile only for new files or complete rewrites.
 

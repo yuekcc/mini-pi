@@ -118,7 +118,7 @@ fn void test_bash_tool() @test
 fn void test_tool_pool() @test
 {
 	ToolHub tool_hub;
-	tool_hub.init(tmem, { "ReadFile", "WriteFile", "Bash", "EditFile" });
+	tool_hub.init(tmem, { "ReadFile", "WriteFile", "Bash" });
 	defer tool_hub.free();
 
 	String schema = tool_hub.schema(tmem);

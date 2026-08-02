@@ -4,22 +4,22 @@
 
 ## 参数列表
 
-| 参数                     | 说明                                                       | 默认值                                                                   |
-| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `--config, -c <path>`    | 指定配置目录                                               | `~/.config/mp/`                                                          |
-| `--agent <name>`         | 指定智能体角色名称                                         | `default`                                                                |
-| `--model <id>`           | 指定使用的模型 ID                                          | `Any`                                                                    |
-| `--base-url <url>`       | 指定 OpenAI 兼容 API 的 base URL                           | `http://127.0.0.1:5678`                                                  |
-| `--api-key <key>`        | 指定 Completions API key                                   | `sk-1234`                                                                |
-| `--tools <list>`         | 允许使用的工具列表（逗号分隔）                             | `ReadFile,Bash,EditFile,HashEditFile,WriteFile,Grep,Glob,ListDir,Task`   |
-| `--headless`             | 启用非交互模式                                             | 交互模式（默认）                                                         |
-| `--task, -t <msg>`       | 指定初始任务内容                                           | -                                                                        |
-| `--task-file, -f <path>` | 从指定文件读取内容作为初始任务（与 `--task` 互斥，优先）   | -                                                                        |
-| `--output-file, -o <p>`  | 将最后一次 LLM 的回复内容输出到指定文件（常配合 `--headless`） | -                                                                   |
-| `--list-skills`          | 列出全部可用 skill                                         | -                                                                        |
-| `--help, -h`             | 显示帮助信息                                               | -                                                                        |
-| `--version, -v`          | 显示版本号                                                 | -                                                                        |
-| `--debug`                | 启动 DEBUG 模式，将 HTTP 请求/响应转储到 `logs/` 目录      | -                                                                        |
+| 参数                     | 说明                                                           | 默认值                                                        |
+| ------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------- |
+| `--config, -c <path>`    | 指定配置目录                                                   | `~/.config/mp/`                                               |
+| `--agent <name>`         | 指定智能体角色名称                                             | `default`                                                     |
+| `--model <id>`           | 指定使用的模型 ID                                              | `Any`                                                         |
+| `--base-url <url>`       | 指定 OpenAI 兼容 API 的 base URL                               | `http://127.0.0.1:5678`                                       |
+| `--api-key <key>`        | 指定 Completions API key                                       | `sk-1234`                                                     |
+| `--tools <list>`         | 允许使用的工具列表（逗号分隔）                                 | `ReadFile,Bash,HashEditFile,WriteFile,Grep,Glob,ListDir,Task` |
+| `--headless`             | 启用非交互模式                                                 | 交互模式（默认）                                              |
+| `--task, -t <msg>`       | 指定初始任务内容                                               | -                                                             |
+| `--task-file, -f <path>` | 从指定文件读取内容作为初始任务（与 `--task` 互斥，优先）       | -                                                             |
+| `--output-file, -o <p>`  | 将最后一次 LLM 的回复内容输出到指定文件（常配合 `--headless`） | -                                                             |
+| `--list-skills`          | 列出全部可用 skill                                             | -                                                             |
+| `--help, -h`             | 显示帮助信息                                                   | -                                                             |
+| `--version, -v`          | 显示版本号                                                     | -                                                             |
+| `--debug`                | 启动 DEBUG 模式，将 HTTP 请求/响应转储到 `logs/` 目录          | -                                                             |
 
 ## 详细说明
 
@@ -52,17 +52,16 @@ Completions API key，以 `Authorization: Bearer <key>` 形式发送。
 
 设置允许使用的工具列表，可用的工具包括：
 
-| 工具           | 说明                                                                |
-| -------------- | ------------------------------------------------------------------- |
-| `ReadFile`     | 读取文件内容，输出 `line:hash|content` 锚点格式                     |
-| `Bash`         | 执行 shell 命令（`sh -c`）                                          |
-| `EditFile`     | 对文件进行精确文本替换（`oldText` → `newText`）                     |
-| `HashEditFile` | 基于行哈希锚点的编辑，支持批量原子提交                              |
-| `WriteFile`    | 写入/创建文件                                                       |
-| `Grep`         | 基于 ripgrep 的文本搜索                                             |
-| `Glob`         | 基于 fd 的文件查找                                                  |
-| `ListDir`      | 列出目录内容                                                        |
-| `Task`         | 启动子 agent 执行子任务（递归调用 `mp` 自身）                       |
+| 工具           | 说明                                          |
+| -------------- | --------------------------------------------- | ----------------- |
+| `ReadFile`     | 读取文件内容，输出 `line:hash                 | content` 锚点格式 |
+| `Bash`         | 执行 shell 命令（`sh -c`）                    |
+| `HashEditFile` | 基于行哈希锚点的编辑，支持批量原子提交        |
+| `WriteFile`    | 写入/创建文件                                 |
+| `Grep`         | 基于 ripgrep 的文本搜索                       |
+| `Glob`         | 基于 fd 的文件查找                            |
+| `ListDir`      | 列出目录内容                                  |
+| `Task`         | 启动子 agent 执行子任务（递归调用 `mp` 自身） |
 
 多个工具用逗号分隔。工具按列表顺序注册到 ToolHub，未列出的工具不可用。
 

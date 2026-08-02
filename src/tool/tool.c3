@@ -54,7 +54,6 @@ fn ToolHub* ToolHub.init(&self, Allocator allocator, String[] allowed_tools)
 				tools.push((Tool)alloc::new(allocator, BashTool));
 				self.enable_bash_tool = true;
 			}
-			case "EditFile": tools.push((Tool)alloc::new(allocator, EditTool));
 			case "HashEditFile": tools.push((Tool)alloc::new(allocator, HashEditFileTool));
 			case "WriteFile": tools.push((Tool)alloc::new(allocator, WriteFileTool));
 			case "Grep": tools.push((Tool)alloc::new(allocator, GrepTool));

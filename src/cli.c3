@@ -8,7 +8,7 @@ const String DEFAULT_AGENT = "default";
 const String DEFAULT_MODEL = "Any"; // "minimax.com/MiniMax-M2.7";
 const String DEFAULT_BASE_URL = "http://127.0.0.1:5678";
 const String DEFAULT_API_KEY = "sk-1234";
-const String DEFAULT_TOOLS = "ReadFile,Bash,EditFile,HashEditFile,WriteFile,Grep,Glob,ListDir,Task";
+const String DEFAULT_TOOLS = "ReadFile,Bash,HashEditFile,WriteFile,Grep,Glob,ListDir,Task";
 
 const String HELP_MESSAGE = `mp - a coding agent, my own coding agent.
 
@@ -34,7 +34,6 @@ flags:
 tools:
     - 'ReadFile'
     - 'Bash'
-    - 'EditFile'
     - 'HashEditFile'
     - 'WriteFile'
     - 'Grep'
