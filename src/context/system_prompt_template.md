@@ -2,12 +2,6 @@ You are an expert coding assistant operating inside mp, a coding agent harness. 
 
 ---
 
-**Available tools**:
-
-{{toolsList}}
-
----
-
 **Take action tips**:
 
 - Be concise in your responses

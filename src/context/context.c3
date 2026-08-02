@@ -9,9 +9,22 @@ import skill;
 import tool;
 import util;
 import cli;
+import global;
 
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
-const String TOOLS_MEMO_TPL = (String)$embed("tools memo_template.md");
+const String TOOLS_MEMO_TPL = (String)$embed("tools_memo_template.md");
+
+// 尝试从 $config 目录获取用户的 SYSTEM.md，失败则直接使用内置的模板
+fn String load_system_prompt_template() @local
+{
+	Path user_system_prompt_tpl = global::config_dir().append(tmem, "SYSTEM.md")!!;
+	if (try content = (String)file::load_path(tmem, user_system_prompt_tpl))
+	{
+		return content.trim();
+	}
+
+	return SYSTEM_PROMPT_TPL.trim();
+}
 
 fn String load_system_prompt(Allocator allocator, String tools_list, bool enable_tools) @local
 {
@@ -19,19 +32,28 @@ fn String load_system_prompt(Allocator allocator, String tools_list, bool enable
 	String now_str = now.format(tmem, DateTimeFormat.DATEONLY);
 	Path cwd = path::cwd(tmem)!!;
 
-	String tools_list_prompt = enable_tools ? string::format(
-		tmem,
-		"%s\n\n---\n\n%s",
-		tools_list.trim(),
-		TOOLS_MEMO_TPL.trim()
-	)
-		: "(NONE)";
+	String os_uname = "Linux + Bash";
+	$if env::WIN32:
+		os_uname = "Windows 11 + Bash (bundled in Git for windows)";
+	$endif
 
-	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd).replace(tmem, "{{date}}", now_str)
-		.replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)")
-		.replace(tmem, "{{toolsList}}", tools_list_prompt);
+	DString final_system_prompt = dstring::new(tmem);
+	final_system_prompt.append(load_system_prompt_template());
+	final_system_prompt.replace("{{cwd}}", cwd);
+	final_system_prompt.replace("{{date}}", now_str);
+	final_system_prompt.replace("{{os}}", os_uname);
+	final_system_prompt.replace("{{cwd}}", cwd);
 
-	return final_system_prompt.trim().copy(allocator);
+	if (enable_tools)
+	{
+		final_system_prompt.append("\n\n---\n\n");
+		final_system_prompt.append("**Available tools**:\n\n");
+		final_system_prompt.append(tools_list.trim());
+		final_system_prompt.append("\n\n---\n\n");
+		final_system_prompt.append(TOOLS_MEMO_TPL.trim());
+	}
+
+	return final_system_prompt.copy_str(allocator);
 }
 
 fn String load_agents_md(Allocator allocator)
@@ -133,7 +155,6 @@ fn bool Context.debug(&self)
 
 fn void Context.reset(&self)
 {
-	// TODO 内存问题？
 	self.messages.clear();
 
 	Message system_msg;
