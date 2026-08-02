@@ -10,12 +10,12 @@ import util;
 
 fn void? read(Allocator allocator, DString* out, String file_path, int offset = -1, int limit = -1)
 {
-	Path path_obj             = path::new(tmem, file_path)!;
-	String content            = (String)file::load_path(tmem, path_obj)!;
+	Path path_obj = path::new(tmem, file_path)!;
+	String content = (String)file::load_path(tmem, path_obj)!;
 	String normalized_content = util::normalize_line_endings(tmem, content);
 
 	String[] all_lines = normalized_content.split(tmem, "\n");
-	usz total_lines    = all_lines.len;
+	usz total_lines = all_lines.len;
 
 	// 处理 offset (1-indexed, -1 表示不使用)
 	usz start_idx = 0;
@@ -43,13 +43,17 @@ fn void? read(Allocator allocator, DString* out, String file_path, int offset = 
 	// 截取需要显示的行，输出 hashline 格式：行号:哈希|内容
 	for (usz i = start_idx; i < end_idx; i++)
 	{
-		int   line_num = (int)(i + 1); // 1-indexed
-		String h        = util::line_hash(tmem, all_lines[i], i + 1);
+		int line_num = (int)(i + 1); // 1-indexed
+		String h = util::line_hash(tmem, all_lines[i], i + 1);
 		out.appendf("%d:%s|%s\n", line_num, h, all_lines[i]);
 	}
 
-	out.appendf("\n(End of file. Total lines: %d, showing lines %d-%d)", total_lines, start_idx + 1, end_idx);
-	out.appendf("\n(Each line is tagged as `line:hash|content`. To edit, reference the exact line:hash with HashEditFile.)");
+	out.appendf(
+		"\n(End of file. Total lines: %d, showing lines %d-%d. Each line is tagged as `line:hash|content`. To edit, reference the exact line:hash with HashEditFile.)",
+		total_lines,
+		start_idx + 1,
+		end_idx
+	);
 }
 
 const String READ_SCHEMA = (String)$embed("read_file_tool_schema.json");
@@ -77,7 +81,7 @@ fn String ReadFileTool.schema(&self) @dynamic
 fn void? ReadFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
-	int offset       = args.get_key_int("offset") ?? -1;
-	int limit        = args.get_key_int("limit") ?? 2000;
+	int offset = args.get_key_int("offset") ?? -1;
+	int limit = args.get_key_int("limit") ?? 2000;
 	read(allocator, out, file_path, offset, limit)!;
 }

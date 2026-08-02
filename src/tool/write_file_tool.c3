@@ -40,7 +40,7 @@ fn String WriteFileTool.schema(&self) @dynamic
 fn void? WriteFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
-	String content   = args.get_key_string("content", tmem) ?? "";
+	String content = args.get_key_string("content", tmem) ?? "";
 	if (file_path == "") return INVALID_PATH_PARAM~;
 
 	write(allocator, out, file_path, content)!;

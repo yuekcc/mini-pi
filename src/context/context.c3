@@ -19,12 +19,15 @@ fn String load_system_prompt(Allocator allocator, String tools_list, bool enable
 	String now_str = now.format(tmem, DateTimeFormat.DATEONLY);
 	Path cwd = path::cwd(tmem)!!;
 
-	String tools_list_prompt = enable_tools 
-		? string::format(tmem, "%s\n\n---\n\n%s", tools_list.trim(), TOOLS_MEMO_TPL.trim())
+	String tools_list_prompt = enable_tools ? string::format(
+		tmem,
+		"%s\n\n---\n\n%s",
+		tools_list.trim(),
+		TOOLS_MEMO_TPL.trim()
+	)
 		: "(NONE)";
 
-	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd)
-		.replace(tmem, "{{date}}", now_str)
+	String final_system_prompt = SYSTEM_PROMPT_TPL.replace(tmem, "{{cwd}}", cwd).replace(tmem, "{{date}}", now_str)
 		.replace(tmem, "{{os}}", "Windows 11 + Msys2 + GNU Bash 5.2 (x86_64-pc-msys)")
 		.replace(tmem, "{{toolsList}}", tools_list_prompt);
 
@@ -43,8 +46,8 @@ fn String load_agents_md(Allocator allocator)
 
 struct ToolCall
 {
-	String id;       // 模型返回的 tool_call id，例如 "call_xxx"
-	usz index;       // 模型返回的工具调用序号，从 0 递增
+	String id; // 模型返回的 tool_call id，例如 "call_xxx"
+	usz index; // 模型返回的工具调用序号，从 0 递增
 	String name;
 	String arguments;
 }
@@ -55,7 +58,7 @@ struct Message
 	String role;
 	String content;
 	String reasoning_content;
-	String tool_call_id;        // 仅 role=tool 消息使用，指向其回应的 tool_call id
+	String tool_call_id; // 仅 role=tool 消息使用，指向其回应的 tool_call id
 	List{ToolCall} tool_calls; // 仅 role=assistant 消息使用，支持单次回复中的多个工具调用
 	DateTime timestamp;
 }
@@ -78,7 +81,7 @@ struct Context
 	Allocator allocator;
 
 	String session_id;
-	
+
 	Path cwd;
 	Path config_dir;
 	Path log_file;
@@ -93,7 +96,15 @@ struct Context
 	DateTime updated_at;
 }
 
-fn Context* Context.init(&self, Allocator allocator, String session_id, Flag* flag, ToolHub* tool_hub, SkillHub* skill_hub, Path log_file)
+fn Context* Context.init(
+	&self,
+	Allocator allocator,
+	String session_id,
+	Flag* flag,
+	ToolHub* tool_hub,
+	SkillHub* skill_hub,
+	Path log_file
+)
 {
 	self.allocator = allocator;
 
@@ -139,7 +150,7 @@ fn void Context.reset(&self)
 		buf.appendf("<project_instructions path=\"AGENTS.md\">\n%s\n</project_instructions>\n", agents_md);
 		buf.appendf("</project_context>\n\n");
 	}
-	
+
 	if (self.skill_hub != null)
 	{
 		String skill_list = self.skill_hub.print_installed(tmem);
@@ -192,7 +203,8 @@ fn String Context.render_to_markdown(&self, Allocator allocator)
 
 	foreach (message : self.messages)
 	{
-		buf.appendfn("# %s %s\n", message.timestamp.to_local().format(allocator, DateTimeFormat.DATETIME), message.role);
+		buf.appendfn("# %s %s\n", message.timestamp.to_local()
+			.format(allocator, DateTimeFormat.DATETIME), message.role);
 
 		String reasoning_content = message.reasoning_content.trim();
 		String content = message.content.trim();
@@ -227,9 +239,14 @@ fn String Context.render_to_markdown(&self, Allocator allocator)
 
 		if (message.tool_calls.len() > 0)
 		{
-			foreach (tool_call: message.tool_calls)
+			foreach (tool_call : message.tool_calls)
 			{
-				buf.appendfn("(Call tool, id = `%s`, name = `%s`, arguments = `%s`)\n", tool_call.id, tool_call.name, tool_call.arguments);
+				buf.appendfn(
+					"(Call tool, id = `%s`, name = `%s`, arguments = `%s`)\n",
+					tool_call.id,
+					tool_call.name,
+					tool_call.arguments
+				);
 			}
 		}
 	}

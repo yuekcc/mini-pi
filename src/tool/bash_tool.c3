@@ -13,7 +13,7 @@ const LINE_LIMIT = 2000;
 
 fn void? bash(Allocator allocator, DString* out, String command)
 {
-	String task_id =  util::timestamp_id(tmem);
+	String task_id = util::timestamp_id(tmem);
 	Path store_dir = load_store_dir(tmem);
 
 	String[] final_command = { "sh", "-c", command };
@@ -34,7 +34,7 @@ fn void? bash(Allocator allocator, DString* out, String command)
 	usz start_idx = should_truncated ? (all_lines.len - LINE_LIMIT) : 0;
 	for (usz i = start_idx; i < LINE_LIMIT && i < all_lines.len; i++)
 	{
-		out.appendf("%s\n", all_lines[i]);	
+		out.appendf("%s\n", all_lines[i]);
 	}
 
 	// 截断了就增加提示

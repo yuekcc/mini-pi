@@ -10,12 +10,12 @@ import util;
 
 struct EditOp
 {
-	int    line;         // 1-based 锚点行号
-	String hash;         // 锚点行内容哈希（2 字符）
-	String content;      // 新内容（空串表示删除）
-	int    end_line;     // 区间编辑的结束行（0 表示单行）
-	String end_hash;     // 区间编辑结束行的哈希
-	bool   insert_after; // true 时在锚点行之后插入
+	int line; // 1-based 锚点行号
+	String hash; // 锚点行内容哈希（2 字符）
+	String content; // 新内容（空串表示删除）
+	int end_line; // 区间编辑的结束行（0 表示单行）
+	String end_hash; // 区间编辑结束行的哈希
+	bool insert_after; // true 时在锚点行之后插入
 }
 
 // 把 content（可能多行）拆成多行追加到 out_lines
@@ -44,10 +44,10 @@ fn void? hash_edit(Allocator allocator, DString* out, String file_path, EditOp[]
 {
 	Path path_obj = path::new(tmem, file_path)!;
 
-	String content            = (String)file::load_path(tmem, path_obj)!;
+	String content = (String)file::load_path(tmem, path_obj)!;
 	String normalized_content = util::normalize_line_endings(tmem, content);
-	String[] lines            = normalized_content.split(tmem, "\n");
-	usz     total             = lines.len;
+	String[] lines = normalized_content.split(tmem, "\n");
+	usz total = lines.len;
 
 	// ---- 1) 应用前：原子校验所有锚点 ----
 	DString errors = dstring::new(tmem);
@@ -63,13 +63,21 @@ fn void? hash_edit(Allocator allocator, DString* out, String file_path, EditOp[]
 		{
 			errors.appendf(
 				"\n  - line %d: hash mismatch. You supplied '%s' but the current file has '%s'. The file may have changed since you read it.",
-				op.line, op.hash, actual);
+				op.line,
+				op.hash,
+				actual
+			);
 		}
 		if (op.end_line != 0)
 		{
 			if ((usz)op.end_line < (usz)op.line || (usz)op.end_line > total)
 			{
-				errors.appendf("\n  - endLine %d is invalid (must be >= line %d and <= %d)", op.end_line, op.line, total);
+				errors.appendf(
+					"\n  - endLine %d is invalid (must be >= line %d and <= %d)",
+					op.end_line,
+					op.line,
+					total
+				);
 			}
 			else
 			{
@@ -78,7 +86,10 @@ fn void? hash_edit(Allocator allocator, DString* out, String file_path, EditOp[]
 				{
 					errors.appendf(
 						"\n  - endLine %d: hash mismatch. You supplied '%s' but the current file has '%s'.",
-						op.end_line, op.end_hash, actual_end);
+						op.end_line,
+						op.end_hash,
+						actual_end
+					);
 				}
 			}
 		}
@@ -91,11 +102,18 @@ fn void? hash_edit(Allocator allocator, DString* out, String file_path, EditOp[]
 	{
 		if (op.insert_after && op.end_line != 0)
 		{
-			errors.appendf("\n  - line %d: insertAfter and endLine cannot be combined (insertAfter only inserts after a single anchor line)", op.line);
+			errors.appendf(
+				"\n  - line %d: insertAfter and endLine cannot be combined (insertAfter only inserts after a single anchor line)",
+				op.line
+			);
 		}
 		if (op.line >= 1 && op.line <= prev_end)
 		{
-			errors.appendf("\n  - line %d: overlaps or duplicates a previous edit (previous edit covered up to line %d)", op.line, prev_end);
+			errors.appendf(
+				"\n  - line %d: overlaps or duplicates a previous edit (previous edit covered up to line %d)",
+				op.line,
+				prev_end
+			);
 		}
 		if (op.end_line != 0 && !op.insert_after)
 		{
@@ -147,7 +165,13 @@ fn void? hash_edit(Allocator allocator, DString* out, String file_path, EditOp[]
 				if (op.content != "")
 				{
 					append_content_lines(&out_lines, op.content, tmem);
-					report.appendf("\n  - lines %d-%d: range replaced (%d line(s) -> %d line(s))", op.line, op.end_line, removed, content_line_count(op.content));
+					report.appendf(
+						"\n  - lines %d-%d: range replaced (%d line(s) -> %d line(s))",
+						op.line,
+						op.end_line,
+						removed,
+						content_line_count(op.content)
+					);
 				}
 				else
 				{
@@ -221,8 +245,8 @@ fn String HashEditFileTool.schema(&self) @dynamic
 
 fn void? HashEditFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
 {
-	String      file_path = args.get_key_string("path", tmem) ?? "";
-	CJsonItem*  edits_arr = args.get_key("edits");
+	String file_path = args.get_key_string("path", tmem) ?? "";
+	CJsonItem* edits_arr = args.get_key("edits");
 
 	if (file_path == "") return INVALID_PATH_PARAM~;
 	if (edits_arr == null || !edits_arr.is_array())
@@ -244,11 +268,11 @@ fn void? HashEditFileTool.execute(&self, Allocator allocator, DString* out, CJso
 	{
 		CJsonItem* e = edits_arr.get_at((sz)i);
 		EditOp op;
-		op.line         = e.get_key_int("line") ?? 0;
-		op.hash         = (e.get_key_string("hash", tmem) ?? "").copy(tmem);
-		op.content      = (e.get_key_string("content", tmem) ?? "").copy(tmem);
-		op.end_line     = e.get_key_int("endLine") ?? 0;
-		op.end_hash     = (e.get_key_string("endHash", tmem) ?? "").copy(tmem);
+		op.line = e.get_key_int("line") ?? 0;
+		op.hash = (e.get_key_string("hash", tmem) ?? "").copy(tmem);
+		op.content = (e.get_key_string("content", tmem) ?? "").copy(tmem);
+		op.end_line = e.get_key_int("endLine") ?? 0;
+		op.end_hash = (e.get_key_string("endHash", tmem) ?? "").copy(tmem);
 		op.insert_after = e.get_key_bool("insertAfter") ?? false;
 		ops.push(op);
 	}
@@ -265,9 +289,9 @@ fn void? HashEditFileTool.execute(&self, Allocator allocator, DString* out, CJso
 		}
 		if (min != i)
 		{
-			EditOp tmp  = edits[i];
-			edits[i]    = edits[min];
-			edits[min]  = tmp;
+			EditOp tmp = edits[i];
+			edits[i] = edits[min];
+			edits[min] = tmp;
 		}
 	}
 
