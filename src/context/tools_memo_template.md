@@ -1,9 +1,10 @@
 **Tools memo**:
 
-Use Bash Tool to execute a given bash command and returns its output. The shell environment is initialized from the user's profile.
+Use Bash Tool to execute a given bash command and returns its output. Bash Tool is based on `bash -c`.
 
 IMPORTANT: Avoid using this tool to run `find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo` commands, unless explicitly instructed or after you have verified that a dedicated tool cannot accomplish your task. Instead, use the appropriate dedicated tool as this will provide a much better experience for the user:
 
+- List files: Use ListDir (NOT ls)
 - File search: Use Glob (NOT find or ls)
 - Content search: Grep (NOT grep or rg)
 - Read files: Use ReadFile (NOT cat/head/tail)
@@ -13,7 +14,7 @@ IMPORTANT: Avoid using this tool to run `find`, `grep`, `cat`, `head`, `tail`, `
 
 While the Bash tool can do similar things, it’s better to use the built-in tools as they provide a better user experience and make it easier to review tool calls and give permission.
 
-- If your command will create new directories or files, first use this tool to run `ls` to verify the parent directory exists and is the correct location.
+- If your command will create new directories or files, first use the `ListDir` tool to verify the parent directory exists and is the correct location.
 - Always quote file paths that contain spaces with double quotes in your command (e.g., cd "path with spaces/file.txt")
 - Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of `cd`. You may use `cd` if the User explicitly requests it.
 - You may specify an optional timeout in seconds (up to 3600s / 60 minutes).
