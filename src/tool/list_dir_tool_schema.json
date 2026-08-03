@@ -3,7 +3,7 @@
   "function": {
     "name": "ListDir",
     "strict": true,
-    "description": "List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles. Output is truncated to 500 entries.",
+    "description": "List directory contents. Directories first, then files, each sorted alphabetically; '/' suffix marks directories, file size shown for files. Permission codes (e.g. 755/644) are shown on Linux only. Ends with a summary of file/dir counts and extension groups. Output is truncated to 500 entries.",
     "parameters": {
       "type": "object",
       "properties": {
