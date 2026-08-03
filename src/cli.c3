@@ -20,6 +20,8 @@ flags:
     --task-file, -f    从指定文件中读出内容，并设置为默认任务
     --output-file, -o    将最后一次 LLM 回复输出到指定文件
     --headless    设置为非交互模式，一轮对话后会自动退出
+    --resume    从指定 session_id 的 transcript 恢复会话（headless 下可与 -t 组合续跑）
+    --no-transcript    关闭本会话的 transcript 写入
 
     --model    指定使用的模型 ID，默认 'Any'
     --base-url    指定 OpenAI-compatible API base URL，默认 'http://127.0.0.1:5678'
@@ -51,10 +53,12 @@ struct Flag
 	String tools;
 	String task;
 	String task_file;
+	String resume_session;
 	Path output_file;
 	Path config_dir;
 	Path cwd;
 	bool enable_headless;
+	bool enable_transcript;
 	bool enable_debug;
 	bool show_help;
 	bool show_version;
@@ -62,7 +66,7 @@ struct Flag
 }
 
 faultdef
-	NO_AGENT, NO_MODEL, NO_BASE_URL, NO_API_KEY, NO_TOOLS, NO_INIT_TASK, NO_OUTPUT_FILE, NO_CONFIG_DIR,
+	NO_AGENT, NO_MODEL, NO_BASE_URL, NO_API_KEY, NO_TOOLS, NO_INIT_TASK, NO_OUTPUT_FILE, NO_CONFIG_DIR, NO_SESSION,
 ;
 
 fn void? Flag.init(&self, Allocator allocator, String[] args)
@@ -74,6 +78,7 @@ fn void? Flag.init(&self, Allocator allocator, String[] args)
 
 	self.tools = DEFAULT_TOOLS;
 	self.cwd = path::cwd(allocator)!;
+	self.enable_transcript = true;
 
 	Path home_dir = path::home_directory(tmem)!!;
 	self.config_dir = home_dir.append(allocator, ".config/mp")!;
@@ -143,6 +148,18 @@ fn void? Flag.init(&self, Allocator allocator, String[] args)
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_OUTPUT_FILE~;
 			self.output_file = path::new(allocator, args[i])!;
+			continue;
+		}
+		else if (flag == "--resume")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_SESSION~;
+			self.resume_session = args[i];
+			continue;
+		}
+		else if (flag == "--no-transcript")
+		{
+			self.enable_transcript = false;
 			continue;
 		}
 		else if (flag == "--version" || flag == "-v")

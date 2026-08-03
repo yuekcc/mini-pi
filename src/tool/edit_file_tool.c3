@@ -51,7 +51,7 @@ fn String EditTool.schema(&self) @dynamic
 	return EDIT_SCHEMA;
 }
 
-fn void? EditTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? EditTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
 	String old_text  = args.get_key_string("oldText", tmem) ?? "";

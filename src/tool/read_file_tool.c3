@@ -78,7 +78,7 @@ fn String ReadFileTool.schema(&self) @dynamic
 	return READ_SCHEMA;
 }
 
-fn void? ReadFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? ReadFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
 	int offset = args.get_key_int("offset") ?? -1;

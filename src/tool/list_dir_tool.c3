@@ -45,7 +45,7 @@ fn String ListDirTool.schema(&self) @dynamic
 	return LS_SCHEMA;
 }
 
-fn void? ListDirTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? ListDirTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? ".";
 	ls(allocator, out, file_path)!;

@@ -31,7 +31,7 @@ fn void test_stream_reads_standard_reasoning_field() @test
 	body.append("data: {\"choices\":[{\"delta\":{},\"index\":0,\"finish_reason\":\"stop\"}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.reasoning_content == "let me think",
 			"standard 'reasoning' field should be captured into reasoning_content; got: '%s'", msg.reasoning_content);
@@ -52,7 +52,7 @@ fn void test_stream_falls_back_to_reasoning_content() @test
 	body.append("data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"deepseek style\"},\"index\":0}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.reasoning_content == "deepseek style",
 			"reasoning_content fallback should work; got: '%s'", msg.reasoning_content);
@@ -74,7 +74,7 @@ fn void test_stream_handles_null_content() @test
 	body.append("data: {\"choices\":[{\"delta\":{\"content\":\"hi\"},\"index\":0}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.content == "hi", "null content delta should be treated as empty; got: '%s'", msg.content);
 		io::printfn("stream null content OK");
@@ -95,7 +95,7 @@ fn void test_stream_handles_empty_choices() @test
 	body.append("data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"index\":0}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.content == "ok", "empty-choices frame should be skipped; got: '%s'", msg.content);
 		io::printfn("stream empty choices OK");
@@ -115,7 +115,7 @@ fn void test_stream_handles_missing_delta() @test
 	body.append("data: {\"choices\":[{\"index\":0,\"finish_reason\":\"stop\"}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.content == "x", "missing-delta frame should be skipped; got: '%s'", msg.content);
 		io::printfn("stream missing delta OK");
@@ -137,7 +137,7 @@ fn void test_stream_tool_call_null_id_does_not_overwrite() @test
 	body.append("data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"id\":null,\"index\":0,\"function\":{\"arguments\":\"{\\\"cmd\\\":\\\"ls\\\"}\"}}]},\"index\":0}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.tool_calls.len() == 1, "should have 1 tool call");
 		assert(msg.tool_calls[0].id == "call_1", "null id should not overwrite; got: '%s'", msg.tool_calls[0].id);
@@ -160,7 +160,7 @@ fn void test_stream_handles_data_prefix_with_or_without_space() @test
 	body.append("data: {\"choices\":[{\"delta\":{\"content\":\"b\"},\"index\":0}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.content == "ab", "both data: and data: prefixes should work; got: '%s'", msg.content);
 		io::printfn("stream data prefix variants OK");
@@ -180,7 +180,7 @@ fn void test_stream_tool_call_without_function_field() @test
 	body.append("data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"Read\",\"arguments\":\"{}\"}}]},\"index\":0}]}\n");
 	body.append("data: [DONE]\n");
 
-	if (try Message msg = api::read_stream_to_message(tmem, body.str_view()))
+	if (try Message msg = api::read_stream_to_message(tmem, body.str_view(), null))
 	{
 		assert(msg.tool_calls.len() == 1, "should have 1 tool call");
 		assert(msg.tool_calls[0].name == "Read", "name should be Read");
@@ -203,7 +203,7 @@ fn void test_non_stream_reads_standard_reasoning_field() @test
 	String json_doc =
 		"{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"finish_reason\":\"stop\",\"message\":{\"role\":\"assistant\",\"content\":\"Paris\",\"reasoning\":\"capital of France\"}}]}";
 
-	if (try Message msg = api::read_response_to_message(tmem, json_doc))
+	if (try Message msg = api::read_response_to_message(tmem, json_doc, null))
 	{
 		assert(msg.content == "Paris", "content should be Paris");
 		assert(msg.reasoning_content == "capital of France",
@@ -223,7 +223,7 @@ fn void test_non_stream_parses_tool_calls() @test
 	String json_doc =
 		"{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call_abc\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"loc\\\":\\\"SF\\\"}\"}}]}}]}";
 
-	if (try Message msg = api::read_response_to_message(tmem, json_doc))
+	if (try Message msg = api::read_response_to_message(tmem, json_doc, null))
 	{
 		assert(msg.tool_calls.len() == 1, "should have 1 tool call");
 		assert(msg.tool_calls[0].id == "call_abc", "id should be call_abc");
@@ -242,7 +242,7 @@ fn void test_non_stream_handles_null_content() @test
 	String json_doc =
 		"{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[]}}]}";
 
-	if (try Message msg = api::read_response_to_message(tmem, json_doc))
+	if (try Message msg = api::read_response_to_message(tmem, json_doc, null))
 	{
 		assert(msg.content == "", "null content should default to empty");
 		io::printfn("non-stream null content OK");

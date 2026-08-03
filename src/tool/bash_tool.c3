@@ -11,7 +11,7 @@ import util;
 
 const LINE_LIMIT = 2000;
 
-fn void? bash(Allocator allocator, DString* out, String command)
+fn void? bash(Allocator allocator, DString* out, String command, ToolResultMeta* meta)
 {
 	String task_id = util::timestamp_id(tmem);
 	Path store_dir = load_store_dir(tmem);
@@ -23,6 +23,14 @@ fn void? bash(Allocator allocator, DString* out, String command)
 
 	Path output_file = store_dir.append(tmem, string::tformat("%s_output.txt", task_id))!!;
 	file::save(output_file, command_output)!!;
+
+	// 记录原始完整输出路径与退出码（transcript tool_result 补充字段）
+	if (meta)
+	{
+		meta.output_file = string::format(allocator, "%s", output_file);
+		meta.exit_code = result.code;
+		meta.has_exit_code = true;
+	}
 
 	String[] all_lines = command_output.split(tmem, "\n");
 	bool should_truncated = all_lines.len > LINE_LIMIT;
@@ -72,9 +80,9 @@ fn String BashTool.schema(&self) @dynamic
 	return BASH_SCHEMA;
 }
 
-fn void? BashTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args) @dynamic
+fn void? BashTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String command = args.get_key_string("command", tmem) ?? "";
 	if (command == "") return INVALID_COMMAND_PARAM~;
-	bash(allocator, out, command)!;
+	bash(allocator, out, command, meta)!;
 }

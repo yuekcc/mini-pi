@@ -21,12 +21,21 @@ faultdef
 	INVALID_DESCRIPTION_PARAM,
 	LAUNCH_TASK_ERROR,;
 
+// 工具执行结果元数据（transcript tool_result 事件的补充字段）。
+// 大多数工具不提供，保持零值即可；Bash 类工具提供 output_file 与 exit_code。
+struct ToolResultMeta
+{
+	String output_file;  // 原始完整输出的落盘路径（可选，如 Bash 截断前的完整 stdout）
+	int exit_code;       // 退出码（仅 Bash 类工具有值）
+	bool has_exit_code;  // exit_code 是否有效
+}
+
 interface Tool
 {
 	fn String name();
 	fn String description();
 	fn String schema();
-	fn void? execute(Allocator allocator, DString* out, CJsonItem* args);
+	fn void? execute(Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta);
 }
 
 struct ToolHub
@@ -120,7 +129,7 @@ fn String ToolHub.schema(&self, Allocator allocator)
 	return self.schema_cache.copy(allocator);
 }
 
-fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String name, CJsonItem* args)
+fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String name, CJsonItem* args, ToolResultMeta* meta)
 {
 	log::debug("dispatch tool with tool name = %s", name);
 
@@ -128,7 +137,7 @@ fn void? ToolHub.do_dispatch(&self, Allocator allocator, DString* out, String na
 	{
 		if (tool.name() == name)
 		{
-			tool.execute(allocator, out, args)!;
+			tool.execute(allocator, out, args, meta)!;
 			return;
 		}
 	}

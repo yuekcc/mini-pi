@@ -2,6 +2,8 @@ module api;
 
 import std::io;
 import std::collections::list;
+import std::time;
+import std::time::clock;
 import std::time::datetime;
 
 import cjson;
@@ -9,11 +11,36 @@ import context;
 import util;
 import global;
 import log;
+import transcript;
 
 faultdef
 	API_ERROR, EMPTY_RESPONSE;
 
-fn Message? read_response_to_message(Allocator allocator, String json_doc)
+// API 调用元数据：usage 与 finish_reason 在解析层捕获（transcript api_usage 的硬前置）。
+struct ApiMeta
+{
+	String finish_reason;
+	transcript::Usage usage;
+	bool has_usage;
+}
+
+fn CJsonItem* api_error_detail(String message)
+{
+	CJsonItem* detail = cjson::new_object(tmem);
+	detail.set("message", message);
+	detail.set("retry_attempt", 0);
+	return detail;
+}
+
+fn void capture_usage(CJsonItem* usage_chunk, transcript::Usage* usage, bool* has_usage)
+{
+	usage.prompt_tokens = (long)(usage_chunk.get_key_int("prompt_tokens") ?? 0);
+	usage.completion_tokens = (long)(usage_chunk.get_key_int("completion_tokens") ?? 0);
+	usage.reasoning_tokens = (long)(usage_chunk.get_key_int("reasoning_tokens") ?? 0);
+	*has_usage = true;
+}
+
+fn Message? read_response_to_message(Allocator allocator, String json_doc, ApiMeta* meta)
 {
 	CJsonItem* res = cjson::parse((ZString)json_doc);
 	if (!res) return EMPTY_RESPONSE~;
@@ -22,6 +49,16 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 	CJsonItem* choices = res.get_key("choices");
 	if (!choices) return EMPTY_RESPONSE~;
 	CJsonItem* last_choice = choices.get_at(0);
+
+	// 非流式响应：finish_reason 在 choice 上，usage 在根对象上。
+	if (meta)
+	{
+		meta.finish_reason = (last_choice.get_key_string("finish_reason", allocator) ?? "").copy(allocator);
+		if (CJsonItem* usage_chunk = res.get_key("usage"))
+		{
+			capture_usage(usage_chunk, &meta.usage, &meta.has_usage);
+		}
+	}
 
 	if (CJsonItem* message = last_choice.get_key("message"))
 	{
@@ -97,7 +134,7 @@ fn Message? read_response_to_message(Allocator allocator, String json_doc)
 // 流式响应中，tools 调用以增量分片形式下发：每个 delta.tool_calls 是数组，
 // 元素通过 "index" 字段区分属于第几个工具调用；id 与 name 通常只在首个分片出现，
 // arguments 则跨多个分片拼接。这里按 index 分组累积，从而支持单次回复中的多个 tool_call。
-fn Message? read_stream_to_message(Allocator allocator, String sse_body)
+fn Message? read_stream_to_message(Allocator allocator, String sse_body, ApiMeta* meta)
 {
 	@pool()
 	{
@@ -138,10 +175,26 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 			}
 			defer chunk.free();
 
+			// usage 捕获必须在 delta/choices 守卫之外：OpenAI 风格独立 usage chunk
+			// 可能带 choices:[] 或空 delta（规格 L141：流式 usage 可能在终止 chunk 中）。
+			if (meta && !meta.has_usage)
+			{
+				if (CJsonItem* usage_chunk = chunk.get_key("usage"))
+				{
+					capture_usage(usage_chunk, &meta.usage, &meta.has_usage);
+				}
+			}
+
 			CJsonItem* choices = chunk.get_key("choices");
 			if (!choices) continue;
 			CJsonItem* choice = choices.get_at(0);
 			if (!choice) continue;
+
+			if (meta)
+			{
+				String fr = choice.get_key_string("finish_reason", allocator) ?? "";
+				if (fr.len > 0) meta.finish_reason = fr.copy(allocator);
+			}
 
 			CJsonItem* delta = choice.get_key("delta");
 			if (!delta) continue;
@@ -274,11 +327,23 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body)
 	};
 }
 
-fn Message? completions(Context* ctx)
+// 发起一次 /chat/completions 流式请求。
+// - turn_id：当前轮次标识（来自 rat_loop，写入 transcript 事件）。
+// - request_id_out：本次 API round-trip 的 request_id（与 assistant_message/api_usage 关联）。
+// - 结束后写 api_usage 事件；失败时写 system_event(api_error) 并返回 API_ERROR~。
+fn Message? completions(Context* ctx, String turn_id, String* request_id_out)
 {
 	@pool()
 	{
 		String request_id = util::timestamp_id(tmem);
+		*request_id_out = request_id.copy(ctx.allocator);
+
+		ApiMeta meta;
+		meta.finish_reason = "";
+		meta.usage = {};
+		meta.has_usage = false;
+
+		Clock started = clock::now();
 
 		String request_body_json = build_request_body(tmem, ctx);
 		if (global::debug())
@@ -314,13 +379,40 @@ fn Message? completions(Context* ctx)
 			if (response.status_code != 200)
 			{
 				log::warn("LLM API HTTP error: status=%d", response.status_code);
+				transcript::write_system_event(
+					ctx.allocator, ctx.session_id, turn_id, *request_id_out,
+					"api_error", "error",
+					api_error_detail(string::tformat("LLM API HTTP error: status=%d", response.status_code))
+				);
 				return API_ERROR~;
 			}
-			return read_stream_to_message(ctx.allocator, response.body);
+
+			Message? parsed = read_stream_to_message(ctx.allocator, response.body, &meta);
+			if (catch parsed)
+			{
+				// 响应解析失败：无法获得 usage，记 api_error 而非零值 api_usage。
+				transcript::write_system_event(
+					ctx.allocator, ctx.session_id, turn_id, *request_id_out,
+					"api_error", "error",
+					api_error_detail("LLM API response parse failed")
+				);
+				return API_ERROR~;
+			}
+			long latency_ms = started.to_now().to_ms();
+			transcript::write_api_usage(
+				ctx.allocator, ctx.session_id, turn_id, *request_id_out,
+				meta.usage, latency_ms, ctx.flag.model, meta.finish_reason
+			);
+			return parsed;
 		}
 		else
 		{
 			log::warn("LLM API request failed (network or HTTP client error)");
+			transcript::write_system_event(
+				ctx.allocator, ctx.session_id, turn_id, *request_id_out,
+				"api_error", "error",
+				api_error_detail("LLM API request failed (network or HTTP client error)")
+			);
 			return API_ERROR~;
 		}
 	};

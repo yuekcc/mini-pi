@@ -114,6 +114,11 @@ struct Context
 	ToolHub* tool_hub;
 	Flag* flag;
 
+	// --resume 恢复的会话：跳过 reset（system prompt 用 transcript 快照而非重新装配）
+	bool resumed;
+	// 本会话已开始的轮次数（session_end.turns_total 用）
+	int turns_total;
+
 	DateTime started_at;
 	DateTime updated_at;
 }

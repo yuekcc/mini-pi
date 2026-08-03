@@ -16,6 +16,8 @@
 | `--task, -t <msg>`       | 指定初始任务内容                                               | -                                                             |
 | `--task-file, -f <path>` | 从指定文件读取内容作为初始任务（与 `--task` 互斥，优先）       | -                                                             |
 | `--output-file, -o <p>`  | 将最后一次 LLM 的回复内容输出到指定文件（常配合 `--headless`） | -                                                             |
+| `--resume <session_id>`  | 从指定 session_id 的 transcript 恢复会话（headless 下可与 `-t` 组合续跑） | -                                                             |
+| `--no-transcript`        | 关闭本会话的 transcript 写入（敏感场景整文件关闭）             | 开启（默认）                                                  |
 | `--list-skills`          | 列出全部可用 skill                                             | -                                                             |
 | `--help, -h`             | 显示帮助信息                                                   | -                                                             |
 | `--version, -v`          | 显示版本号                                                     | -                                                             |
@@ -31,6 +33,7 @@
 
 - 日志文件：`<config_dir>/log/<session_id>.log`
 - Bash / Task 工具的中间产物：`<config_dir>/task_store/<id>_output.txt`
+- 会话 transcript：`<config_dir>/transcripts/<session_id>.jsonl`（见 [transcript.md](transcript.md)）
 
 ### `--agent <name>`
 
@@ -88,6 +91,24 @@ mp --headless --task-file prompt.txt
 ### `--output-file, -o <path>`
 
 将最后一次 LLM 的回复内容写入指定文件。通常与 `--headless` 配合，用于批处理任务的输出收集。
+
+### `--resume <session_id>`
+
+从指定会话的 transcript 恢复会话（`<config_dir>/transcripts/<session_id>.jsonl`）：
+
+- 以 `session_start` 快照的 system prompt 作为 `messages[0]`（不重新装配），并重建历史消息；
+- 最后一个未收尾的 turn（中断尾巴）会被丢弃，从完整边界继续；
+- 恢复后沿用原 `session_id`，transcript 继续追加到同一文件；
+- 与 `--task` / `--task-file` 互斥（交互模式），但 `--headless --resume <id> -t "..."` 允许组合，用于 Task 子代理续跑。
+
+```bash
+mp --resume ses_20260804_153242          # 交互模式恢复
+mp --headless --resume ses_20260804_153242 -t "继续任务"
+```
+
+### `--no-transcript`
+
+关闭本会话的 transcript 写入。默认常开；敏感场景用此开关整文件关闭（Task 子进程通过 `--no-transcript` 继承关闭语义）。
 
 ### `--list-skills`
 

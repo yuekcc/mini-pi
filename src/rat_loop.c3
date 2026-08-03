@@ -2,15 +2,20 @@ module rat_loop;
 
 import std::io;
 import std::os;
+import std::time;
+import std::time::clock;
 
 import cjson;
 
 import context;
 import cli;
+import tool;
 import util;
 import api;
 import log;
 import ui;
+import global;
+import transcript;
 
 fn String load_init_message(Allocator allocator, Flag* flag)
 {
@@ -36,7 +41,40 @@ fn String load_init_message(Allocator allocator, Flag* flag)
 	return message.copy(allocator);
 }
 
-fn Message* read_input(Allocator allocator, Context* context)
+// 写入当前会话的 session_start 事件（system_prompt 取 messages[0] 装配产物快照）。
+fn void write_session_start_event(Context* context)
+{
+	String system_prompt = "";
+	if (context.messages.len() > 0) system_prompt = context.messages[0].content;
+
+	transcript::write_session_start(
+		context.allocator,
+		context.session_id,
+		context.flag.model,
+		context.flag.agent,
+		string::format(tmem, "%s", context.cwd),
+		system_prompt,
+		transcript::tool_names(tmem, context.tool_hub)
+	);
+}
+
+// 一轮用户输入的公共起点：生成 turn_id、累计轮次、写 user_message 事件。
+// 交互输入与 headless 初始任务共用。
+fn void start_user_turn(Context* context, String* turn_id, String content, bool is_command)
+{
+	*turn_id = util::timestamp_id(context.allocator);
+	context.turns_total++;
+	transcript::write_user_message(context.allocator, context.session_id, *turn_id, content, is_command);
+}
+
+// 斜杠命令也需合法 turn_id（会话首命令时为空）。
+fn String ensure_turn_id(Allocator allocator, String* turn_id)
+{
+	if (turn_id.len == 0) *turn_id = util::timestamp_id(allocator);
+	return *turn_id;
+}
+
+fn Message* read_input(Allocator allocator, Context* context, String* turn_id)
 {
 	bool should_quit = false;
 	while (true)
@@ -56,13 +94,22 @@ fn Message* read_input(Allocator allocator, Context* context)
 			}
 			else if (input_trimmed == "/clear")
 			{
+				// 旧会话收尾（interrupted）→ 新 session_id → 新 transcript 文件
+				transcript::write_user_message(context.allocator, context.session_id, ensure_turn_id(context.allocator, turn_id), input_trimmed, true);
+				transcript::write_session_end(context.allocator, context.session_id, *turn_id, "interrupted", context.turns_total);
 				context.reset();
 				context.session_id = string::format(context.allocator, "ses_%s", util::timestamp_id(tmem));
+				context.turns_total = 0;
+				global::set_session_id(context.session_id);
+				write_session_start_event(context);
+				*turn_id = "";
 				ui::notice("Start new session, session ID is %s", context.session_id);
 				continue;
 			}
 			else if (input_trimmed == "/exit" || input_trimmed == "/e")
 			{
+				transcript::write_user_message(context.allocator, context.session_id, ensure_turn_id(context.allocator, turn_id), input_trimmed, true);
+				transcript::write_session_end(context.allocator, context.session_id, *turn_id, "exit", context.turns_total);
 				ui::notice("Bye, last session ID is %s", context.session_id);
 				should_quit = true;
 				break;
@@ -73,6 +120,8 @@ fn Message* read_input(Allocator allocator, Context* context)
 		context::message_init(result, allocator, "user");
 		result.content = input_trimmed.copy(allocator);
 		io::printfn("");
+
+		start_user_turn(context, turn_id, input_trimmed, input_trimmed.starts_with("/"));
 		return result;
 	}
 
@@ -92,7 +141,15 @@ fn void run(Context* context)
 	sz tool_call_cursor = 0;     // 当前 assistant 消息中已执行的 tool_call 数量
 	sz pending_assistant_idx = 0; // 待执行 tool_call 所属的 assistant 消息在列表中的下标
 
-	context.reset();
+	// 当前 turn / API round-trip 标识（transcript 双键；分配在 context.allocator 上以跨迭代存活）
+	String turn_id = "";
+	String request_id = "";
+
+	if (!context.resumed)
+	{
+		context.reset();
+		write_session_start_event(context);
+	}
 
 	while RAT_LOOP: (true) @pool()
 	{
@@ -110,6 +167,12 @@ fn void run(Context* context)
 				String tc_args = tc.arguments.copy(tmem);
 				usz tc_index = tc.index;
 
+				Clock tool_started = clock::now();
+				ToolResultMeta meta;
+				meta.output_file = "";
+				meta.exit_code = 0;
+				meta.has_exit_code = false;
+
 				DString buf = dstring::new(tmem);
 				Message reply;
 				context::message_init(&reply, tmem, "tool");
@@ -119,22 +182,27 @@ fn void run(Context* context)
 				if (!tool_args)
 				{
 					reply.content = string::format(tmem, "Execute tool '%s' fault, malformed JSON arguments.", tc_name);
-					ui::render_message(&reply);
-					context.add_message(&reply);
-					tool_call_cursor++;
-					continue RAT_LOOP;
-				}
-				defer tool_args.free();
-
-				if (catch excuse = context.tool_hub.do_dispatch(tmem, &buf, tc_name, tool_args))
-				{
-					reply.content = string::format(tmem, "Execute tool '%s' fault, %s. You should retry carefully", tc_name, excuse);
 				}
 				else
 				{
-					log::debug("Tool '%s' (index %d) output: %s", tc_name, tc_index, buf.tcopy());
-					reply.content = buf.copy_str(tmem);
+					defer tool_args.free();
+					if (catch excuse = context.tool_hub.do_dispatch(tmem, &buf, tc_name, tool_args, &meta))
+					{
+						reply.content = string::format(tmem, "Execute tool '%s' fault, %s. You should retry carefully", tc_name, excuse);
+					}
+					else
+					{
+						log::debug("Tool '%s' (index %d) output: %s", tc_name, tc_index, buf.tcopy());
+						reply.content = buf.copy_str(tmem);
+					}
 				}
+
+				long tool_duration_ms = tool_started.to_now().to_ms();
+				transcript::write_tool_result(
+					context.allocator, context.session_id, turn_id, request_id,
+					tc_id, tc_name, tc_args, reply.content,
+					meta.output_file, tool_duration_ms, meta.exit_code, meta.has_exit_code
+				);
 
 				ui::render_message(&reply);
 				context.add_message(&reply);
@@ -147,6 +215,7 @@ fn void run(Context* context)
 		{
 			if (init_message_added)
 			{
+				transcript::write_session_end(context.allocator, context.session_id, turn_id, "exit", context.turns_total);
 				ui::notice("DONE");
 				os::exit(0);
 			}
@@ -156,6 +225,7 @@ fn void run(Context* context)
 				context::message_init(&reply, tmem, "user");
 				reply.content = load_init_message(tmem, context.flag);
 				ui::render_message(&reply);
+				start_user_turn(context, &turn_id, reply.content, false);
 				context.add_message(&reply);
 				init_message_added = true;
 			}
@@ -163,19 +233,20 @@ fn void run(Context* context)
 		else
 		{
 			// 非 headless 模式，支持用户输入
-			Message* user_input = read_input(tmem, context);
+			Message* user_input = read_input(tmem, context, &turn_id);
 			context.add_message(user_input);
 		}
 
 		// 发送请求
-		Message? result = api::completions(context);
+		Message? result = api::completions(context, turn_id, &request_id);
 		if (catch excuse = result)
 		{
-			// 接口异常（502 / 429 / 网络错误等）：api.c3 已打印一行告警。
+			// 接口异常（502 / 429 / 网络错误等）：api.c3 已打印一行告警并写 system_event(api_error)。
 			// - headless 模式直接退出，避免无意义循环占用。
 			// - 交互模式复位工具调用状态后回到用户输入，杜绝卡死。
 			if (context.flag.enable_headless)
 			{
+				transcript::write_session_end(context.allocator, context.session_id, turn_id, "error", context.turns_total);
 				os::exit(1);
 			}
 			calling_tools = false;
@@ -184,6 +255,8 @@ fn void run(Context* context)
 		else
 		{
 			Message message = result;
+			transcript::write_assistant_message(context.allocator, context.session_id, turn_id, request_id, &message);
+			global::set_active_request_id(request_id);
 			ui::render_message(&message);
 			context.add_message(&message);
 			if (message.tool_calls.len() > 0)

@@ -109,7 +109,7 @@ fn void test_read_tool_offset_limit() @test
 fn void test_bash_tool() @test
 {
 	DString out = dstring::new(tmem);
-	tool::bash(tmem, &out, "ls -alh src")!!;
+	tool::bash(tmem, &out, "ls -alh src", null)!!;
 	String content = out.str_view().copy(tmem);
 	io::printfn("content -> \n%s", content);
 	assert(content.count("main.c3") >= 1);
