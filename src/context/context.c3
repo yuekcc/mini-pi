@@ -13,6 +13,7 @@ import global;
 
 const String SYSTEM_PROMPT_TPL = (String)$embed("system_prompt_template.md");
 const String TOOLS_MEMO_TPL = (String)$embed("tools_memo_template.md");
+const String BEHAVIORAL_GUIDELINE_TPL = (String)$embed("behavioral_guideline_template.md");
 
 // 尝试从 $config 目录获取用户的 SYSTEM.md，失败则直接使用内置的模板
 fn String load_system_prompt_template() @local
@@ -182,9 +183,11 @@ fn void Context.reset(&self)
 		String skill_list = self.skill_hub.print_installed(tmem);
 		if (skill_list != "")
 		{
-			buf.appendf("\n\n**Skills**\n\n%s\n\n", skill_list);
+			buf.appendf("\n\n**Skills**\n\n%s", skill_list);
 		}
 	}
+
+	buf.appendf("\n\n%s", BEHAVIORAL_GUIDELINE_TPL.trim());
 
 	system_msg.content = buf.copy_str(tmem);
 	self.add_message(&system_msg);
