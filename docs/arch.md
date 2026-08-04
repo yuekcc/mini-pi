@@ -17,29 +17,25 @@
 ```mermaid
 flowchart LR
     subgraph Entry["入口层"]
-        main["src/main.c3<br/>进程入口"]
-        cli["src/cli.c3<br/>Flag 解析"]
-        version["src/version.c3<br/>版本号"]
+        main["src/main.c3"]
     end
 
     subgraph Loop["Agent 循环"]
-        rat["src/rat_loop.c3<br/>交互 / headless / 工具调度"]
+        rat["src/rat_loop.c3"]
     end
 
-    subgraph Core["核心数据结构"]
-        context["src/context/context.c3<br/>Context/Message/ToolCall"]
-        sys_tpl["src/context/system_prompt_template.md<br/>系统提示词模板"]
-        tools_memo["src/context/tools_memo_template.md<br/>工具使用备忘录"]
+    subgraph Core["核心状态"]
+        ctx["src/context/context.c3"]
     end
 
     subgraph API["API 层"]
-        api["src/api/api.c3<br/>流式 SSE 解析 / usage 捕获"]
-        http["src/api/http_client.c3<br/>libcurl 封装"]
+        api["src/api/api.c3"]
+        http["src/api/http_client.c3"]
     end
 
     subgraph Tools["工具系统"]
-        hub["src/tool/tool.c3<br/>ToolHub 注册与分发"]
-        common["src/tool/common.c3<br/>task_store 路径"]
+        hub["src/tool/tool.c3"]
+        common["src/tool/common.c3"]
         t_read["read_file_tool.c3"]
         t_hash["hash_edit_tool.c3"]
         t_write["write_file_tool.c3"]
@@ -48,74 +44,42 @@ flowchart LR
         t_glob["glob_tool.c3"]
         t_ls["list_dir_tool.c3"]
         t_task["task_tool.c3"]
-        schemas["*_schema.json<br/>内嵌 JSON Schema"]
     end
 
-    subgraph SkillSys["Skill 系统"]
-        skill["src/skill.c3<br/>SKILL.md 加载"]
-    end
-
-    subgraph Transcript["会话记录"]
-        trans["src/transcript.c3<br/>事件序列化 / resume 重建"]
+    subgraph Aux["配套子系统"]
+        skill["src/skill.c3"]
+        trans["src/transcript.c3"]
     end
 
     subgraph Util["工具函数"]
-        u_cmd["src/util/cmd.c3<br/>子进程执行"]
-        u_hash["src/util/hash.c3<br/>行哈希锚点"]
-        u_id["src/util/id.c3<br/>时间戳 ID / 路径哈希"]
-        u_str["src/util/strings.c3<br/>行尾归一化"]
-        u_md["src/util/parse_markdown.c3<br/>Markdown+frontmatter"]
+        u_cmd["src/util/cmd.c3"]
+        u_hash["src/util/hash.c3"]
+        u_md["src/util/parse_markdown.c3"]
     end
 
-    subgraph Infra["基础设施"]
-        g["src/global.c3<br/>tlocal 单例"]
-        log["src/log.c3<br/>分级日志"]
-        ui["src/ui.c3<br/>终端渲染 / NO_COLOR"]
+    subgraph Infra["基础设施（横切）"]
+        g["src/global.c3"]
+        log["src/log.c3"]
+        ui["src/ui.c3"]
     end
 
-    main --> cli
-    main --> g
-    main --> log
-    main --> ui
-    main --> skill
-    main --> hub
-    main --> context
-    main --> trans
-    main --> rat
-
-    rat --> context
+    main --> rat & ctx & hub & skill & trans
+    rat --> ctx
     rat --> api
     rat --> hub
     rat --> trans
-    rat --> ui
-
-    api --> context
     api --> http
     api --> trans
-    api --> log
-
-    context --> sys_tpl
-    context --> tools_memo
-    context --> skill
-    context --> hub
-
+    ctx --> skill
     hub --> common
     hub --> t_read & t_hash & t_write & t_bash & t_grep & t_glob & t_ls & t_task
-    t_read & t_hash & t_write & t_bash & t_grep & t_glob & t_ls & t_task --> schemas
-
-    t_read & t_hash --> u_hash
-    t_read & t_hash --> u_str
+    t_hash --> u_hash
     t_bash & t_grep & t_glob & t_task --> u_cmd
-    t_task --> g
-    t_task --> trans
-
     skill --> u_md
     trans --> g
-    trans --> context
-    trans --> tool
-    log --> g
-    ui --> context
 ```
+
+> 横切依赖：`global.c3`（tlocal 单例）被 log/transcript/task 读取；`log.c3` 被 api/tool 使用；`ui.c3` 被 rat_loop/main 调用；各工具 schema 通过 `$embed` 编译期内嵌，不在运行时装配。
 
 ## 2. 目录结构
 
@@ -170,28 +134,18 @@ docs/                       # arch / flags / config / transcript / c3-intro / up
 ```mermaid
 sequenceDiagram
     participant main as main.c3
-    participant cli as cli.c3
-    participant g as global.c3
-    participant log as log.c3
-    participant skill as skill.c3
-    participant hub as tool.c3
     participant ctx as context.c3
     participant trans as transcript.c3
     participant rat as rat_loop.c3
 
-    main->>cli: Flag.init(args)
-    main->>main: session_id = "ses_" + timestamp_id<br/>(--resume 则沿用旧 id)
-    main->>g: update(config_dir, log_file, debug, transcript)
-    main->>log: init()
-    main->>main: 冲突检查：--resume 与 --task/--task-file<br/>（交互模式互斥）
-    main->>skill: SkillHub.init()
-    main->>hub: ToolHub.init(allowed_tools)
+    main->>main: Flag.init() → session_id 生成<br/>（--resume 沿用旧 id）
+    main->>main: 初始化基础设施与 hub<br/>global / log / skill / tool
     main->>ctx: Context.init(session_id, flag, hubs)
     alt --resume <id>
-        main->>trans: resume_into(ctx)<br/>重建 system prompt 快照 + 历史消息
+        main->>trans: resume_into(ctx)<br/>快照 system prompt + 重建历史消息
     else 新会话
-        ctx->>ctx: reset()：装配系统提示词<br/>（模板 + AGENTS.md + skills）
-        rat-->>trans: write_session_start<br/>(快照 system_prompt + assembly)
+        ctx->>ctx: reset() 装配系统提示词<br/>（模板 + AGENTS.md + skills）
+        main->>trans: write_session_start()
     end
     main->>rat: run(ctx)
 ```
@@ -215,36 +169,21 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[循环开始] --> B{还在执行工具?}
-    B -->|是| C["取 assistant.tool_calls[cursor]"]
-    C --> D[do_dispatch 执行工具]
-    D --> E[写 transcript tool_result]
-    E --> F[追加 role=tool 消息]
-    F --> G[cursor++]
-    G --> A
-    B -->|否| H{headless?}
-    H -->|是| I{init_message_added?}
-    I -->|是| Z[write_session_end → exit]
-    I -->|否| J[读初始任务<br/>start_user_turn]
-    H -->|否| K[read_input<br/>交互输入]
-    J --> L[api.completions]
-    K --> L
-    L --> M{API 失败?}
-    M -->|是| N{headless?}
-    N -->|是| O[exit 1]
-    N -->|否| P[复位工具状态<br/>回到用户输入]
-    M -->|否| Q[写 transcript assistant_message]
-    Q --> R[render + add_message]
-    R --> S{tool_calls 非空?}
-    S -->|是| T[calling_tools=true<br/>游标复位]
-    S -->|否| U[calling_tools=false]
-    T --> A
-    U --> A
+    A["输入<br/>交互 read_input() / headless 初始任务"] --> B["api.completions()<br/>请求模型"]
+    B --> C{"回复含 tool_calls?"}
+    C -->|否| D["输出最终答复"]
+    D --> E{"headless?"}
+    E -->|是| Z["写 session_end → exit"]
+    E -->|否| A
+    C -->|是| F["逐个执行工具<br/>（tool_call 游标串行）"]
+    F --> G["回填 role=tool 消息<br/>+ 写 tool_result 事件"]
+    G --> B
 ```
 
 关键点：
 
 - **turn 与 request 双键**：每轮用户输入生成 `turn_id`；每次 API 调用生成 `request_id`，二者贯穿 transcript 全部事件。
+- **工具游标**：一次回复含多个 `tool_call` 时，逐个执行（`do_dispatch`）、逐个回填、逐个写 `tool_result`，全部完成后才再次请求模型；游标与消息下标（`pending_assistant_idx`）避免列表重分配后指针失效。
 - **API 错误处理**：headless 直接退出（避免死循环），交互模式复位工具状态回到用户输入。
 - **`/clear`**：旧会话写 `session_end(interrupted)` → 生成新 `session_id` → 新 transcript 文件 → 重新装配系统提示词。
 
@@ -254,20 +193,17 @@ flowchart TD
 sequenceDiagram
     participant rat as rat_loop.c3
     participant api as api.c3
-    participant http as http_client.c3
-    participant curl as libcurl
+    participant http as http_client.c3（libcurl）
     participant trans as transcript.c3
 
     rat->>api: completions(ctx, turn_id, &request_id)
-    api->>api: build_request_body()<br/>model + messages + stream + thinking + tools
-    Note over api: assistant.reasoning 用标准字段 "reasoning"<br/>（兼容回退 reasoning_content）<br/>tool_calls 回传标准 ChatToolCall
-    api->>http: post(baseUrl + /chat/completions, body, headers)
-    http->>curl: easy_perform()，WRITEFUNCTION 累积响应体
-    curl-->>http: 完整 SSE 文本（一次返回，无打字机）
-    api->>api: read_stream_to_message()<br/>按 index 累积 tool_calls 分片<br/>在终止 chunk 捕获 usage / finish_reason
+    api->>api: build_request_body()<br/>stream + thinking + tools + reasoning
+    api->>http: POST /chat/completions
+    http-->>api: 完整 SSE 文本
+    api->>api: read_stream_to_message()<br/>tool_calls 分片累积 / usage 捕获
     api->>trans: write_api_usage(usage, latency, finish_reason)
     api-->>rat: Message（content + reasoning + tool_calls）
-    alt HTTP 非 200 / 网络错误 / 解析失败
+    alt 请求失败（HTTP 非 200 / 网络 / 解析）
         api->>trans: write_system_event(api_error)
         api-->>rat: API_ERROR~
     end
@@ -337,22 +273,16 @@ interface Tool
 
 ```mermaid
 flowchart TD
-    A[解析 edits 数组] --> B[按 line 升序排序<br/>选择排序]
-    B --> C[阶段 1：原子校验全部锚点]
-    C --> C1[行号越界检查]
-    C --> C2[line.hash 与当前文件重算哈希比对]
-    C --> C3[endLine 合法性 + endHash 比对]
-    C --> C4[insertAfter 与 endLine 互斥检查]
-    C --> C5[重叠/重复锚点检测<br/>下一 edit 的 line 必须 > 上一 edit 的 end]
-    C --> D{任一失败?}
-    D -->|是| E[整体拒绝<br/>不写盘，返回全部错误明细]
-    D -->|否| F[阶段 2：自顶向下流式应用<br/>避免行号漂移]
-    F --> G[阶段 3：拼回保存 + 逐条结果报告]
+    A["解析 edits 数组<br/>按 line 升序排序"] --> B["阶段 1：原子校验全部锚点<br/>越界 / hash 比对 / endLine / 互斥与重叠"]
+    B --> C{"任一失败?"}
+    C -->|是| D["整体拒绝，不写盘<br/>返回错误明细"]
+    C -->|否| E["阶段 2：自顶向下流式应用<br/>避免行号漂移"]
+    E --> F["阶段 3：拼回保存<br/>逐条结果报告"]
 ```
 
 设计要点：
 
-- **先校验后写入**：任何锚点过期（文件在读取后被改动、或哈希抄错）→ 整批拒绝，文件零改动；错误信息逐条列出，引导模型重读文件。
+- **先校验后写入**：阶段 1 逐条校验「行号越界、`line.hash` 与当前文件重算比对、`endLine` 合法性 + `endHash` 比对、`insertAfter` 与 `endLine` 互斥、编辑区间重叠/重复」；任何锚点过期（文件在读取后被改动、或哈希抄错）→ 整批拒绝，文件零改动，错误明细引导模型重读文件。
 - **防漂移**：edits 升序排列后单遍流式应用，替换区间一次性跳过被覆盖行。
 - **报告完备**：成功时逐条报告（replaced / replaced with N line(s) / inserted N line(s) / deleted / range replaced），让模型知道每步结果。
 
@@ -392,14 +322,10 @@ flowchart TD
 flowchart TD
     A["读 <config_dir>/transcripts/<id>.jsonl"] --> B{"文件存在?"}
     B -->|否| Z["失败退出"]
-    B -->|是| C["逐行解析事件"]
-    C --> D["session_start.system_prompt → messages[0]<br/>不重新装配，保真第一"]
-    D --> E["user_message → role=user<br/>is_command=true 跳过"]
-    E --> F["assistant_message → role=assistant<br/>content + reasoning + tool_calls"]
-    F --> G["tool_result → role=tool<br/>content=output 逐字节重建"]
-    G --> H["session_end → 停止"]
-    H --> I["丢弃最后一个未收尾 turn<br/>最后一条 assistant 仍带 tool_calls 即视为中断"]
-    I --> J["写 system_event(resume) 标记<br/>turns_total 继承重建轮次"]
+    B -->|是| C["回放 session_start.system_prompt 快照<br/>→ messages[0]（不重新装配）"]
+    C --> D["按序重建 user / assistant / tool 消息<br/>（is_command=true 的 user 跳过）"]
+    D --> E["丢弃未收尾的尾巴 turn<br/>（最后一条 assistant 仍带 tool_calls）"]
+    E --> F["写 system_event(resume) 标记<br/>turns_total 继承重建轮次"]
 ```
 
 冲突规则：交互模式下 `--resume` 与 `--task`/`--task-file` 互斥；headless 允许组合（`mp --headless --resume <id> -t "继续"`），支撑 Task 子代理续跑。
