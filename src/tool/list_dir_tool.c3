@@ -100,16 +100,16 @@ fn void? ls(Allocator allocator, DString* out, String file_path = "", int limit 
 {
 	String dir_path = file_path == "" ? "." : file_path;
 	Path? maybe_dir = path::new(allocator, dir_path);
-	if (catch excuse = maybe_dir)
+	if (catch ex = maybe_dir)
 	{
-		out.appendf("Error listing directory '%s': %s", dir_path, excuse);
+		out.appendf("Error listing directory '%s': %s", dir_path, ex);
 		return;
 	}
 	Path dir = maybe_dir;
 	PathList? maybe_entries = path::ls(allocator, dir);
-	if (catch excuse = maybe_entries)
+	if (catch ex = maybe_entries)
 	{
-		out.appendf("Error listing directory '%s': %s", dir_path, excuse);
+		out.appendf("Error listing directory '%s': %s", dir_path, ex);
 		return;
 	}
 	PathList entries = maybe_entries;

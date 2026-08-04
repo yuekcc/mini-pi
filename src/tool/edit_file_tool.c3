@@ -17,7 +17,7 @@ fn void? edit(Allocator allocator, DString* out, String file_path, String old_te
 	String normalized_old     = util::normalize_line_endings(tmem, old_text);
 	String normalized_new     = util::normalize_line_endings(tmem, new_text);
 
-	if (catch excuse = normalized_content.index_of(normalized_old))
+	if (catch ex = normalized_content.index_of(normalized_old))
 	{
 		out.appendf("Could not find the exact text in %s. The old text must match exactly including all whitespace and newlines", path_obj);
 		return;

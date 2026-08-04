@@ -353,7 +353,7 @@ fn bool resume_into(Allocator allocator, Context* ctx)
 	if (!path::exists(file)) return false;
 
 	char[]? loaded = file::load(allocator, file);
-	if (catch excuse = loaded) return false;
+	if (catch ex = loaded) return false;
 	String file_content = (String)loaded;
 
 	String[] lines = file_content.split(allocator, "\n");

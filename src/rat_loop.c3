@@ -26,9 +26,9 @@ fn String load_init_message(Allocator allocator, Flag* flag)
 	}
 
 	char[]? content = file::load(tmem, flag.task_file);
-	if (catch excuse = content)
+	if (catch ex = content)
 	{
-		log::error("Load task file error, %s", excuse);
+		log::error("Load task file error, %s", ex);
 		os::exit(1);
 	}
 
@@ -186,9 +186,9 @@ fn void run(Context* context)
 				else
 				{
 					defer tool_args.free();
-					if (catch excuse = context.tool_hub.do_dispatch(tmem, &buf, tc_name, tool_args, &meta))
+					if (catch ex = context.tool_hub.do_dispatch(tmem, &buf, tc_name, tool_args, &meta))
 					{
-						reply.content = string::format(tmem, "Execute tool '%s' fault, %s. You should retry carefully", tc_name, excuse);
+						reply.content = string::format(tmem, "Execute tool '%s' fault, %s. You should retry carefully", tc_name, ex);
 					}
 					else
 					{
@@ -239,7 +239,7 @@ fn void run(Context* context)
 
 		// 发送请求
 		Message? result = api::completions(context, turn_id, &request_id);
-		if (catch excuse = result)
+		if (catch ex = result)
 		{
 			// 接口异常（502 / 429 / 网络错误等）：api.c3 已打印一行告警并写 system_event(api_error)。
 			// - headless 模式直接退出，避免无意义循环占用。
