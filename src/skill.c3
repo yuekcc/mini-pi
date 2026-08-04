@@ -113,22 +113,23 @@ fn String SkillHub.print_installed(&self, Allocator allocator)
 	}
 
 	DString buf = dstring::new(tmem);
-	buf.append("The following skills provide specialized instructions for specific tasks.\n");
-	buf.append("Use the read tool to load a skill's file when the task matches its description.\n");
-	buf.append(
-		"When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n"
-	);
-	buf.append("\n");
+	buf.append(`Scan <available_skills>. If one clearly applies, read its SKILL.md at exact <location> with ``ReadFile``, then follow it.
+If several apply, choose the most specific. If none clearly apply, read none.
+When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.`);
+
+	buf.append("\n\n");
+	buf.append("<available_skills>\n");
 
 	self.data.@each(; name, skill)
 	{
-		buf.append("<skill>\n");
-		buf.appendf("  <name>%s</name>\n", escape_xml(name));
-		buf.appendf("  <description>%s</description>\n", escape_xml(skill.description));
-		buf.appendf("  <location>%s</location>\n", escape_xml(skill.path.replace(tmem, "\\", "/")));
-		buf.append("</skill>\n");
+		buf.appendf("  <skill>\n");
+		buf.appendf("    <name>%s</name>\n", escape_xml(name));
+		buf.appendf("    <description>%s</description>\n", escape_xml(skill.description));
+		buf.appendf("    <location>%s</location>\n", escape_xml(skill.path.replace(tmem, "\\", "/")));
+		buf.appendf("  </skill>\n");
 	};
 	defer buf.free();
+	buf.append("</available_skills>");
 
 	return buf.copy_str(allocator);
 }

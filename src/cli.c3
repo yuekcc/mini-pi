@@ -13,36 +13,35 @@ const String DEFAULT_TOOLS = "ReadFile,Bash,HashEditFile,WriteFile,Grep,Glob,Lis
 const String HELP_MESSAGE = `mp - a coding agent, my own coding agent.
 
 flags:
-	--config, -c    指定配置目录
-    --agent    指定智能体角色，默认为 default
-    --tools    允许使用的工具列表，默认值是 read,bash,edit,write,grep,find,ls
-    --task, -t    指定默认任务
-    --task-file, -f    从指定文件中读出内容，并设置为默认任务
+    --config, -c         指定配置目录
+    --agent              指定智能体角色，默认为 default
+    --tools              允许使用的工具列表，默认值是 ReadFile,Grep,Glob,ListDir,Bash,HashEditFile,WriteFile,Task
+    --task, -t           指定默认任务
+    --task-file, -f      从指定文件中读出内容，并设置为默认任务
     --output-file, -o    将最后一次 LLM 回复输出到指定文件
-    --headless    设置为非交互模式，一轮对话后会自动退出
-    --resume    从指定 session_id 的 transcript 恢复会话（headless 下可与 -t 组合续跑）
-    --no-transcript    关闭本会话的 transcript 写入
+    --headless           设置为非交互模式，一轮对话后会自动退出
+    --resume             从指定 session_id 的 transcript 恢复会话（headless 下可与 -t 组合续跑）
+    --no-transcript      关闭本会话的 transcript 写入
 
-    --model    指定使用的模型 ID，默认 'Any'
-    --base-url    指定 OpenAI-compatible API base URL，默认 'http://127.0.0.1:5678'
-    --api-key    指定 Completions API key， 默认 'sk-1234'
+    --model              指定使用的模型 ID，默认 'Any'
+    --base-url           指定 Chat Completions API 的 base URL，默认 'http://127.0.0.1:5678'
+    --api-key            指定 API key， 默认 'sk-1234'
 
-    --list-skills    列出全部可用 skill
+    --list-skills        列出全部可用 skill
 
-    --help    显示帮助信息
-    --version    查看版本号
-    --debug    启动 DEBUG 模式
+    --help               显示帮助信息
+    --version            查看版本号
+    --debug              启动 DEBUG 模式
 
 tools:
     - 'ReadFile'
-    - 'Bash'
-    - 'HashEditFile'
-    - 'WriteFile'
     - 'Grep'
     - 'Glob'
     - 'ListDir'
-    - 'Task'
-`;
+    - 'Bash'
+    - 'HashEditFile'
+    - 'WriteFile'
+    - 'Task'`;
 
 struct Flag
 {

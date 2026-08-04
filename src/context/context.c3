@@ -32,9 +32,9 @@ fn String load_system_prompt(Allocator allocator, String tools_list, bool enable
 	String now_str = now.format(tmem, DateTimeFormat.DATEONLY);
 	Path cwd = path::cwd(tmem)!!;
 
-	String os_uname = "Linux + Bash";
+	String os_uname = "Linux + Bash shell";
 	$if env::WIN32:
-		os_uname = "Windows 11 + Bash (bundled in Git for windows)";
+		os_uname = "Windows 11 + Bash shell (bundled version in Git for windows)";
 	$endif
 
 	DString final_system_prompt = dstring::new(tmem);
@@ -43,13 +43,13 @@ fn String load_system_prompt(Allocator allocator, String tools_list, bool enable
 	final_system_prompt.replace("{{date}}", now_str);
 	final_system_prompt.replace("{{os}}", os_uname);
 	final_system_prompt.replace("{{cwd}}", cwd);
-
+	
 	if (enable_tools)
 	{
-		final_system_prompt.append("\n\n---\n\n");
+		final_system_prompt.append("\n\n");
 		final_system_prompt.append("**Available tools**:\n\n");
 		final_system_prompt.append(tools_list.trim());
-		final_system_prompt.append("\n\n---\n\n");
+		final_system_prompt.append("\n\n");
 		final_system_prompt.append(TOOLS_MEMO_TPL.trim());
 	}
 
@@ -167,14 +167,14 @@ fn void Context.reset(&self)
 
 	DString buf = dstring::new(tmem);
 
-	buf.appendf("%s", load_system_prompt(tmem, self.tool_hub.printed_enabled_tools(tmem), self.tool_hub.tools.len > 0));
+	buf.append(load_system_prompt(tmem, self.tool_hub.printed_enabled_tools(tmem), self.tool_hub.tools.len > 0));
 	String agents_md = load_agents_md(tmem);
 	if (agents_md != "")
 	{
-		buf.appendf("\n\n----\n\n");
-		buf.appendf("<project_context>\nProject-specific instructions and guidelines:\n\n");
-		buf.appendf("<project_instructions path=\"AGENTS.md\">\n%s\n</project_instructions>\n", agents_md);
-		buf.appendf("</project_context>\n\n");
+		buf.append("\n\n");
+		buf.append("**Project Context**:");
+		buf.append("\n\nScan <project_instructions> for project-specific instructions and guidelines.");
+		buf.appendf("\n\n<project_instructions path=\"AGENTS.md\">\n%s\n</project_instructions>", agents_md);
 	}
 
 	if (self.skill_hub != null)
@@ -182,8 +182,7 @@ fn void Context.reset(&self)
 		String skill_list = self.skill_hub.print_installed(tmem);
 		if (skill_list != "")
 		{
-			buf.appendf("\n\n----\n\n");
-			buf.appendf("%s\n\n", skill_list);
+			buf.appendf("\n\n**Skills**\n\n%s\n\n", skill_list);
 		}
 	}
 
