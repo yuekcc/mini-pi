@@ -62,7 +62,7 @@ fn void? hash_edit(Allocator allocator, DString* out, String file_path, EditOp[]
 		if (actual != op.hash)
 		{
 			errors.appendf(
-				"\n  - line %d: hash mismatch. You supplied '%s' but the current file has '%s'. The file may have changed since you read it.",
+				"\n  - line %d: hash mismatch. You supplied '%s' but the current file has '%s'. The file changed since you read it; re-run ReadFile to get fresh anchors.",
 				op.line,
 				op.hash,
 				actual
