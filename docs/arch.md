@@ -286,8 +286,6 @@ flowchart TD
 - **防漂移**：edits 升序排列后单遍流式应用，替换区间一次性跳过被覆盖行。
 - **报告完备**：成功时逐条报告（replaced / replaced with N line(s) / inserted N line(s) / deleted / range replaced），让模型知道每步结果。
 
-> 注：旧版曾提供精确文本匹配的 `EditFile`（`oldText` 必须逐字节一致），已从工具注册表移除，编辑统一走 HashEditFile。`src/tool/edit_file_tool.c3` 与 `edit_file_tool_schema.json` 为未注册的死代码，可清理。
-
 ## 8. 核心特色二：transcript 会话记录（src/transcript.c3）
 
 完整格式规范见 [transcript.md](transcript.md)，这里给架构视角。

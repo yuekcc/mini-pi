@@ -1,89 +1,59 @@
-当前项目 `mp` 是用 c3 语言实现的一个 coding agent，灵感来自 Pi。版本 0.2.0。
+当前项目 `mp` 是用 c3 语言实现的一个 coding agent，灵感来自 Pi。版本 1.0.0。
 
-## 关键目录结构
+## 目录结构
 
 ```sh
-/src                 # 源代码目录
-    /api             # LLM API 与 HTTP 客户端
-        api.c3            # OpenAI Chat Completions（流式 SSE）
-        http_client.c3    # 基于 curl.c3l 的 HttpClient 封装
-    /context          # 核心数据结构
-        context.c3         # Context / Message / ToolCall，系统提示词装配
-        system_prompt_template.md  # 系统提示词模板
-    /tool             # 工具系统
-        tool.c3            # ToolHub 调度中心、Tool 接口
-        common.c3          # 共享工具函数（task_store 路径）
-        *_tool.c3          # 9 个内置工具实现
-        *_schema.json      # 各工具的 JSON Schema
-    /util             # 工具函数
-        cmd.c3             # 子进程执行
-        hash.c3            # 行哈希（FNV-1a，hashline 锚点）
-        id.c3             # 时间戳 ID、路径哈希
-        strings.c3         # 行尾归一化等字符串工具
-        parse_markdown.c3  # Markdown + YAML frontmatter 解析
-    main.c3           # 程序入口
-    cli.c3            # Flag 解析、默认值
-    rat_loop.c3       # Agent 主循环（交互 / headless）
-    skill.c3          # Skill 加载（~/.agents/skills 与 .agents/skills）
-    global.c3         # 线程级单例 GlobalStore
-    log.c3            # 分级日志宏（debug/info/warn/error）
-    ui.c3             # 终端渲染、NO_COLOR 支持
-    version.c3        # 版本号
-/test                 # 单元测试目录（14 个测试文件）
-/lib                  # 三方库目录
-    /cjson.c3l         # json 处理库
-    /curl.c3l          # libcurl 在 c3 的绑定
-/resources            # 内置资源
-    /agents            # 6 个预设 Agent 定义（designer/explorer/fixer/librarian/oracle/orchestrator）
-    /skills            # 内置 skill（prd）
-    /error_responses   # 错误响应样本
-/scripts              # 构建/发布脚本
-/docs                 # 文档目录
-project.json          # 项目定义（version 0.2.0）
+/src
+    /api          # LLM API 与 HTTP 客户端（OpenAI 流式 SSE）
+    /context      # 核心数据结构与系统提示词装配（含 3 个 prompt 模板）
+    /tool         # 工具系统（ToolHub + 工具实现 + JSON Schema）
+    /util         # 通用工具（子进程、哈希、ID、字符串、Markdown 解析）
+    transcript.c3 # 会话 JSONL 落盘，支撑 --resume（schema v1）
+    main.c3 / cli.c3 / rat_loop.c3 / skill.c3 / global.c3 / log.c3 / ui.c3 / version.c3
+/test             # 单元测试（16 个）
+/lib              # 三方库（c3l 子模块）：cjson、curl
+/resources        # 内置资源：agents(6) / skills(prd) / error_responses
+/scripts          # 构建/发布脚本
+/docs             # 文档
+project.json      # 项目定义（version 1.0.0）
 ```
+
+## 约定与陷阱（看代码不易发现的）
+
+- **注册的工具**：`ReadFile / Bash / HashEditFile / WriteFile / Grep / Glob / ListDir / Task`（见 `tool.c3` 的 `switch` 与 `cli.c3` 的 `DEFAULT_TOOLS`）。旧 `EditFile`（逐字节文本匹配）已从工具注册表移除并删除源文件，编辑请用 `HashEditFile`（基于 `ReadFile` 输出的 `line:hash` 锚点）。
+- **系统提示词会自动注入 cwd 下的 `AGENTS.md`**（包在 `<project_instructions>` 中）以及已安装 skill 列表。改了 AGENTS.md 会直接影响 agent 行为。
+- **`Task` 工具递归调用 `mp` 自身**：通过 `MP_PARENT_SESSION` 环境变量串联父-子会话，并继承 `--no-transcript` 与 headless 续跑参数。
+- **Transcript**：每次会话以 JSONL 追加写入 `<config_dir>/transcripts/<session_id>.jsonl`（`--no-transcript` 关闭）。`--resume <session_id>` 从该文件重建消息续跑（system prompt 用快照，丢弃未收尾的最后一轮）。设计见 docs/transcript.md。
+- **版本号**：非 RELEASE 硬编码 `1.0.0`；RELEASE 构建由 `scripts/version.sh` 注入 `1.0.0-<commit>`。
+- **外部运行时依赖**：`rg`(ripgrep)、`fd`、`sh`，分别被 Grep / Glob / Bash 调用，需系统已安装。`ListDir` 是纯 c3 实现（用 `std::io::path::ls`），无外部命令依赖。
 
 ## 开发命令
 
 ```sh
-# 构建（开发）
-c3c build
-
-# 发布构建
-sh scripts/release.sh        # 等价于 c3c build --trust=full -O2 -D RELEASE
-
-# 安装到本地（构建后拷贝到 /D/app/mp-agent）
-sh scripts/install.sh
-
-# 执行全部单元测试
-c3c test
-
-# 执行某个单元测试并打印单元测试的 stdout
-c3c test --test-filter test_execute_to_string --test-show-output
+c3c build                              # 开发构建
+sh scripts/release.sh                  # 发布构建（c3c clean + c3c build --trust=full -O2 -D RELEASE）
+sh scripts/install.sh                  # 构建后拷贝到 /D/app/mp-agent
+sh scripts/build_cjson_lib.sh          # 显式重编 cjson 静态库（一般自动重编，无需手动）
+c3c test                               # 全部单元测试
+c3c test --test-filter <name> --test-show-output   # 单测 + 打印 stdout
 ```
 
 ## 运行
 
-构建产物为 `build/mp`（Windows 下 `build/mp.exe`），运行时依赖同目录下的 `libcurl-x64.dll`。
-
 ```sh
-# 交互模式
-mp
-
-# 非交互模式
-mp --headless --task "请帮我创建一个 hello world 程序"
+mp                                      # 交互模式
+mp --headless --task "..."              # 非交互模式
+mp --resume <session_id>                # 从 transcript 恢复会话
+mp --no-transcript                      # 关闭 transcript 写入
 ```
 
-完整命令行参数见 [docs/flags.md](docs/flags.md)。
-
-## 外部依赖
-
-运行时依赖系统中的 `rg`（ripgrep）、`fd`、`ls`、`sh`，分别被 Grep / Glob / ListDir / Bash 工具调用。`Task` 工具会以子进程方式递归调用 `mp` 自身。
+完整参数见 [docs/flags.md](docs/flags.md)。构建产物 `build/mp(.exe)` 运行时依赖同目录的 `libcurl-x64.dll`。
 
 ## 参考
 
-- [c3 语言简介](docs/c3_intro.md)
-- [c3 语言学习笔记](docs/learn-c3.md)
+- [c3 语言简介](docs/c3-intro.md)
 - [架构设计](docs/arch.md)
 - [命令行参数](docs/flags.md)
 - [配置目录](docs/config.md)
+- [Transcript 设计](docs/transcript.md)
 - [更新 libcurl](docs/update-libcurl.md)
