@@ -1,5 +1,8 @@
 import std::io;
+import std::io::file;
+import std::collections::list;
 import tool;
+import util;
 
 fn void test_ls_tool() @test
 {
@@ -32,11 +35,27 @@ fn void test_edit_tool() @test
 	DString out = dstring::new(tmem);
 	tool::write(tmem, &out, "testdata/test_edit.txt", demo_data)!!;
 
+	// HashEditFile 语义：整行替换（锚点 = 行号 + 行内容哈希），替换第 1 行
+	String h1 = util::line_hash(tmem, "aaabbbcccdddeeefff", 1);
+	tool::EditOp op;
+	op.line = 1;
+	op.hash = h1.copy(tmem);
+	op.content = "🤖🤖🤖".copy(tmem);
+	op.end_line = 0;
+	op.end_hash = "".copy(tmem);
+	op.insert_after = false;
+
+	List{tool::EditOp} ops;
+	ops.init(tmem);
+	ops.push(op);
+
 	DString edit_out = dstring::new(tmem);
-	tool::edit(tmem, &edit_out, "testdata/test_edit.txt", "aaa", "🤖🤖🤖")!!;
+	tool::hash_edit(tmem, &edit_out, "testdata/test_edit.txt", ops.to_array(tmem))!!;
 	String content = (String)file::load(tmem, "testdata/test_edit.txt")!!;
 	io::printfn("content-> \n%s", content);
-	assert(content.count("🤖") == 6);
+	assert(content.count("🤖") == 3);
+	assert(content.contains("aaabbb") == false);
+	assert(content.contains("aaaggghhhiiijjjkkk"));
 }
 
 fn void test_find_tool() @test
