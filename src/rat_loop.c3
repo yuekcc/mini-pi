@@ -204,7 +204,7 @@ fn void run(Context* context)
 					meta.output_file, tool_duration_ms, meta.exit_code, meta.has_exit_code
 				);
 
-				ui::render_message(&reply);
+				ui::render_message(&reply, tc_name);
 				context.add_message(&reply);
 				tool_call_cursor++;
 				continue RAT_LOOP;
