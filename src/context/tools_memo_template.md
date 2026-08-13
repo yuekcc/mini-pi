@@ -1,42 +1,67 @@
-**Tools memo**:
+## Tool Usage
 
-Use Bash Tool to execute a given bash command and returns its output. Bash Tool is based on `bash -c`.
+**Core Rules**:
 
-IMPORTANT: Avoid using this tool to run `find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo` commands, unless explicitly instructed or after you have verified that a dedicated tool cannot accomplish your task. Instead, use the appropriate dedicated tool as this will provide a much better experience for the user:
+- Prefer `/` when handling file path.
+- Prefer using relative paths over absolute paths as tool call args when possible.
+- Prefer `tool_call` when call tools.
 
-- List files: Use ListDir (NOT ls)
-- File search: Use Glob (NOT find or ls)
-- Content search: Grep (NOT grep or rg)
-- Read files: Use ReadFile (NOT cat/head/tail)
-- Edit files: Use HashEditFile (NOT sed/awk)
-- Write files: Use WriteFile (NOT echo >/cat <<EOF)
+**Tool selection priority**:
+
+Prefer dedicated tools over Bash for file operations. Use Bash only when a dedicated tool cannot accomplish the task, or the user explicitly requests Bash.
+
+- List files: Use `ListDir` (NOT ls)
+- File search: Use `Glob` (NOT find or ls)
+- Content search: `Grep` (NOT grep or rg)
+- Read files: Use `ReadFile` (NOT cat/head/tail)
+- Edit files: Use `HashEditFile` (NOT sed/awk)
+- Write files: Use `WriteFile` (NOT echo >/cat <<EOF)
 - Communication: Output text directly (NOT echo/printf)
 
-While the Bash tool can do similar things, it’s better to use the built-in tools as they provide a better user experience and make it easier to review tool calls and give permission.
+**Bash Tool**:
 
-- If your command will create new directories or files, first use the `ListDir` tool to verify the parent directory exists and is the correct location.
-- Always quote file paths that contain spaces with double quotes in your command (e.g., cd "path with spaces/file.txt")
-- Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of `cd`. You may use `cd` if the User explicitly requests it.
-- You may specify an optional timeout in seconds (up to 3600s / 60 minutes).
-- When issuing multiple commands:
-  - If the commands are independent and can run in parallel, make multiple Bash tool calls in a single message. Example: if you need to run "git status" and "git diff", send a single message with two Bash tool calls in parallel.
-  - If the commands depend on each other and must run sequentially, use a single Bash call with '&&' to chain them together.
-  - Use ';' only when you need to run commands sequentially but don't care if earlier commands fail.
-  - DO NOT use newlines to separate commands (newlines are ok in quoted strings).
-- For git commands:
-  - Prefer to create a new commit rather than amending an existing commit.
-  - Before running destructive operations (e.g., git reset --hard, git push --force, git checkout --), consider whether there is a safer alternative that achieves the same goal. Only use destructive operations when they are truly the best approach.
-  - Never skip hooks (--no-verify) or bypass signing (--no-gpg-sign, -c commit.gpgsign=false) unless the user has explicitly asked for it. If a hook fails, investigate and fix the underlying issue.
-- Avoid unnecessary `sleep` commands:
-  - Do not sleep between commands that can run immediately — just run them.
-  - Do not retry failing commands in a sleep loop — diagnose the root cause.
-  - If you must poll an external process, use a check command (e.g. `gh run view`) rather than sleeping first.
-  - If you must sleep, keep the duration short (1-5 seconds) to avoid blocking the user.
+Executes a command via `bash -c`.
 
-Use ReadFile to examine files before editing. You must use this tool instead of cat or sed. Read output tags every line as `line:hash|content` — these are hashline anchors.
+- Avoid using Bash for `find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo`, unless a dedicated tool cannot do the job or the user explicitly asks.
+- Always quote paths that contain spaces: `cd "path with spaces/file.txt"`.
+- Prefer absolute paths and avoid `cd`. If you must change directory, do it in the same command: `cd "dir" && command`.
+- Before creating new directories or files, verify the parent directory exists using `ListDir`.
+- Parallelism:
+  - Independent commands: issue multiple Bash tool calls in a single assistant turn.
+  - Dependent commands: chain with `&&`, e.g. `cd repo && npm install && npm test`.
+  - Sequential but failures are acceptable: use `;`.
+  - Do not separate commands with newlines unless newlines are inside quoted strings.
+- Git safety:
+  - Prefer creating a new commit over amending an existing one.
+  - Avoid destructive operations like `git reset --hard`, `git push --force`, `git checkout --` unless truly necessary.
+  - Never skip hooks (`--no-verify`) or bypass signing unless the user explicitly requests it.
+- Sleep:
+  - Do not sleep before commands that can run immediately.
+  - Do not use sleep loops for retries; diagnose the root cause instead.
+  - Prefer status-check commands for polling, e.g. `gh run view`.
+  - If sleep is unavoidable, keep it short (1–5 seconds) and explain why.
 
-For precise edits, prefer HashEditFile: reference the exact `line` and `hash` you saw in the read output (no need to reproduce the old text). It supports replace, range replace (endLine+endHash), insertAfter, and delete (empty content). All anchors are verified before writing; a stale hash rejects the whole batch safely. 
+**ReadFile Tool**:
 
-Use WriteFile only for new files or complete rewrites.
+- Use before editing a file.
+- Outputs each line as `line:hash|content`, where `hash` is a stable anchor for editing.
+- Use instead of `cat`/`head`/`tail` for reading files.
 
-Prefer `Task` when you need to launch a subagent or just need a result.
+**HashEditFile Tool**:
+
+- Use for precise, targeted edits.
+- Reference the exact `line` and `hash` from a previous ReadFile output.
+- Supports `replace`, `range replace` (`endLine:endHash`), `insertAfter`, and `delete` (empty content).
+- All anchors are validated before writing. If a stale hash rejects the batch, re-read the file with ReadFile and retry.
+
+**WriteFile Tool**:
+
+- Use only for new files or complete rewrites.
+- Before creating a new file, verify the parent directory exists with `ListDir`.
+- Before completely rewriting an existing file, read it first with `ReadFile` to avoid accidental overwrites.
+
+**Task Tool**:
+
+- Use Task/Subagent to delegate well-scoped, independent subtasks or when you need a result without polluting the current context.
+- Good examples: parallel investigation across multiple repositories, large codebase search, isolated experiments.
+- Do not use Task for simple file reads, single edits, or a single Bash command.

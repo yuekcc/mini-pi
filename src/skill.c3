@@ -113,7 +113,7 @@ fn String SkillHub.print_installed(&self, Allocator allocator)
 	}
 
 	DString buf = dstring::new(tmem);
-	buf.append(`Scan <available_skills>. If one clearly applies, read its SKILL.md at exact <location> with ``ReadFile``, then follow it.
+	buf.append(`Scan ``<available_skills>``. If one clearly applies, read its SKILL.md at exact <location> with ``ReadFile``, then follow it.
 If several apply, choose the most specific. If none clearly apply, read none.
 When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.`);
 

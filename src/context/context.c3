@@ -35,7 +35,7 @@ fn String load_system_prompt(Allocator allocator, String tools_list, bool enable
 
 	String os_uname = "Linux + Bash shell";
 	$if env::WIN32:
-		os_uname = "Windows 11 + Bash shell (bundled version in Git for windows)";
+		os_uname = "Windows 11 + Bash shell (bundled version in Git for Windows)";
 	$endif
 
 	DString final_system_prompt = dstring::new(tmem);
@@ -44,11 +44,12 @@ fn String load_system_prompt(Allocator allocator, String tools_list, bool enable
 	final_system_prompt.replace("{{date}}", now_str);
 	final_system_prompt.replace("{{os}}", os_uname);
 	final_system_prompt.replace("{{cwd}}", cwd);
+
+	final_system_prompt.appendf("\n\n%s", BEHAVIORAL_GUIDELINE_TPL.trim());
 	
 	if (enable_tools)
 	{
-		final_system_prompt.append("\n\n");
-		final_system_prompt.append("**Available tools**:\n\n");
+		final_system_prompt.append("\n\n## Available Tools\n\n");
 		final_system_prompt.append(tools_list.trim());
 		final_system_prompt.append("\n\n");
 		final_system_prompt.append(TOOLS_MEMO_TPL.trim());
@@ -172,9 +173,8 @@ fn void Context.reset(&self)
 	String agents_md = load_agents_md(tmem);
 	if (agents_md != "")
 	{
-		buf.append("\n\n");
-		buf.append("**Project Context**:");
-		buf.append("\n\nScan <project_instructions> for project-specific instructions and guidelines.");
+		buf.append("\n\n## Project Context");
+		buf.append("\n\nScan `<project_instructions>` for project-specific instructions and guidelines.");
 		buf.appendf("\n\n<project_instructions path=\"AGENTS.md\">\n%s\n</project_instructions>", agents_md);
 	}
 
@@ -183,11 +183,10 @@ fn void Context.reset(&self)
 		String skill_list = self.skill_hub.print_installed(tmem);
 		if (skill_list != "")
 		{
-			buf.appendf("\n\n**Skills**\n\n%s", skill_list);
+			buf.append("\n\n## Skills");
+			buf.appendf("\n\n%s", skill_list);
 		}
 	}
-
-	buf.appendf("\n\n%s", BEHAVIORAL_GUIDELINE_TPL.trim());
 
 	system_msg.content = buf.copy_str(tmem);
 	self.add_message(&system_msg);
