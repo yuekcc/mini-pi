@@ -432,6 +432,34 @@ fn void test_transcript_integration_structure() @test
 }
 
 // ---------------------------------------------------------------------------
+// 6. 集成：golden transcript diff —— 归一化事件流与 v1 基线夹具逐字节一致
+//    （arch-next-spec 测试决策 1：NFR-3 确定性回归护栏）。
+// ---------------------------------------------------------------------------
+
+fn void test_transcript_golden_diff() @test
+{
+	if (!path::exists(path::new(tmem, "build/mp.exe")!!))
+	{
+		io::printfn("SKIP: build/mp.exe not found, run 'c3c build' first");
+		return;
+	}
+
+	String cfg = tmp_cfg("golden");
+	String ready = string::tformat("testdata/tmp_ready_%s.txt", util::timestamp_id(tmem));
+	String[] cmd = {
+		"python",
+		"testdata/golden_check.py",
+		"check",
+		cfg,
+		"5907",
+		ready,
+	};
+	CommandResult r = cmd::execute(tmem, cmd)!!;
+	io::printfn("[golden] %s", r.output.trim());
+	assert(r.code == 0, "golden transcript diff should pass, output: %s", r.output);
+}
+
+// ---------------------------------------------------------------------------
 // 5. 集成：resume roundtrip —— 会话 B 的模型所见与 A 末尾逐字节一致
 // ---------------------------------------------------------------------------
 

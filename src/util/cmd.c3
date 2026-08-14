@@ -32,19 +32,20 @@ fn void notify_child_finished()
 	g_current_child_handle.store(0);
 }
 
-// L2 工具中断：杀当前子进程树。
+// L2 工具中断：杀当前子进程树。返回是否确实有子进程被杀（供 UI 区分
+// CANCEL_TOOL / CANCEL_REQUEST 事件）。
 // Windows：taskkill /F /T（孙进程如 sleep 继承 stdout 管道写端，单独 TerminateProcess
 // 只杀 sh、管道不 EOF，read_stdout 会挂到孙进程自然退出——必须整树击杀）。
 // POSIX：SIGKILL 直接杀（进程组击杀待 setpgid 支持后改进）。
 // 无子进程（0）时 no-op。由 UI 线程在 Ctrl+C 时调用。
-fn void kill_current_child()
+fn bool kill_current_child()
 {
 	ulong handle = g_current_child_handle.load();
-	if (handle == 0) return;
+	if (handle == 0) return false;
 
 	$if env::WIN32:
 		uint pid = get_process_id((Win32_HANDLE)(void*)handle);
-		if (pid == 0) return;
+		if (pid == 0) return false;
 		// INHERIT_ENV 必须：无继承环境时 taskkill 报「The specified module could not be found」
 		String[] args = { "taskkill", "/F", "/T", "/PID", string::tformat("%d", pid) };
 		if (try p = process::spawn(args, NO_WINDOW | INHERIT_ENV))
@@ -55,6 +56,7 @@ fn void kill_current_child()
 	$else
 		kill((int)handle, 9 /* SIGKILL */);
 	$endif
+	return true;
 }
 
 fn void close_stdin(Process process)

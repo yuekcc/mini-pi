@@ -66,6 +66,14 @@ fn Message* message_clone(Allocator allocator, Message* src)
 // 释放 message_clone 产物（所有字符串均为 allocator 堆分配；静态 "" 由 len 守卫跳过）。
 fn void message_free(Allocator allocator, Message* m)
 {
+	message_strings_free(allocator, m);
+	alloc::free(allocator, m);
+}
+
+// 只释放 Message 的字符串负载（列表内嵌的结构体由 List 持有，不能整体 free）。
+// 用于 L2 丢弃半成品 turn 等「弹出列表元素」的场景。
+fn void message_strings_free(Allocator allocator, Message* m)
+{
 	if (m.id.len > 0) m.id.free(allocator);
 	if (m.role.len > 0) m.role.free(allocator);
 	if (m.content.len > 0) m.content.free(allocator);
@@ -78,5 +86,4 @@ fn void message_free(Allocator allocator, Message* m)
 		if (tc.arguments.len > 0) tc.arguments.free(allocator);
 	}
 	m.tool_calls.free();
-	alloc::free(allocator, m);
 }

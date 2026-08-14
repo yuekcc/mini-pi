@@ -63,11 +63,6 @@ fn TokenLedger* TokenLedger.init(&self, Allocator allocator, long context_window
 	return self;
 }
 
-fn long TokenLedger.total_tokens(&self, TokenUsage* usage)
-{
-	return usage.prompt_tokens + usage.completion_tokens + usage.reasoning_tokens;
-}
-
 // 记录一次请求的 usage：累计会话/本轮/最近一次，并保留最近 history_cap 条明细。
 fn void TokenLedger.record(&self, String request_id, TokenUsage usage)
 {

@@ -89,10 +89,17 @@ fn int ui_loop_interactive(AppContext* app)
 			}
 			else
 			{
-				// L1/L2：Agent 忙——置取消标志（worker 取消请求）+ 杀工具子进程（L2）
-				ev.type = UiEventType.CANCEL_REQUEST;
+				// L1/L2：Agent 忙——置取消标志（worker 取消请求）；若有工具子进程
+				// 在跑则杀进程树并投递 CANCEL_TOOL（L2），否则 CANCEL_REQUEST（L1）。
 				app.cancel_flag.store(true);
-				util::cmd::kill_current_child();
+				if (util::cmd::kill_current_child())
+				{
+					ev.type = UiEventType.CANCEL_TOOL;
+				}
+				else
+				{
+					ev.type = UiEventType.CANCEL_REQUEST;
+				}
 			}
 			(void)app.ui_to_agent.push(ev);
 		}
@@ -162,24 +169,22 @@ fn int ui_loop_headless(AppContext* app)
 		if (util::ctrl_c::pressed())
 		{
 			app.cancel_flag.store(true);
-			util::cmd::kill_current_child();
+			(void)util::cmd::kill_current_child();
 		}
 		thread::sleep_ms(10);
 	}
 }
 
 // 统一 shutdown 协议（arch-next-spec 决策 14）：
-// 停止 Agent → close 输入通道 → close 请求通道 → join 两线程 → logger.close()。
+// 停止 Agent → close 输入通道 → close 请求通道 + 置 cancel_flag → join 两线程
+// → logger.close()（由 main 收尾）。三种退出路径均无 hang、无孤儿线程。
 fn void shutdown(AppContext* app)
 {
-	log::debug("shutdown: closing channels");
+	app.cancel_flag.store(true);
 	app.ui_to_agent.close();
 	app.agent_to_api.close();
-	log::debug("shutdown: joining agent");
 	(void)app.agent_thread.join();
-	log::debug("shutdown: joining worker");
 	(void)app.api_thread.join();
-	log::debug("shutdown: done");
 }
 
 fn int main(String[] args)
@@ -248,9 +253,7 @@ fn int main(String[] args)
 	Allocator heap = &allocators::LIBC_ALLOCATOR;
 	AppContext app;
 	app.init(flag, heap, session_id, &tool_hub, &skill_hub, &logger, flag.max_tokens);
-	// --resume：Agent 线程启动时从 transcript 重建（system prompt 快照 + 历史消息，
-	// 丢弃未收尾 turn），不重新装配提示词。
-	app.resumed = flag.resume_session != "";
+	// --resume 判定在 Agent 线程启动时自行计算（会话状态区仅 Agent 写，决策 2）。
 
 	// Ctrl+C 捕获（handler 只置 atomic 标志；交互与 headless 均安装）。
 	util::ctrl_c::install();

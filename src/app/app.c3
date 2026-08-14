@@ -170,26 +170,9 @@ fn void AppContext.write_session_start_event(&self)
 
 fn void AppContext.add_message(&self, Message* message)
 {
-	Message* cloned = alloc::new(self.allocator, Message);
-	cloned.id = message.id.copy(self.allocator);
-	cloned.role = message.role.copy(self.allocator);
-	cloned.content = message.content.copy(self.allocator);
-	cloned.reasoning_content = message.reasoning_content.copy(self.allocator);
-	cloned.tool_call_id = message.tool_call_id.copy(self.allocator);
-	cloned.timestamp = message.timestamp;
-
-	cloned.tool_calls.init(self.allocator);
-	foreach (&tc : message.tool_calls)
-	{
-		ToolCall cloned_tc;
-		cloned_tc.id = tc.id.copy(self.allocator);
-		cloned_tc.index = tc.index;
-		cloned_tc.name = tc.name.copy(self.allocator);
-		cloned_tc.arguments = tc.arguments.copy(self.allocator);
-		cloned.tool_calls.push(cloned_tc);
-	}
-
+	Message* cloned = context::message_clone(self.allocator, message);
 	self.messages.push(*cloned);
+	alloc::free(self.allocator, cloned);
 	self.updated_at = datetime::now().to_local();
 }
 

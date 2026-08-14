@@ -1,0 +1,5 @@
+{"version": 1, "type": "session_start", "session_id": "S", "timestamp": "TS", "turn_id": "TURN", "request_id": "REQ", "model": "Any", "agent": "default", "cwd": "CWD", "system_prompt": "SYS", "assembly": {"date": "DATE", "os": "Windows 11 + Bash (bundled in Git for windows)", "tools": ["ReadFile", "Bash", "HashEditFile", "WriteFile", "Grep", "Glob", "ListDir", "Task"]}, "parent_session_id": "NULL", "parent_request_id": "NULL"}
+{"version": 1, "type": "user_message", "session_id": "S", "timestamp": "TS", "turn_id": "TURN", "request_id": "REQ", "content": "hello golden", "is_command": false}
+{"version": 1, "type": "api_usage", "session_id": "S", "timestamp": "TS", "turn_id": "TURN", "request_id": "REQ", "usage": {"prompt_tokens": 11, "completion_tokens": 7, "reasoning_tokens": 3}, "latency_ms": "L", "model": "Any", "finish_reason": "stop"}
+{"version": 1, "type": "assistant_message", "session_id": "S", "timestamp": "TS", "turn_id": "TURN", "request_id": "REQ", "content": "mock reply: received 2 messages"}
+{"version": 1, "type": "session_end", "session_id": "S", "timestamp": "TS", "turn_id": "TURN", "request_id": "REQ", "reason": "exit", "turns_total": 1}

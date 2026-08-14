@@ -338,11 +338,11 @@ fn ApiRequest* build_api_request(AppContext* app, Allocator heap, String request
 	ApiRequest* req = alloc::new(heap, ApiRequest);
 	req.request_id = request_id.copy(heap);
 
-	String body = build_request_body(heap, app);
-	req.body_json = body.copy(heap);
+	// build_request_body 已返回 heap 分配产物，直接移交（不再二次拷贝）。
+	req.body_json = build_request_body(heap, app);
 	if (app.debug())
 	{
-		file::save(string::tformat("logs/req_%s.json", request_id), body)!!;
+		file::save(string::tformat("logs/req_%s.json", request_id), req.body_json)!!;
 	}
 
 	// TODO 从配置读出 baseUrl/api-key，而不是直接使用 flag
@@ -391,6 +391,7 @@ fn void execute_api_request(ApiRequest* req, Allocator heap, ApiResponse* resp, 
 	resp.error_detail = "";
 	resp.cancelled = false;
 	resp.latency_ms = 0;
+	resp.has_partial_content = false;
 
 	@pool()
 	{
@@ -454,6 +455,7 @@ fn void execute_api_request(ApiRequest* req, Allocator heap, ApiResponse* resp, 
 		{
 			log::debug("API request cancelled (request_id = %s, elapsed = %dms)", req.request_id, resp.latency_ms);
 			resp.cancelled = true;
+			resp.has_partial_content = response_buffer.str_view().len > 0;
 			return;
 		}
 

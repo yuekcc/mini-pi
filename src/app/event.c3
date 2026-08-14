@@ -71,4 +71,5 @@ struct ApiResponse
 	String error_detail;      // heap；非空表示请求失败
 	bool cancelled;           // 请求被取消（cancel_flag，L1 中断）
 	long latency_ms;          // 请求耗时（worker 计时，api_usage/request_cancelled 用）
+	bool has_partial_content; // 取消时是否已收到部分响应体（request_cancelled detail 用）
 }

@@ -25,7 +25,7 @@ project.json      # 项目定义（version 2.0.0）
 - **Agent 线程**：显式状态机（IDLE / AWAITING_API / EXECUTING_TOOLS / CANCELLING / SHUTDOWN），turn 管理、工具串行调度、transcript 全部事件写入、token 记账。
 - **API worker 线程**：收请求快照 → curl multi 事件循环（100ms 轮询 cancel_flag）→ SSE 解析 → 回报。
 
-通道：ui→agent（unbounded）/ agent→ui（unbounded）/ agent→api（buffered 1）/ api→agent（unbounded）。共享可变原语只有三处：`cancel_flag`（atomic）、`g_current_child_handle`（atomic，L2 杀子进程）、Logger 文件句柄（mutex）。
+通道：ui→agent（unbounded）/ agent→ui（unbounded）/ agent→api（buffered 1）/ api→agent（unbounded）。共享可变原语只有四处：`cancel_flag`（atomic）、`g_current_child_handle`（atomic，L2 杀子进程）、`g_ctrl_c`（atomic，Ctrl+C handler 单写 / 主循环读）、Logger 文件句柄（mutex）。
 
 ## 约定与陷阱（看代码不易发现的）
 

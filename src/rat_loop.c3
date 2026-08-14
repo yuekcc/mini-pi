@@ -164,10 +164,34 @@ fn bool check_token_budget(AppContext* app, String turn_id, String request_id)
 	}
 }
 
+// headless 错误/超限收尾：session_end(error) + SHUTDOWN(exit 1)。
+fn AgentState headless_error_shutdown(AppContext* app, String turn_id, bool* session_ended)
+{
+	app.transcript.write_session_end(turn_id, "error", app.turns_total);
+	*session_ended = true;
+	push_shutdown(app, 1);
+	return AgentState.SHUTDOWN;
+}
+
+// 弹出下标 > keep_before 的全部消息（释放字符串负载；列表内嵌结构体由 List 持有）。
+// L2 丢弃半成品 turn：keep_before = 本轮 user 消息下标（user 保留，同 L1 语义）；
+// EXCEEDED 拒绝：keep_before = user 下标 - 1（连 user 消息一起丢弃）。
+fn void discard_messages_after(AppContext* app, sz keep_before)
+{
+	while (app.messages.len() > keep_before)
+	{
+		Message* last = app.messages.get_ref(app.messages.len() - 1);
+		context::message_strings_free(app.allocator, last);
+		(void)app.messages.pop();
+	}
+}
+
 // 构造请求快照并投递 API worker，进入 AWAITING_API。request_id 由 Agent 生成
-// （heap 分配，跨 turn 存活）。
+// （heap 分配，跨 turn 存活；旧值先释放——active_request_id 只是其视图，
+// 仅在 EXECUTING_TOOLS 期间被工具读取，此后再无引用）。
 fn void dispatch_api_request(AppContext* app, String turn_id, String* request_id)
 {
+	if (request_id.len > 0) request_id.free(app.allocator);
 	*request_id = util::timestamp_id(app.allocator);
 	ApiRequest* req = api::build_api_request(app, app.allocator, *request_id);
 	(void)app.agent_to_api.push(*req);
@@ -277,6 +301,9 @@ fn void agent_loop(AppContext* app)
 {
 	Allocator heap = app.allocator;
 
+	// --resume 判定由 Agent 线程自行计算（会话状态区仅 Agent 写，决策 2）。
+	app.resumed = app.flag.resume_session != "";
+
 	if (app.resumed)
 	{
 		// --resume：从 transcript 重建消息序列（system prompt 快照 + 历史，丢弃未收尾 turn）。
@@ -296,7 +323,6 @@ fn void agent_loop(AppContext* app)
 
 	AgentState state = AgentState.IDLE;
 	bool session_ended = false;
-	int exit_code = 0;
 
 	// turn 状态（状态机局部变量；Agent 单写 messages/token/transcript 的前提）
 	String turn_id = "";
@@ -304,6 +330,10 @@ fn void agent_loop(AppContext* app)
 	sz tool_call_cursor = 0;
 	sz pending_assistant_idx = 0;
 	sz turn_start_idx = 0; // 当前 turn 的 user 消息下标（L2 丢弃半成品 turn 的边界）
+	// L1 取消上下文（AWAITING_API → CANCELLING 迁移时携带）
+	bool cancel_pending = false;
+	long cancel_latency = 0;
+	bool cancel_has_partial = false;
 
 	// 交互模式：启动即就绪，UI 打印输入提示
 	if (!app.flag.enable_headless) push_ready(app);
@@ -341,16 +371,16 @@ fn void agent_loop(AppContext* app)
 						context::message_free(heap, user_msg);
 						turn_start_idx = app.messages.len() - 1;
 
-						if (!check_token_budget(app, turn_id, request_id))
+						// 预算检查在生成 request_id 之前：token_warning 为 turn 级事件
+						// （request_id 传空 → 事件中为 null）。
+						if (!check_token_budget(app, turn_id, ""))
 						{
-							// EXCEEDED：拒绝继续请求（headless 收尾退出，交互回输入态）
+							// EXCEEDED：拒绝继续请求，丢弃刚加入的 user 消息
+							//（不留半截 turn；headless 收尾退出，交互回输入态）。
+							discard_messages_after(app, turn_start_idx - 1);
 							if (app.flag.enable_headless)
 							{
-								app.transcript.write_session_end(turn_id, "error", app.turns_total);
-								session_ended = true;
-								exit_code = 1;
-								push_shutdown(app, exit_code);
-								state = AgentState.SHUTDOWN;
+								state = headless_error_shutdown(app, turn_id, &session_ended);
 							}
 							else
 							{
@@ -420,8 +450,11 @@ fn void agent_loop(AppContext* app)
 						state = AgentState.SHUTDOWN;
 						break;
 					}
-					case UiEventType.CANCEL_REQUEST: // 阶段 3 起处理
+					case UiEventType.CANCEL_REQUEST: // 阶段 3 起产生
 					case UiEventType.CANCEL_TOOL:
+						// Agent 已回 IDLE：事件里携带的取消意图要么已被 cancel_flag 消费，
+						// 要么已成旧事件（竞态）——清残留标志，避免污染下一轮请求。
+						app.cancel_flag.store(false);
 						state = AgentState.IDLE;
 						break;
 				}
@@ -448,31 +481,12 @@ fn void agent_loop(AppContext* app)
 
 				if (resp.cancelled)
 				{
-					// L1 请求中断：写 system_event(request_cancelled)（additive），
-					// 丢弃半成品 turn（不 add assistant 消息、不写 tool_result），
-					// 与「未收尾 turn」语义一致——resume 尾部丢弃逻辑天然兼容。
-					CJsonItem* detail = cjson::new_object(tmem);
-					detail.set("request_id", request_id);
-					detail.set("latency_ms", resp.latency_ms);
-					detail.set("has_partial_content", false);
-					app.transcript.write_system_event(
-						turn_id, request_id,
-						transcript::SUBTYPE_REQUEST_CANCELLED, "info",
-						detail
-					);
-					if (app.flag.enable_headless)
-					{
-						app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
-						session_ended = true;
-						push_shutdown(app, 1);
-						state = AgentState.SHUTDOWN;
-					}
-					else
-					{
-						push_notice(app, "interrupted");
-						push_ready(app);
-						state = AgentState.IDLE;
-					}
+					// L1 请求中断 → CANCELLING 状态（决策 10 迁移表：写
+					// system_event(request_cancelled) + 丢弃半成品 turn）。
+					cancel_pending = true;
+					cancel_latency = resp.latency_ms;
+					cancel_has_partial = resp.has_partial_content;
+					state = AgentState.CANCELLING;
 				}
 				else if (resp.error_detail.len > 0)
 				{
@@ -484,11 +498,7 @@ fn void agent_loop(AppContext* app)
 					);
 					if (app.flag.enable_headless)
 					{
-						app.transcript.write_session_end(turn_id, "error", app.turns_total);
-						session_ended = true;
-						exit_code = 1;
-						push_shutdown(app, exit_code);
-						state = AgentState.SHUTDOWN;
+						state = headless_error_shutdown(app, turn_id, &session_ended);
 					}
 					else
 					{
@@ -543,10 +553,7 @@ fn void agent_loop(AppContext* app)
 							transcript::SUBTYPE_TOOL_CANCELLED, "info",
 							detail
 						);
-						while (app.messages.len() > turn_start_idx)
-						{
-							(void)app.messages.pop();
-						}
+						discard_messages_after(app, turn_start_idx);
 						if (app.flag.enable_headless)
 						{
 							app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
@@ -569,16 +576,12 @@ fn void agent_loop(AppContext* app)
 				}
 				else
 				{
-					// 全部执行完 → 再请求（预算检查）
-					if (!check_token_budget(app, turn_id, request_id))
+					// 全部执行完 → 再请求（预算检查在生成 request_id 之前，事件为 turn 级）
+					if (!check_token_budget(app, turn_id, ""))
 					{
 						if (app.flag.enable_headless)
 						{
-							app.transcript.write_session_end(turn_id, "error", app.turns_total);
-							session_ended = true;
-							exit_code = 1;
-							push_shutdown(app, exit_code);
-							state = AgentState.SHUTDOWN;
+							state = headless_error_shutdown(app, turn_id, &session_ended);
 						}
 						else
 						{
@@ -594,9 +597,36 @@ fn void agent_loop(AppContext* app)
 			}
 			case AgentState.CANCELLING:
 			{
-				// 阶段 2 起：丢弃半成品 turn（无半截 assistant 消息/无 tool_result），
-				// 写 system_event(request_cancelled / tool_cancelled)，回 IDLE。
-				state = AgentState.IDLE;
+				// L1 请求中断收尾：写 system_event(request_cancelled)（additive，含
+				// request_id/已消耗 latency/是否有部分内容），丢弃半成品 turn
+				//（不 add assistant 消息、不写 tool_result——与「未收尾 turn」语义一致，
+				// resume 尾部丢弃逻辑天然兼容）。
+				if (cancel_pending)
+				{
+					CJsonItem* detail = cjson::new_object(tmem);
+					detail.set("request_id", request_id);
+					detail.set("latency_ms", cancel_latency);
+					detail.set("has_partial_content", cancel_has_partial);
+					app.transcript.write_system_event(
+						turn_id, request_id,
+						transcript::SUBTYPE_REQUEST_CANCELLED, "info",
+						detail
+					);
+					cancel_pending = false;
+				}
+				if (app.flag.enable_headless)
+				{
+					app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
+					session_ended = true;
+					push_shutdown(app, 1);
+					state = AgentState.SHUTDOWN;
+				}
+				else
+				{
+					push_notice(app, "interrupted");
+					push_ready(app);
+					state = AgentState.IDLE;
+				}
 				break;
 			}
 			case AgentState.SHUTDOWN:
