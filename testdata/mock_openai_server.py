@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mock OpenAI-compatible /chat/completions SSE server for transcript integration tests.
 
-Usage: python mock_openai_server.py <port> <ready_file> <request_log_file>
+Usage: python mock_openai_server.py <port> <ready_file> <request_log_file> [delay_ms]
 
 - POST /chat/completions: logs the request body (one JSON per line) to request_log_file,
   then responds with an SSE stream: one content chunk + a final chunk carrying
@@ -9,10 +9,13 @@ Usage: python mock_openai_server.py <port> <ready_file> <request_log_file>
 - The content echoes the number of received messages, e.g. "mock reply: received 4 messages",
   so tests can verify resume reconstruction end-to-end (the rebuilt history is visible
   to the "model" as the message count).
+- delay_ms (optional): sleeps before responding — used by interrupt tests to hold the
+  request open long enough for Ctrl+C injection.
 - Writes <ready_file> once the server is listening (polled by the test).
 """
 import json
 import sys
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
@@ -20,6 +23,7 @@ def main():
     port = int(sys.argv[1])
     ready_file = sys.argv[2]
     request_log = sys.argv[3]
+    delay_ms = int(sys.argv[4]) if len(sys.argv) > 4 else 0
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -31,6 +35,9 @@ def main():
                 req = {}
             with open(request_log, "a", encoding="utf-8") as f:
                 f.write(json.dumps(req, ensure_ascii=False) + "\n")
+
+            if delay_ms > 0:
+                time.sleep(delay_ms / 1000.0)
 
             msgs = req.get("messages", [])
             content = "mock reply: received %d messages" % len(msgs)

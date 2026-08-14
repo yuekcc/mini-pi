@@ -98,6 +98,8 @@ fn void push_shutdown(AppContext* app, int exit_code)
 
 fn void push_ready(AppContext* app)
 {
+	// 回到 IDLE：清除残留取消信号（L1 中断处理完 / 工具阶段遗留），避免污染下一轮请求。
+	app.cancel_flag.store(false);
 	UiOutEvent ev = { .kind = UiOutKind.READY };
 	(void)app.agent_to_ui.push(ev);
 }

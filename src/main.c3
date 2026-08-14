@@ -16,6 +16,7 @@ import api;
 import app;
 import util;
 import util::input;
+import util::ctrl_c;
 import version;
 import ui;
 import log;
@@ -55,7 +56,11 @@ fn int drain_and_render(AppContext* app, bool* ready_seen)
 	return exit_code;
 }
 
-// 交互模式 UI 主循环：渲染事件 + stdin 轮询输入。
+// 交互模式 UI 主循环：渲染事件 + stdin 轮询输入 + Ctrl+C 分流。
+// Ctrl+C 语义（arch-next-spec 决策 12）：
+//   - Agent 空闲（等待输入）：L3，等价 /exit（session_end(exit)）；
+//   - Agent 忙（等 API 响应）：L1，置 cancel_flag，worker 取消请求 →
+//     request_cancelled 事件 → 回输入态（工具执行中的中断语义见阶段 4）。
 fn int ui_loop_interactive(AppContext* app)
 {
 	bool waiting_input = false;
@@ -71,11 +76,40 @@ fn int ui_loop_interactive(AppContext* app)
 			ui::print_prompt();
 		}
 
+		// Ctrl+C 分流
+		if (util::ctrl_c::pressed())
+		{
+			UiEvent ev = {
+				.text = "/exit".copy(app.allocator),
+			};
+			if (waiting_input)
+			{
+				// L3：空闲时 Ctrl+C = /exit
+				ev.type = UiEventType.COMMAND_EXIT;
+			}
+			else
+			{
+				// L1：请求中断（worker 轮询 cancel_flag 取消）
+				ev.type = UiEventType.CANCEL_REQUEST;
+				app.cancel_flag.store(true);
+			}
+			(void)app.ui_to_agent.push(ev);
+		}
+
 		// 等输入（Agent 空闲）：stdin 就绪即读取并投递
 		if (waiting_input && util::input::stdin_has_data())
 		{
 			UiEvent ev;
 			String? maybe_line = ui::read_input(tmem);
+			waiting_input = false;
+			if (util::ctrl_c::pressed())
+			{
+				// ^C 打断输入读取：丢弃本次输入，L3 等价 /exit
+				ev.type = UiEventType.COMMAND_EXIT;
+				ev.text = "/exit".copy(app.allocator);
+				(void)app.ui_to_agent.push(ev);
+				continue;
+			}
 			if (catch e = maybe_line)
 			{
 				// EOF（管道关闭等）：等价 /exit
@@ -103,7 +137,6 @@ fn int ui_loop_interactive(AppContext* app)
 				}
 				ev.text = trimmed.copy(app.allocator);
 			}
-			waiting_input = false;
 			(void)app.ui_to_agent.push(ev);
 		}
 		thread::sleep_ms(10);
@@ -111,6 +144,8 @@ fn int ui_loop_interactive(AppContext* app)
 }
 
 // headless 模式 UI 主循环：只等 SHUTDOWN（渲染仍走事件）。
+// Ctrl+C = 优雅停机：置 cancel_flag → worker 取消在途请求 → Agent 写
+// session_end(interrupted) → SHUTDOWN(exit 1)（headless 中断语义，决策 12）。
 fn int ui_loop_headless(AppContext* app)
 {
 	while (true)
@@ -118,6 +153,11 @@ fn int ui_loop_headless(AppContext* app)
 		bool ready_seen = false;
 		int exit_code = drain_and_render(app, &ready_seen);
 		if (exit_code >= 0) return exit_code;
+
+		if (util::ctrl_c::pressed())
+		{
+			app.cancel_flag.store(true);
+		}
 		thread::sleep_ms(10);
 	}
 }
@@ -201,6 +241,9 @@ fn int main(String[] args)
 	// --resume：Agent 线程启动时从 transcript 重建（system prompt 快照 + 历史消息，
 	// 丢弃未收尾 turn），不重新装配提示词。
 	app.resumed = flag.resume_session != "";
+
+	// Ctrl+C 捕获（handler 只置 atomic 标志；交互与 headless 均安装）。
+	util::ctrl_c::install();
 
 	// 非主线程控制台日志与 notice 转发（注册在 UI 事件循环启动前）。
 	logger.set_console_sink(&ui::forward_log_event, &app);
