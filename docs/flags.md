@@ -129,6 +129,24 @@ mp --headless --resume ses_20260804_153242 -t "继续任务"
 
 方便排查 API 交互问题。
 
+## 交互命令与中断
+
+交互模式支持以下斜杠命令：
+
+| 命令      | 说明 |
+| --------- | ---- |
+| `/exit`（`/e`） | 收尾当前会话（`session_end(exit)`）并退出 |
+| `/clear`  | 收尾旧会话（`session_end(interrupted)`）并开启新 session |
+| `/export` | 将当前会话导出为 Markdown（`<cwd>/<session_id>.md`） |
+| `/usage`  | 显示会话累计 token 用量（prompt/completion/reasoning） |
+
+Ctrl+C 中断语义（v2 三线程架构）：
+
+- **请求进行中**：取消 HTTP 请求，transcript 写 `system_event(request_cancelled)`，丢弃半成品 turn，回到输入提示（`(interrupted)` 提示）；
+- **工具执行中**（Bash/Task 等）：杀子进程树，transcript 写 `system_event(tool_cancelled)`，丢弃半成品 turn；
+- **空闲时**：等价 `/exit`（`session_end(exit)`）；
+- **headless**：优雅停机——取消请求、`session_end(reason=interrupted)`、退出码非零。
+
 ## 配置文件
 
 当前所有参数通过命令行 flag 传入，`~/.config/mp/mp.json` 全局配置文件读取尚未实现。

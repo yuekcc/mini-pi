@@ -204,7 +204,9 @@ fn void handle_api_success(AppContext* app, String turn_id, String request_id, A
 }
 
 // 串行执行一个 tool_call（v1 do_dispatch 逻辑原样迁移，运行在 Agent 线程）。
-fn void execute_one_tool(AppContext* app, String turn_id, String request_id, Message* assistant, sz cursor)
+// 返回 true 表示工具执行被 L2 中断（cancel_flag 置位 + 子进程被杀）：
+// 调用方负责写 system_event(tool_cancelled)、丢弃半成品 turn（不写 tool_result）。
+fn bool execute_one_tool(AppContext* app, String turn_id, String request_id, Message* assistant, sz cursor)
 {
 	ToolCall* tc = assistant.tool_calls.get_ref(cursor);
 
@@ -251,6 +253,14 @@ fn void execute_one_tool(AppContext* app, String turn_id, String request_id, Mes
 		}
 	}
 
+	// L2 工具中断：cancel_flag 已置位（UI 线程 Ctrl+C + 杀子进程）→ 不写 tool_result、
+	// 不入消息列表，丢弃半成品 turn（与 L1 统一语义，OQ-3 B）。
+	if (app.cancel_flag.load())
+	{
+		app.cancel_flag.store(false);
+		return true;
+	}
+
 	long tool_duration_ms = tool_started.to_now().to_ms();
 	app.transcript.write_tool_result(
 		turn_id, request_id,
@@ -260,6 +270,7 @@ fn void execute_one_tool(AppContext* app, String turn_id, String request_id, Mes
 
 	push_render(app, &reply, tc_name);
 	app.add_message(&reply);
+	return false;
 }
 
 fn void agent_loop(AppContext* app)
@@ -292,6 +303,7 @@ fn void agent_loop(AppContext* app)
 	String request_id = "";
 	sz tool_call_cursor = 0;
 	sz pending_assistant_idx = 0;
+	sz turn_start_idx = 0; // 当前 turn 的 user 消息下标（L2 丢弃半成品 turn 的边界）
 
 	// 交互模式：启动即就绪，UI 打印输入提示
 	if (!app.flag.enable_headless) push_ready(app);
@@ -327,6 +339,7 @@ fn void agent_loop(AppContext* app)
 						push_render(app, user_msg, "");
 						app.add_message(user_msg);
 						context::message_free(heap, user_msg);
+						turn_start_idx = app.messages.len() - 1;
 
 						if (!check_token_budget(app, turn_id, request_id))
 						{
@@ -372,6 +385,27 @@ fn void agent_loop(AppContext* app)
 							file::save(output_file, markdown)!!;
 							push_notice(app, string::tformat("Saved to %s", output_file));
 						};
+						if (!app.flag.enable_headless) push_ready(app);
+						state = AgentState.IDLE;
+						break;
+					}
+					case UiEventType.COMMAND_USAGE:
+					{
+						// 会话累计 token 用量查询（TokenLedger）
+						app.transcript.write_user_message(ensure_turn_id(heap, &turn_id), ev.text, true);
+						push_notice(
+							app,
+							string::tformat(
+								"Session tokens: %d prompt + %d completion + %d reasoning = %d total (this turn: %d prompt + %d completion + %d reasoning)",
+								app.token_ledger.session_total.prompt_tokens,
+								app.token_ledger.session_total.completion_tokens,
+								app.token_ledger.session_total.reasoning_tokens,
+								app.token_ledger.estimated_prompt_tokens(),
+								app.token_ledger.turn_total.prompt_tokens,
+								app.token_ledger.turn_total.completion_tokens,
+								app.token_ledger.turn_total.reasoning_tokens
+							)
+						);
 						if (!app.flag.enable_headless) push_ready(app);
 						state = AgentState.IDLE;
 						break;
@@ -496,9 +530,42 @@ fn void agent_loop(AppContext* app)
 				Message* assistant = app.messages.get_ref(pending_assistant_idx);
 				if (tool_call_cursor < assistant.tool_calls.len())
 				{
-					execute_one_tool(app, turn_id, request_id, assistant, tool_call_cursor);
-					tool_call_cursor++;
-					state = AgentState.EXECUTING_TOOLS;
+					String interrupted_name = assistant.tool_calls.get_ref(tool_call_cursor).name.copy(tmem);
+					if (execute_one_tool(app, turn_id, request_id, assistant, tool_call_cursor))
+					{
+						// L2 工具中断：system_event(tool_cancelled) + 丢弃半成品 turn
+						//（保留本轮 user 消息，同 L1 语义；resume 尾部丢弃天然兼容）。
+						CJsonItem* detail = cjson::new_object(tmem);
+						detail.set("request_id", request_id);
+						detail.set("tool_name", interrupted_name);
+						app.transcript.write_system_event(
+							turn_id, request_id,
+							transcript::SUBTYPE_TOOL_CANCELLED, "info",
+							detail
+						);
+						while (app.messages.len() > turn_start_idx)
+						{
+							(void)app.messages.pop();
+						}
+						if (app.flag.enable_headless)
+						{
+							app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
+							session_ended = true;
+							push_shutdown(app, 1);
+							state = AgentState.SHUTDOWN;
+						}
+						else
+						{
+							push_notice(app, "interrupted");
+							push_ready(app);
+							state = AgentState.IDLE;
+						}
+					}
+					else
+					{
+						tool_call_cursor++;
+						state = AgentState.EXECUTING_TOOLS;
+					}
 				}
 				else
 				{

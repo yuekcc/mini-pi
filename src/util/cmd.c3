@@ -3,12 +3,58 @@ module util::cmd;
 import std::os::process;
 import std::os::win32;
 import std::io;
+import std::atomic;
 import libc;
+import log;
 
 struct CommandResult
 {
 	int code;
 	String output;
+}
+
+// 当前正在执行的子进程句柄/pid（Agent 单写；UI 线程在 L2 工具中断时读取并杀进程）。
+// 共享可变原语之一（atomic），见 arch-next-spec 决策 2。
+Atomic{ulong} g_current_child_handle;
+
+// POSIX kill（仅 !WIN32 分支引用；无条件声明不影响 Windows 链接）
+extern fn int kill(int pid, int sig) @cname("kill");
+// Windows GetProcessId（仅 WIN32 分支引用）
+extern fn uint get_process_id(void* handle) @cname("GetProcessId");
+
+fn void notify_child_started(ulong handle)
+{
+	g_current_child_handle.store(handle);
+}
+
+fn void notify_child_finished()
+{
+	g_current_child_handle.store(0);
+}
+
+// L2 工具中断：杀当前子进程树。
+// Windows：taskkill /F /T（孙进程如 sleep 继承 stdout 管道写端，单独 TerminateProcess
+// 只杀 sh、管道不 EOF，read_stdout 会挂到孙进程自然退出——必须整树击杀）。
+// POSIX：SIGKILL 直接杀（进程组击杀待 setpgid 支持后改进）。
+// 无子进程（0）时 no-op。由 UI 线程在 Ctrl+C 时调用。
+fn void kill_current_child()
+{
+	ulong handle = g_current_child_handle.load();
+	if (handle == 0) return;
+
+	$if env::WIN32:
+		uint pid = get_process_id((Win32_HANDLE)(void*)handle);
+		if (pid == 0) return;
+		// INHERIT_ENV 必须：无继承环境时 taskkill 报「The specified module could not be found」
+		String[] args = { "taskkill", "/F", "/T", "/PID", string::tformat("%d", pid) };
+		if (try p = process::spawn(args, NO_WINDOW | INHERIT_ENV))
+		{
+			(void)p.join()!!;
+			(void)p.destroy();
+		}
+	$else
+		kill((int)handle, 9 /* SIGKILL */);
+	$endif
 }
 
 fn void close_stdin(Process process)
@@ -34,6 +80,14 @@ fn CommandResult? execute(Allocator allocator, String[] command_line)
 
 	// 手工关闭 stdin，避免一直在等待输入
 	close_stdin(process);
+
+	// 登记子进程（L2 中断时 UI 线程据此杀进程）；join 返回后清除。
+	$if env::WIN32:
+		notify_child_started((ulong)process.hProcess);
+	$else
+		notify_child_started((ulong)process.child);
+	$endif
+	defer notify_child_finished();
 
 	@pool()
 	{

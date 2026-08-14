@@ -132,3 +132,10 @@ fn BudgetVerdict TokenLedger.check_budget(&self)
 	if (estimated >= (long)(limit * self.soft_ratio)) return BudgetVerdict.WARN;
 	return BudgetVerdict.OK;
 }
+
+// ---- compaction 预留（v2 不实现，见 arch-next-spec Out of Scope）------------
+// 触发时机：check_budget() == EXCEEDED。将来实现：
+//   1. 调用方（Agent）从 messages 裁掉早期 turn（保留 system + 最近 N 轮）；
+//   2. 写 system_event(compact_boundary)（subtype 常量已在 transcript 模块占位，
+//      SUBTYPE_COMPACT_BOUNDARY），detail 记录裁剪前后 turn 范围；
+//   3. TokenLedger 依据保留区间重算会话累计（本模块提供 session_total 直接可调）。

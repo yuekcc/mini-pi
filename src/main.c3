@@ -89,9 +89,10 @@ fn int ui_loop_interactive(AppContext* app)
 			}
 			else
 			{
-				// L1：请求中断（worker 轮询 cancel_flag 取消）
+				// L1/L2：Agent 忙——置取消标志（worker 取消请求）+ 杀工具子进程（L2）
 				ev.type = UiEventType.CANCEL_REQUEST;
 				app.cancel_flag.store(true);
+				util::cmd::kill_current_child();
 			}
 			(void)app.ui_to_agent.push(ev);
 		}
@@ -127,6 +128,10 @@ fn int ui_loop_interactive(AppContext* app)
 				{
 					ev.type = UiEventType.COMMAND_EXPORT;
 				}
+				else if (trimmed == "/usage")
+				{
+					ev.type = UiEventType.COMMAND_USAGE;
+				}
 				else if (trimmed == "/exit" || trimmed == "/e")
 				{
 					ev.type = UiEventType.COMMAND_EXIT;
@@ -157,6 +162,7 @@ fn int ui_loop_headless(AppContext* app)
 		if (util::ctrl_c::pressed())
 		{
 			app.cancel_flag.store(true);
+			util::cmd::kill_current_child();
 		}
 		thread::sleep_ms(10);
 	}
@@ -166,10 +172,14 @@ fn int ui_loop_headless(AppContext* app)
 // 停止 Agent → close 输入通道 → close 请求通道 → join 两线程 → logger.close()。
 fn void shutdown(AppContext* app)
 {
+	log::debug("shutdown: closing channels");
 	app.ui_to_agent.close();
 	app.agent_to_api.close();
+	log::debug("shutdown: joining agent");
 	(void)app.agent_thread.join();
+	log::debug("shutdown: joining worker");
 	(void)app.api_thread.join();
+	log::debug("shutdown: done");
 }
 
 fn int main(String[] args)
@@ -272,5 +282,6 @@ fn int main(String[] args)
 	}
 
 	logger.close();
+	log::debug("main: returning %d", exit_code);
 	return exit_code;
 }

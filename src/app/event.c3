@@ -19,6 +19,7 @@ enum UiEventType
 	COMMAND_CLEAR,  // /clear
 	COMMAND_EXPORT, // /export
 	COMMAND_EXIT,   // /exit / /e
+	COMMAND_USAGE,  // /usage：显示累计 token 用量
 	CANCEL_REQUEST, // Ctrl+C：取消进行中的 API 请求（阶段 3 起产生）
 	CANCEL_TOOL,    // Ctrl+C：中断进行中的工具执行（阶段 4 起产生）
 }

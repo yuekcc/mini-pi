@@ -40,13 +40,30 @@ def main():
                 time.sleep(delay_ms / 1000.0)
 
             msgs = req.get("messages", [])
-            content = "mock reply: received %d messages" % len(msgs)
-            sse = (
-                'data: {"choices":[{"delta":{"role":"assistant","content":"%s"},"index":0}]}\n\n'
-                'data: {"choices":[{"delta":{},"index":0,"finish_reason":"stop"}],'
-                '"usage":{"prompt_tokens":11,"completion_tokens":7,"reasoning_tokens":3}}\n\n'
-                "data: [DONE]\n\n"
-            ) % content
+
+            # 特殊任务 "TOOLCALL"：回复一个 Bash tool_call（sleep 60），供 L2 工具中断测试。
+            last_user = ""
+            for m in msgs:
+                if m.get("role") == "user":
+                    last_user = m.get("content", "")
+            if "TOOLCALL" in last_user:
+                sse = (
+                    'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_long1",'
+                    '"type":"function","function":{"name":"Bash",'
+                    '"arguments":"{\\"command\\":\\"sleep 60\\"}"}}]},'
+                    '"index":0}]}\n\n'
+                    'data: {"choices":[{"delta":{},"index":0,"finish_reason":"tool_calls"}],'
+                    '"usage":{"prompt_tokens":11,"completion_tokens":7,"reasoning_tokens":3}}\n\n'
+                    "data: [DONE]\n\n"
+                )
+            else:
+                content = "mock reply: received %d messages" % len(msgs)
+                sse = (
+                    'data: {"choices":[{"delta":{"role":"assistant","content":"%s"},"index":0}]}\n\n'
+                    'data: {"choices":[{"delta":{},"index":0,"finish_reason":"stop"}],'
+                    '"usage":{"prompt_tokens":11,"completion_tokens":7,"reasoning_tokens":3}}\n\n'
+                    "data: [DONE]\n\n"
+                ) % content
             payload = sse.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
