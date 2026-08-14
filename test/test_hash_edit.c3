@@ -26,7 +26,8 @@ fn String run_edit_json(String path, String edits_json)
 	CJsonItem* args = cjson::parse((ZString)edits_json);
 	defer args.free();
 	tool::HashEditFileTool t;
-	t.execute(tmem, &out, args, null)!!;
+	ToolContext tctx = {};
+	t.execute(&tctx, tmem, &out, args, null)!!;
 	return out.str_view().copy(tmem);
 }
 

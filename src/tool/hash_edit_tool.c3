@@ -243,7 +243,7 @@ fn String HashEditFileTool.schema(&self) @dynamic
 	return HASH_EDIT_SCHEMA;
 }
 
-fn void? HashEditFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
+fn void? HashEditFileTool.execute(&self, ToolContext* ctx, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
 	CJsonItem* edits_arr = args.get_key("edits");

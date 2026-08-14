@@ -26,6 +26,7 @@ flags:
     --model              指定使用的模型 ID，默认 'Any'
     --base-url           指定 Chat Completions API 的 base URL，默认 'http://127.0.0.1:5678'
     --api-key            指定 API key， 默认 'sk-1234'
+    --max-tokens         指定上下文窗口 token 预算上限（0 = 不启用，默认 0）
 
     --list-skills        列出全部可用 skill
 
@@ -62,10 +63,12 @@ struct Flag
 	bool show_help;
 	bool show_version;
 	bool show_skills;
+	long max_tokens;
 }
 
 faultdef
 	NO_AGENT, NO_MODEL, NO_BASE_URL, NO_API_KEY, NO_TOOLS, NO_INIT_TASK, NO_OUTPUT_FILE, NO_CONFIG_DIR, NO_SESSION,
+	NO_MAX_TOKENS,
 ;
 
 fn void? Flag.init(&self, Allocator allocator, String[] args)
@@ -119,6 +122,21 @@ fn void? Flag.init(&self, Allocator allocator, String[] args)
 			i += 1;
 			if (i >= args.len || args[i] == "") return NO_BASE_URL~;
 			self.apiKey = args[i];
+			continue;
+		}
+		else if (flag == "--max-tokens")
+		{
+			i += 1;
+			if (i >= args.len || args[i] == "") return NO_MAX_TOKENS~;
+			long? parsed = args[i].to_long();
+			if (try val = parsed)
+			{
+				self.max_tokens = val;
+			}
+			else
+			{
+				return NO_MAX_TOKENS~;
+			}
 			continue;
 		}
 		else if (flag == "--tools")

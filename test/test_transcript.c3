@@ -7,7 +7,6 @@ import std::thread;
 
 import cjson;
 import context;
-import global;
 import transcript;
 import util;
 import util::cmd;
@@ -23,19 +22,17 @@ fn String tmp_cfg(String name)
 	return string::tformat("testdata/tmp_%s_%s", name, util::timestamp_id(tmem));
 }
 
-// 构造一个最小 Context（resume_into 只需 allocator/session_id/messages）。
-fn Context* make_context(String session_id)
+// 构造一个最小 TranscriptWriter（单测只需要 config_dir/session_id/enabled）。
+fn TranscriptWriter* make_writer(String cfg, String session_id)
 {
-	Context* ctx = alloc::new(tmem, Context);
-	ctx.allocator = tmem;
-	ctx.session_id = session_id.copy(tmem);
-	ctx.messages.init(tmem);
-	return ctx;
+	TranscriptWriter* w = alloc::new(tmem, TranscriptWriter);
+	w.init(tmem, path::new(tmem, cfg)!!, session_id, true);
+	return w;
 }
 
-fn String read_transcript(String session_id)
+fn String read_transcript(TranscriptWriter* w)
 {
-	Path file = transcript::file_path(tmem, session_id);
+	Path file = w.file_path(tmem);
 	return (String)file::load(tmem, file)!!;
 }
 
@@ -57,39 +54,36 @@ fn String[] nonempty_lines(String content)
 fn void test_transcript_serialization() @test
 {
 	String cfg = tmp_cfg("ser");
-	global::update(path::new(tmem, cfg)!!, path::new(tmem, string::tformat("%s/log/x.log", cfg))!!, false, true);
-
 	String session_id = string::tformat("ses_test_ser_%s", util::timestamp_id(tmem));
+	TranscriptWriter* w = make_writer(cfg, session_id);
 
-	transcript::write_session_start(
-		tmem, session_id, "mock-model", "default", "/tmp/work", "SYSTEM PROMPT SNAPSHOT", { "ReadFile", "Bash" }
-	);
-	transcript::write_user_message(tmem, session_id, "turn_1", "hello", false);
+	w.write_session_start("mock-model", "default", "/tmp/work", "SYSTEM PROMPT SNAPSHOT", { "ReadFile", "Bash" });
+	w.write_user_message("turn_1", "hello", false);
 
 	Message msg;
 	context::message_init(&msg, tmem, "assistant");
 	msg.content = "hi there";
 	msg.reasoning_content = "think step";
 	msg.tool_calls.push({ .id = "call_1", .index = 0, .name = "Bash", .arguments = "{\"command\":\"ls\"}" });
-	transcript::write_assistant_message(tmem, session_id, "turn_1", "req_1", &msg);
+	w.write_assistant_message("turn_1", "req_1", &msg);
 
-	transcript::write_tool_result(
-		tmem, session_id, "turn_1", "req_1",
+	w.write_tool_result(
+		"turn_1", "req_1",
 		"call_1", "Bash", "{\"command\":\"ls\"}",
 		"$ ls\nfile.txt", "task_store/xxx_output.txt", 12, 0, true
 	);
 
 	transcript::Usage usage = { .prompt_tokens = 100, .completion_tokens = 20, .reasoning_tokens = 5 };
-	transcript::write_api_usage(tmem, session_id, "turn_1", "req_1", usage, 54084, "mock-model", "tool_calls");
+	w.write_api_usage("turn_1", "req_1", usage, 54084, "mock-model", "tool_calls");
 
 	CJsonItem* detail = cjson::new_object(tmem);
 	detail.set("message", "Request timed out.");
 	detail.set("retry_attempt", 1);
-	transcript::write_system_event(tmem, session_id, "turn_1", "req_1", "api_error", "error", detail);
+	w.write_system_event("turn_1", "req_1", "api_error", "error", detail);
 
-	transcript::write_session_end(tmem, session_id, "turn_1", "exit", 1);
+	w.write_session_end("turn_1", "exit", 1);
 
-	String content = read_transcript(session_id);
+	String content = read_transcript(w);
 	String[] lines = nonempty_lines(content);
 	assert(lines.len == 7, "should write 7 event lines, got %d", lines.len);
 
@@ -200,35 +194,36 @@ fn void test_transcript_serialization() @test
 fn void test_transcript_resume_drops_tail() @test
 {
 	String cfg = tmp_cfg("resume_tail");
-	global::update(path::new(tmem, cfg)!!, path::new(tmem, string::tformat("%s/log/x.log", cfg))!!, false, true);
-
 	String session_id = string::tformat("ses_test_tail_%s", util::timestamp_id(tmem));
+	TranscriptWriter* w = make_writer(cfg, session_id);
 
 	// 构造：user → assistant(tool_calls) → tool_result → assistant(tool_calls)（被中断，未收尾）
-	transcript::write_session_start(tmem, session_id, "m", "default", "/tmp", "SYS", {});
-	transcript::write_user_message(tmem, session_id, "turn_a", "question", false);
+	w.write_session_start("m", "default", "/tmp", "SYS", {});
+	w.write_user_message("turn_a", "question", false);
 
 	Message a1;
 	context::message_init(&a1, tmem, "assistant");
 	a1.tool_calls.push({ .id = "call_1", .index = 0, .name = "Bash", .arguments = "{\"command\":\"ls\"}" });
-	transcript::write_assistant_message(tmem, session_id, "turn_a", "req_a", &a1);
-	transcript::write_tool_result(tmem, session_id, "turn_a", "req_a", "call_1", "Bash", "{\"command\":\"ls\"}", "result content", "", 5, 0, true);
+	w.write_assistant_message("turn_a", "req_a", &a1);
+	w.write_tool_result("turn_a", "req_a", "call_1", "Bash", "{\"command\":\"ls\"}", "result content", "", 5, 0, true);
 
 	Message a2;
 	context::message_init(&a2, tmem, "assistant");
 	a2.tool_calls.push({ .id = "call_2", .index = 0, .name = "Grep", .arguments = "{}" });
-	transcript::write_assistant_message(tmem, session_id, "turn_a", "req_b", &a2);
+	w.write_assistant_message("turn_a", "req_b", &a2);
 
-	Context* ctx = make_context(session_id);
-	bool ok = transcript::resume_into(tmem, ctx);
+	List{Message} messages;
+	messages.init(tmem);
+	int turns = 0;
+	bool ok = w.resume_into(&messages, &turns);
 	assert(ok, "resume_into should succeed");
 
 	// 整个未收尾 turn（user + assistant + tool_result + 尾巴 assistant）都被丢弃，只留 system
-	assert(ctx.messages.len() == 1, "interrupted turn fully dropped, only system remains, got %d", ctx.messages.len());
-	assert(ctx.messages[0].role == "system" && ctx.messages[0].content == "SYS", "system snapshot kept");
+	assert(messages.len() == 1, "interrupted turn fully dropped, only system remains, got %d", messages.len());
+	assert(messages[0].role == "system" && messages[0].content == "SYS", "system snapshot kept");
 
 	// resume 标记（tail_dropped=true）已写入
-	String content = read_transcript(session_id);
+	String content = read_transcript(w);
 	bool found_resume = false;
 	foreach (raw : nonempty_lines(content))
 	{
@@ -252,28 +247,29 @@ fn void test_transcript_resume_drops_tail() @test
 fn void test_transcript_resume_keeps_complete() @test
 {
 	String cfg = tmp_cfg("resume_keep");
-	global::update(path::new(tmem, cfg)!!, path::new(tmem, string::tformat("%s/log/x.log", cfg))!!, false, true);
-
 	String session_id = string::tformat("ses_test_keep_%s", util::timestamp_id(tmem));
+	TranscriptWriter* w = make_writer(cfg, session_id);
 
-	transcript::write_session_start(tmem, session_id, "m", "default", "/tmp", "SYS", {});
-	transcript::write_user_message(tmem, session_id, "turn_a", "question", false);
+	w.write_session_start("m", "default", "/tmp", "SYS", {});
+	w.write_user_message("turn_a", "question", false);
 
 	Message a1;
 	context::message_init(&a1, tmem, "assistant");
 	a1.content = "final answer";
-	transcript::write_assistant_message(tmem, session_id, "turn_a", "req_a", &a1);
-	transcript::write_session_end(tmem, session_id, "turn_a", "exit", 1);
+	w.write_assistant_message("turn_a", "req_a", &a1);
+	w.write_session_end("turn_a", "exit", 1);
 
-	Context* ctx = make_context(session_id);
-	bool ok = transcript::resume_into(tmem, ctx);
+	List{Message} messages;
+	messages.init(tmem);
+	int turns = 0;
+	bool ok = w.resume_into(&messages, &turns);
 	assert(ok, "resume_into should succeed");
-	assert(ctx.messages.len() == 3, "complete session kept: system+user+assistant = 3, got %d", ctx.messages.len());
-	assert(ctx.messages[1].role == "user" && ctx.messages[1].content == "question", "user kept");
-	assert(ctx.messages[2].role == "assistant" && ctx.messages[2].content == "final answer", "assistant final reply kept");
-	assert(ctx.messages[2].tool_calls.len() == 0, "no tool calls");
+	assert(messages.len() == 3, "complete session kept: system+user+assistant = 3, got %d", messages.len());
+	assert(messages[1].role == "user" && messages[1].content == "question", "user kept");
+	assert(messages[2].role == "assistant" && messages[2].content == "final answer", "assistant final reply kept");
+	assert(messages[2].tool_calls.len() == 0, "no tool calls");
 
-	String content = read_transcript(session_id);
+	String content = read_transcript(w);
 	bool tail_dropped_false = false;
 	foreach (raw : nonempty_lines(content))
 	{

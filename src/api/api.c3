@@ -2,14 +2,12 @@ module api;
 
 import std::io;
 import std::collections::list;
-import std::time;
-import std::time::clock;
 import std::time::datetime;
 
 import cjson;
 import context;
+import app;
 import util;
-import global;
 import log;
 import transcript;
 
@@ -17,6 +15,7 @@ faultdef
 	API_ERROR, EMPTY_RESPONSE;
 
 // API 调用元数据：usage 与 finish_reason 在解析层捕获（transcript api_usage 的硬前置）。
+// v2：由 API worker 回报给 Agent 线程，Agent 负责记账（TokenLedger）与写 api_usage 事件。
 struct ApiMeta
 {
 	String finish_reason;
@@ -328,25 +327,25 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body, ApiMeta
 }
 
 // 发起一次 /chat/completions 流式请求。
-// - turn_id：当前轮次标识（来自 rat_loop，写入 transcript 事件）。
+// - turn_id：当前轮次标识（来自 Agent，用于 transcript 事件）。
 // - request_id_out：本次 API round-trip 的 request_id（与 assistant_message/api_usage 关联）。
-// - 结束后写 api_usage 事件；失败时写 system_event(api_error) 并返回 API_ERROR~。
-fn Message? completions(Context* ctx, String turn_id, String* request_id_out)
+// - meta_out：回报 usage/finish_reason（Agent 记账 + 写 api_usage）。
+// - error_detail_out：失败时的错误描述（分配在 app.allocator，Agent 据此写
+//   system_event(api_error)）。transcript 写入不在本层发生（Agent 线程单写）。
+fn Message? completions(AppContext* app, String turn_id, String* request_id_out, ApiMeta* meta_out, String* error_detail_out)
 {
 	@pool()
 	{
 		String request_id = util::timestamp_id(tmem);
-		*request_id_out = request_id.copy(ctx.allocator);
+		*request_id_out = request_id.copy(app.allocator);
 
 		ApiMeta meta;
 		meta.finish_reason = "";
 		meta.usage = {};
 		meta.has_usage = false;
 
-		Clock started = clock::now();
-
-		String request_body_json = build_request_body(tmem, ctx);
-		if (global::debug())
+		String request_body_json = build_request_body(tmem, app);
+		if (app.debug())
 		{
 			file::save(string::tformat("logs/req_%s.json", request_id), request_body_json)!!;
 		}
@@ -355,23 +354,23 @@ fn Message? completions(Context* ctx, String turn_id, String* request_id_out)
 		headers.init(tmem);
 		defer headers.free();
 
-		// TODO 从配置读出 api-key，而不是直接使用 .flag.apiKey
-		headers.push(string::format(tmem, "Authorization: Bearer %s", ctx.flag.apiKey));
+		// TODO 从配置读出 api-key，而不是直接使用 flag.apiKey
+		headers.push(string::format(tmem, "Authorization: Bearer %s", app.flag.apiKey));
 		headers.push("Content-Type: application/json");
 
 		HttpClient client;
 		client.init();
 		defer client.free();
 
-		// TODO 从配置读出 baseUrl，而不是直接使用 .flag.baseUrl
-		String url = string::format(tmem, "%s/chat/completions", ctx.flag.baseUrl);
+		// TODO 从配置读出 baseUrl，而不是直接使用 flag.baseUrl
+		String url = string::format(tmem, "%s/chat/completions", app.flag.baseUrl);
 
-		log::debug("streaming completions request: model=%s -> %s", ctx.flag.model, url);
+		log::debug("streaming completions request: model=%s -> %s", app.flag.model, url);
 
 		if (try Response response = client.post(url, request_body_json, &headers))
 		{
 			log::debug("> Remote reply: status = %d, body = %s", response.status_code, response.body);
-			if (global::debug())
+			if (app.debug())
 			{
 				file::save(string::tformat("logs/req_%s_%d.json", request_id, response.status_code), response.body)!!;
 			}
@@ -379,40 +378,24 @@ fn Message? completions(Context* ctx, String turn_id, String* request_id_out)
 			if (response.status_code != 200)
 			{
 				log::warn("LLM API HTTP error: status=%d", response.status_code);
-				transcript::write_system_event(
-					ctx.allocator, ctx.session_id, turn_id, *request_id_out,
-					"api_error", "error",
-					api_error_detail(string::tformat("LLM API HTTP error: status=%d", response.status_code))
-				);
+				*error_detail_out = string::format(app.allocator, "LLM API HTTP error: status=%d", response.status_code);
 				return API_ERROR~;
 			}
 
-			Message? parsed = read_stream_to_message(ctx.allocator, response.body, &meta);
+			Message? parsed = read_stream_to_message(app.allocator, response.body, &meta);
 			if (catch parsed)
 			{
-				// 响应解析失败：无法获得 usage，记 api_error 而非零值 api_usage。
-				transcript::write_system_event(
-					ctx.allocator, ctx.session_id, turn_id, *request_id_out,
-					"api_error", "error",
-					api_error_detail("LLM API response parse failed")
-				);
+				// 响应解析失败：无法获得 usage，由 Agent 记 api_error 而非零值 api_usage。
+				*error_detail_out = "LLM API response parse failed".copy(app.allocator);
 				return API_ERROR~;
 			}
-			long latency_ms = started.to_now().to_ms();
-			transcript::write_api_usage(
-				ctx.allocator, ctx.session_id, turn_id, *request_id_out,
-				meta.usage, latency_ms, ctx.flag.model, meta.finish_reason
-			);
+			*meta_out = meta;
 			return parsed;
 		}
 		else
 		{
 			log::warn("LLM API request failed (network or HTTP client error)");
-			transcript::write_system_event(
-				ctx.allocator, ctx.session_id, turn_id, *request_id_out,
-				"api_error", "error",
-				api_error_detail("LLM API request failed (network or HTTP client error)")
-			);
+			*error_detail_out = "LLM API request failed (network or HTTP client error)".copy(app.allocator);
 			return API_ERROR~;
 		}
 	};
@@ -427,14 +410,15 @@ fn Message? completions(Context* ctx, String turn_id, String* request_id_out)
 //   - 非流式 tool_calls 使用标准 ChatToolCall 结构：required = [id, type, function]
 //     不带 index（index 只存在于流式 ChatStreamToolCall delta）
 //   - tool_choice / tools 仅在有可用工具时才下发
-fn String build_request_body(Allocator allocator, Context* ctx)
+//   - tools schema 取 AppContext.tools_schema_json（hub 初始化时预计算，只读）
+fn String build_request_body(Allocator allocator, AppContext* app)
 {
 	@pool()
 	{
 		CJsonItem* messages = cjson::new_array(tmem);
 		// defer messages.free();
 
-		foreach (&msg : &ctx.messages)
+		foreach (&msg : &app.messages)
 		{
 			CJsonItem* message = cjson::new_object(tmem);
 			messages.push_back(message);
@@ -488,14 +472,14 @@ fn String build_request_body(Allocator allocator, Context* ctx)
 
 		CJsonItem* request_body = cjson::new_object(tmem);
 		// defer request_body.free();
-		request_body.set("model", ctx.flag.model);
+		request_body.set("model", app.flag.model);
 		request_body.set("messages", messages);
 		request_body.set("stream", true);
 		request_body.set("thinking", enable_thinking);
 
 		// tools / tool_choice 仅在有可用工具时才下发。
 		// 部分 provider 在收到空 tools 数组 + tool_choice 时会报错。
-		String tools_schema = ctx.tool_hub.schema(tmem);
+		String tools_schema = app.tools_schema_json;
 		if (tools_schema.len > 0 && tools_schema != "[]")
 		{
 			request_body.set("tools", "{{tools_schema}}"); // 模板占位，序列化后替换

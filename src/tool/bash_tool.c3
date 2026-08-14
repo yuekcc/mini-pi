@@ -11,10 +11,10 @@ import util;
 
 const LINE_LIMIT = 2000;
 
-fn void? bash(Allocator allocator, DString* out, String command, ToolResultMeta* meta)
+fn void? bash(Allocator allocator, DString* out, String command, ToolResultMeta* meta, Path config_dir = (Path)"")
 {
 	String task_id = util::timestamp_id(tmem);
-	Path store_dir = load_store_dir(tmem);
+	Path store_dir = load_store_dir(tmem, config_dir);
 
 	String[] final_command = { "sh", "-c", command };
 	CommandResult result = cmd::execute(allocator, final_command)!;
@@ -80,9 +80,9 @@ fn String BashTool.schema(&self) @dynamic
 	return BASH_SCHEMA;
 }
 
-fn void? BashTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
+fn void? BashTool.execute(&self, ToolContext* ctx, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String command = args.get_key_string("command", tmem) ?? "";
 	if (command == "") return INVALID_COMMAND_PARAM~;
-	bash(allocator, out, command, meta)!;
+	bash(allocator, out, command, meta, ctx.config_dir)!;
 }

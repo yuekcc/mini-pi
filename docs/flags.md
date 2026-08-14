@@ -18,6 +18,7 @@
 | `--output-file, -o <p>`  | 将最后一次 LLM 的回复内容输出到指定文件（常配合 `--headless`） | -                                                             |
 | `--resume <session_id>`  | 从指定 session_id 的 transcript 恢复会话（headless 下可与 `-t` 组合续跑） | -                                                             |
 | `--no-transcript`        | 关闭本会话的 transcript 写入（敏感场景整文件关闭）             | 开启（默认）                                                  |
+| `--max-tokens <n>`       | 上下文窗口 token 预算上限；会话累计 token 超软阈值（80%）告警、超硬阈值（95%）拒绝继续请求。0 = 不启用 | 0（不启用）                       |
 | `--list-skills`          | 列出全部可用 skill                                             | -                                                             |
 | `--help, -h`             | 显示帮助信息                                                   | -                                                             |
 | `--version, -v`          | 显示版本号                                                     | -                                                             |
@@ -109,6 +110,10 @@ mp --headless --resume ses_20260804_153242 -t "继续任务"
 ### `--no-transcript`
 
 关闭本会话的 transcript 写入。默认常开；敏感场景用此开关整文件关闭（Task 子进程通过 `--no-transcript` 继承关闭语义）。
+
+### `--max-tokens <n>`
+
+指定上下文窗口 token 预算上限（会话累计 prompt + completion + reasoning tokens）。当估算用量达到上限的 80%（软阈值）时，transcript 写入 `system_event(token_warning)` 并在 UI 提示；达到 95%（硬阈值）时拒绝继续请求，提示 `/clear` 或新开会话。`0` 表示不启用（默认）。
 
 ### `--list-skills`
 

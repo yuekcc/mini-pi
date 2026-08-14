@@ -3,6 +3,9 @@
   "warnings": [
     "no-unused"
   ],
+  "features": [
+    "LIBC"
+  ],
   "dependency-search-paths": [
     "lib"
   ],
@@ -10,7 +13,7 @@
   "authors": [
     "Lefeng Zhan<yuekcc@qq.com>"
   ],
-  "version": "1.0.0",
+  "version": "2.0.0",
   "sources": [
     "src/**"
   ],

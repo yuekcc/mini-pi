@@ -5,6 +5,7 @@ import skill;
 import tool;
 import util;
 import cli;
+import app;
 
 fn void test_create_context() @test
 {
@@ -19,9 +20,9 @@ fn void test_create_context() @test
 	Flag flag;
 	flag.init(tmem, { "mp" })!!;
 
-	Path log_file = flag.config_dir.append(tmem, "log/test.log")!!;
-	Context cx;
-	cx.init(tmem, "test-session", &flag, &tool_hub, &skill_hub, log_file);
+	// logger 传 null：测试中不登记默认 logger（g_default 生命周期不跨测试）。
+	AppContext cx;
+	cx.init(flag, tmem, "test-session", &tool_hub, &skill_hub, null, 0);
 
 	// reset() adds system message
 	cx.reset();
@@ -29,6 +30,7 @@ fn void test_create_context() @test
 	Message message;
 	cx.add_message(&message);
 	assert(cx.messages.len() == 2);
+	assert(cx.messages[0].role == "system", "first message is system");
 
-	io::printfn("id = %s, log_file_path = %s", cx.session_id, cx.log_file);
+	io::printfn("id = %s, config_dir = %s", cx.session_id, cx.config_dir);
 }

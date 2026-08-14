@@ -37,7 +37,7 @@ fn String WriteFileTool.schema(&self) @dynamic
 	return WRITE_SCHEMA;
 }
 
-fn void? WriteFileTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
+fn void? WriteFileTool.execute(&self, ToolContext* ctx, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String file_path = args.get_key_string("path", tmem) ?? "";
 	String content = args.get_key_string("content", tmem) ?? "";

@@ -5,12 +5,10 @@ import std::io::file;
 import std::io::path;
 import std::collections::list;
 
-import global;
-
-fn Path load_store_dir(Allocator allocator)
+// 工具中间产物目录：<config_dir>/task_store（config_dir 空时回退 ~/.config/mp/task_store）。
+fn Path load_store_dir(Allocator allocator, Path config_dir = (Path)"")
 {
 	Path store_dir;
-	Path config_dir = global::config_dir();
 	if (config_dir != "")
 	{
 		store_dir = config_dir.append(allocator, "task_store")!!;

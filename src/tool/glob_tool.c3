@@ -58,7 +58,7 @@ fn String GlobTool.schema(&self) @dynamic
 	return FIND_SCHEMA;
 }
 
-fn void? GlobTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
+fn void? GlobTool.execute(&self, ToolContext* ctx, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String pattern   = args.get_key_string("pattern", tmem) ?? "";
 	String file_path = args.get_key_string("path", tmem) ?? "";

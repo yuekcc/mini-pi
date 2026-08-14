@@ -9,27 +9,24 @@ import std::os::env;
 import cjson;
 import util::cmd;
 import util;
-import global;
 import ui;
 import transcript;
 
-
-fn void? execute_task(Allocator allocator, DString* out, String agent_name, String prompt, String description, ToolResultMeta* meta)
+fn void? execute_task(ToolContext* ctx, Allocator allocator, DString* out, String agent_name, String prompt, String description, ToolResultMeta* meta)
 {
 	String task_id =  util::timestamp_id(tmem);
-	Path store_dir = load_store_dir(tmem);
+	Path store_dir = load_store_dir(tmem, ctx.config_dir);
 
 	Path output_file = store_dir.append(tmem, string::tformat("%s_output.txt", task_id))!!;
 	Path input_file = store_dir.append(tmem, string::tformat("%s_input.txt", task_id))!!;
 	file::save(input_file, prompt)!;
 
 	// 注入父会话信息（格式 父session_id:父request_id），子进程 session_start 据此关联。
+	// 父会话状态来自 AppContext 的轻量视图（Agent 线程单写，无 tlocal 全局）。
 	String parent_value = "";
-	String session_id = global::session_id();
-	String request_id = global::active_request_id();
-	if (session_id != "" && request_id != "")
+	if (ctx.session_id != "" && ctx.request_id != "")
 	{
-		parent_value = string::tformat("%s:%s", session_id, request_id);
+		parent_value = string::tformat("%s:%s", ctx.session_id, ctx.request_id);
 		env::set_var(transcript::ENV_PARENT_SESSION, parent_value);
 	}
 
@@ -40,7 +37,7 @@ fn void? execute_task(Allocator allocator, DString* out, String agent_name, Stri
 	cmd.push("--agent");
 	cmd.push(agent_name);
 	cmd.push("--headless");
-	if (!transcript::enabled()) cmd.push("--no-transcript");
+	if (!ctx.transcript_enabled) cmd.push("--no-transcript");
 	cmd.push("-f");
 	cmd.push(string::tformat("%s", input_file));
 	cmd.push("-o");
@@ -98,7 +95,7 @@ fn String TaskTool.schema(&self) @dynamic
 	return TASK_SCHEMA;
 }
 
-fn void? TaskTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
+fn void? TaskTool.execute(&self, ToolContext* ctx, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String agent_name  = args.get_key_string("agent", tmem) ?? "default";
 	String prompt      = args.get_key_string("prompt", tmem) ?? "";
@@ -108,5 +105,5 @@ fn void? TaskTool.execute(&self, Allocator allocator, DString* out, CJsonItem* a
 	if (prompt == "") return INVALID_PROMPT_PARAM~;
 	if (description == "") return INVALID_DESCRIPTION_PARAM~;
 
-	execute_task(allocator, out, agent_name, prompt, description, meta)!;
+	execute_task(ctx, allocator, out, agent_name, prompt, description, meta)!;
 }

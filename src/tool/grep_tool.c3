@@ -80,7 +80,7 @@ fn String GrepTool.schema(&self) @dynamic
 	return GREP_SCHEMA;
 }
 
-fn void? GrepTool.execute(&self, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
+fn void? GrepTool.execute(&self, ToolContext* ctx, Allocator allocator, DString* out, CJsonItem* args, ToolResultMeta* meta) @dynamic
 {
 	String pattern   = args.get_key_string("pattern", tmem) ?? "";
 	String file_path = args.get_key_string("path", tmem) ?? "";

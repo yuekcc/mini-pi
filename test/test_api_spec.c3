@@ -13,6 +13,7 @@ import cjson;
 import cli;
 import tool;
 import skill;
+import app;
 
 // =============================================================================
 // 响应解析：流式（read_stream_to_message）
@@ -351,25 +352,25 @@ fn void test_request_body_uses_standard_reasoning_field() @test
 }
 
 // =============================================================================
-// 辅助：构造测试用 Context
+// 辅助：构造测试用 AppContext（v2：请求体构造读 app.messages/flag/tools_schema_json）
 // =============================================================================
 
-fn Context* fixture_ctx(Allocator allocator) @local
+fn AppContext* fixture_ctx(Allocator allocator) @local
 {
 	return fixture_ctx_full(allocator, false, false);
 }
 
-fn Context* fixture_ctx_with_tool_calls(Allocator allocator) @local
+fn AppContext* fixture_ctx_with_tool_calls(Allocator allocator) @local
 {
 	return fixture_ctx_full(allocator, true, false);
 }
 
-fn Context* fixture_ctx_with_reasoning(Allocator allocator) @local
+fn AppContext* fixture_ctx_with_reasoning(Allocator allocator) @local
 {
 	return fixture_ctx_full(allocator, false, true);
 }
 
-fn Context* fixture_ctx_full(Allocator allocator, bool with_tool_calls, bool with_reasoning) @local
+fn AppContext* fixture_ctx_full(Allocator allocator, bool with_tool_calls, bool with_reasoning) @local
 {
 	ToolHub* tool_hub = alloc::new(allocator, ToolHub);
 	tool_hub.init(allocator, { "ReadFile", "Bash" });
@@ -380,10 +381,9 @@ fn Context* fixture_ctx_full(Allocator allocator, bool with_tool_calls, bool wit
 	Flag* flag = alloc::new(allocator, Flag);
 	flag.init(allocator, { "mp", "--model", "test-model", "--api-key", "sk-test", "--base-url", "http://localhost/v1" })!!;
 
-	Path log_file = flag.config_dir.append(allocator, "log/test.log")!!;
-
-	Context* ctx = alloc::new(allocator, Context);
-	ctx.init(allocator, "test-session", flag, tool_hub, skill_hub, log_file);
+	// logger 传 null：测试中不登记默认 logger（g_default 生命周期不跨测试）。
+	AppContext* ctx = alloc::new(allocator, AppContext);
+	ctx.init(*flag, allocator, "test-session", tool_hub, skill_hub, null, 0);
 
 	// system message
 	Message sys;

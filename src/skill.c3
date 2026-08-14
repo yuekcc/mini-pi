@@ -145,9 +145,6 @@ fn void SkillHub.free(&self)
 	self.data = { };
 }
 
-SkillHub _global_context;
-bool _context_initialized = false;
-
 fn void find_skill_dirs(List{Path}* paths)
 {
 	Path global_skills_home = path::home_directory(tmem)!!.append(tmem, ".agents/skills")!!;
