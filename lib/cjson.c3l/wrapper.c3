@@ -8,16 +8,20 @@ import std::core::string;
 faultdef MALFORMED_STRING, MALFORMED_BOOL;
 
 // --- c3 mem allocator bridge -------------------------------------------------
+// cJSON 默认用 malloc/free；显式挂钩（main 启动时 init_mem_hooks 调用一次）保证
+// 分配与释放走同一实现。直接转发 libc。
+import libc;
 
-fn void* cjson_mem_alloc(usz size) @export => mem::new(usz, size);
-fn void cjson_mem_free(void* ptr) @export => mem::free(ptr);
+fn void* cjson_mem_alloc(usz size) @export => libc::malloc(size);
+fn void cjson_mem_free(void* ptr) @export => libc::free(ptr);
 
 macro init_mem_hooks()
 {
-    init_hooks(&(Hook) {
-        .malloc_fn = (MallocFn*)&cjson_mem_alloc,
-        .free_fn = (FreeFn*)&cjson_mem_free,
-    });
+    Hook hook = {
+        .malloc_fn = &cjson_mem_alloc,
+        .free_fn = &cjson_mem_free,
+    };
+    init_hooks(&hook);
 }
 
 fn void reset_hooks() @inline => init_hooks(null);

@@ -5,6 +5,8 @@ import std::os::env;
 import std::time::datetime;
 
 import context;
+import app;
+import log;
 
 // NO_COLOR 约定（https://no-color.org）：环境变量存在且非空时禁用颜色。
 // init() 在 main 启动时调用一次，缓存结果。
@@ -138,8 +140,9 @@ fn void banner(String version, Path config_dir, Path log_file, bool debug_on)
 	io::eprint("\n");
 }
 
-// 交互输入提示：打印 ">>> "（带颜色），读取一行，复位颜色。返回输入字符串。
-fn String read_prompt(Allocator allocator)
+// 打印输入提示 ">>> "（带颜色）。v2：READY 事件后由 UI 主循环调用（与读输入分离，
+// 支持事件驱动的输入轮询）。
+fn void print_prompt()
 {
 	if (no_color())
 	{
@@ -149,20 +152,107 @@ fn String read_prompt(Allocator allocator)
 	{
 		io::print(Ansi.BOLD +++ Ansi.GREEN +++ ">>> ");
 	}
-	String input = io::readline(allocator)!!;
+}
+
+// 读取一行输入并复位颜色（提示已由 print_prompt 打印）。返回输入字符串；
+// EOF（管道关闭等）时 fault，调用方按 /exit 处理。
+fn String? read_input(Allocator allocator)
+{
+	String? input = io::readline(allocator);
 	if (!no_color()) io::print(Ansi.RESET);
 	return input;
 }
 
+// 交互输入提示：打印 ">>> "（带颜色），读取一行，复位颜色。返回输入字符串。
+fn String? read_prompt(Allocator allocator)
+{
+	print_prompt();
+	return read_input(allocator);
+}
+
 // 黄色括号状态提示，尾部带空行。用于 (Saved to ...)/(DONE)/(Bye ...) 等。
-macro void notice(String $format, args...)
+// v2 多线程：非主线程（Agent/工具）的 notice 经 notice sink 转发到 UI 事件通道，
+// 由主线程统一打印（保持输出不交错）。
+alias NoticeSinkFn = fn void(void* ctx, String text);
+
+NoticeSinkFn g_notice_sink = null;
+void* g_notice_ctx = null;
+
+fn void set_notice_sink(NoticeSinkFn sink, void* ctx)
+{
+	g_notice_sink = sink;
+	g_notice_ctx = ctx;
+}
+
+fn void print_notice(String text)
 {
 	if (no_color())
 	{
-		io::printfn("(" +++ $format +++ ")\n", ...args);
+		io::printfn("(%s)\n", text);
 	}
 	else
 	{
-		io::printfn(Ansi.BRIGHT_YELLOW +++ "(" +++ $format +++ ")" +++ Ansi.RESET +++ "\n", ...args);
+		// +++ 仅编译期常量可用；运行时文本用 tformat 拼接
+		io::printfn("%s", string::tformat("%s(%s)%s\n", Ansi.BRIGHT_YELLOW, text, Ansi.RESET));
+	}
+}
+
+macro void notice(String $format, args...)
+{
+	if (g_notice_sink == null)
+	{
+		print_notice(string::tformat($format, ...args));
+	}
+	else
+	{
+		g_notice_sink(g_notice_ctx, string::tformat($format, ...args));
+	}
+}
+
+// notice sink 实现：把文本拷贝到堆，作为 NOTICE 事件投递 UI 通道（主线程打印）。
+fn void forward_notice(void* ctx, String text)
+{
+	AppContext* app = (AppContext*)ctx;
+	UiOutEvent ev = {
+		.kind = UiOutKind.NOTICE,
+		.text = text.copy(app.allocator),
+	};
+	(void)app.agent_to_ui.push(ev);
+}
+
+// Logger 控制台 sink 实现：非主线程日志转发为 LOG_LINE 事件（主线程统一打印）。
+fn void forward_log_event(void* ctx, LogLine line)
+{
+	AppContext* app = (AppContext*)ctx;
+	UiOutEvent ev = {
+		.kind = UiOutKind.LOG_LINE,
+		.text = line.text.copy(app.allocator),
+		.to_stderr = line.to_stderr,
+	};
+	(void)app.agent_to_ui.push(ev);
+}
+
+// UI 主线程：渲染一个 agent→ui 事件（消息/notice/日志）。READY/SHUTDOWN 由调用方处理。
+// 调用方负责在渲染后释放事件负载（text/tool_name/msg 均为 heap 分配）。
+fn void render_event(UiOutEvent* ev)
+{
+	switch (ev.kind)
+	{
+		case UiOutKind.RENDER_MESSAGE:
+			render_message(ev.msg, ev.tool_name);
+		case UiOutKind.NOTICE:
+			print_notice(ev.text);
+		case UiOutKind.LOG_LINE:
+			if (ev.to_stderr)
+			{
+				io::eprintfn("%s", ev.text);
+			}
+			else
+			{
+				io::printfn("%s", ev.text);
+			}
+		case UiOutKind.READY:
+		case UiOutKind.SHUTDOWN:
+			return;
 	}
 }

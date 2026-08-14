@@ -326,77 +326,109 @@ fn Message? read_stream_to_message(Allocator allocator, String sse_body, ApiMeta
 	};
 }
 
-// 发起一次 /chat/completions 流式请求。
-// - turn_id：当前轮次标识（来自 Agent，用于 transcript 事件）。
-// - request_id_out：本次 API round-trip 的 request_id（与 assistant_message/api_usage 关联）。
-// - meta_out：回报 usage/finish_reason（Agent 记账 + 写 api_usage）。
-// - error_detail_out：失败时的错误描述（分配在 app.allocator，Agent 据此写
-//   system_event(api_error)）。transcript 写入不在本层发生（Agent 线程单写）。
-fn Message? completions(AppContext* app, String turn_id, String* request_id_out, ApiMeta* meta_out, String* error_detail_out)
+// ---- v2 三线程拓扑的请求执行（阶段 1：worker 内 blocking easy_perform，阶段 2 换 multi）----
+
+// Agent 线程：构造请求快照（body_json / url / headers 全部 heap 分配），投递 API worker。
+// worker 不读共享 messages 列表（NFR-2）。
+fn ApiRequest* build_api_request(AppContext* app, Allocator heap, String request_id)
 {
+	ApiRequest* req = alloc::new(heap, ApiRequest);
+	req.request_id = request_id.copy(heap);
+
+	String body = build_request_body(heap, app);
+	req.body_json = body.copy(heap);
+	if (app.debug())
+	{
+		file::save(string::tformat("logs/req_%s.json", request_id), body)!!;
+	}
+
+	// TODO 从配置读出 baseUrl/api-key，而不是直接使用 flag
+	req.url = string::format(heap, "%s/chat/completions", app.flag.baseUrl);
+
+	List{String} headers;
+	headers.init(heap);
+	headers.push(string::format(heap, "Authorization: Bearer %s", app.flag.apiKey));
+	headers.push("Content-Type: application/json".copy(heap));
+	req.headers = headers;
+
+	return req;
+}
+
+// 释放 build_api_request 的负载（worker 处理完请求后调用；结构体本身为通道值，不在此释放）。
+fn void api_request_free(ApiRequest* req, Allocator heap)
+{
+	req.request_id.free(heap);
+	req.body_json.free(heap);
+	req.url.free(heap);
+	foreach (h : req.headers) h.free(heap);
+	req.headers.free();
+}
+
+// 释放 ApiResponse 负载（Agent 处理完响应后调用）。
+fn void api_response_free(ApiResponse* resp, Allocator heap)
+{
+	if (resp.request_id.len > 0) resp.request_id.free(heap);
+	if (resp.message) context::message_free(heap, resp.message);
+	if (resp.finish_reason.len > 0) resp.finish_reason.free(heap);
+	if (resp.error_detail.len > 0) resp.error_detail.free(heap);
+}
+
+// API worker 线程：执行一次 HTTP 请求并解析为 Message（blocking easy_perform，
+// 阶段 2 换 curl multi 事件循环 + cancel_flag）。
+// 结果（message / finish_reason / error_detail）全部 heap 分配，随 ApiResponse 移交 Agent。
+fn void execute_api_request(ApiRequest* req, Allocator heap, ApiResponse* resp)
+{
+	resp.request_id = req.request_id.copy(heap);
+	resp.message = null;
+	resp.usage = {};
+	resp.has_usage = false;
+	resp.finish_reason = "";
+	resp.error_detail = "";
+	resp.cancelled = false;
+
 	@pool()
 	{
-		String request_id = util::timestamp_id(tmem);
-		*request_id_out = request_id.copy(app.allocator);
-
 		ApiMeta meta;
 		meta.finish_reason = "";
 		meta.usage = {};
 		meta.has_usage = false;
 
-		String request_body_json = build_request_body(tmem, app);
-		if (app.debug())
-		{
-			file::save(string::tformat("logs/req_%s.json", request_id), request_body_json)!!;
-		}
-
-		List{String} headers;
-		headers.init(tmem);
-		defer headers.free();
-
-		// TODO 从配置读出 api-key，而不是直接使用 flag.apiKey
-		headers.push(string::format(tmem, "Authorization: Bearer %s", app.flag.apiKey));
-		headers.push("Content-Type: application/json");
+		log::debug("streaming completions request: model=%s -> %s", req.url);
 
 		HttpClient client;
 		client.init();
 		defer client.free();
 
-		// TODO 从配置读出 baseUrl，而不是直接使用 flag.baseUrl
-		String url = string::format(tmem, "%s/chat/completions", app.flag.baseUrl);
-
-		log::debug("streaming completions request: model=%s -> %s", app.flag.model, url);
-
-		if (try Response response = client.post(url, request_body_json, &headers))
+		if (try Response response = client.post(req.url, req.body_json, &req.headers))
 		{
-			log::debug("> Remote reply: status = %d, body = %s", response.status_code, response.body);
-			if (app.debug())
-			{
-				file::save(string::tformat("logs/req_%s_%d.json", request_id, response.status_code), response.body)!!;
-			}
-
+			log::debug("> Remote reply: status = %d", response.status_code);
 			if (response.status_code != 200)
 			{
 				log::warn("LLM API HTTP error: status=%d", response.status_code);
-				*error_detail_out = string::format(app.allocator, "LLM API HTTP error: status=%d", response.status_code);
-				return API_ERROR~;
+				resp.error_detail = string::format(heap, "LLM API HTTP error: status=%d", response.status_code);
+				return;
 			}
 
-			Message? parsed = read_stream_to_message(app.allocator, response.body, &meta);
+			Message? parsed = read_stream_to_message(heap, response.body, &meta);
 			if (catch parsed)
 			{
 				// 响应解析失败：无法获得 usage，由 Agent 记 api_error 而非零值 api_usage。
-				*error_detail_out = "LLM API response parse failed".copy(app.allocator);
-				return API_ERROR~;
+				resp.error_detail = "LLM API response parse failed".copy(heap);
+				return;
 			}
-			*meta_out = meta;
-			return parsed;
+			// parsed 的字符串已由 read_stream_to_message 分配在 heap，直接移交（浅拷贝结构体）。
+			resp.message = alloc::new(heap, Message);
+			*resp.message = parsed;
+			resp.usage = meta.usage;
+			resp.has_usage = meta.has_usage;
+			resp.finish_reason = meta.finish_reason; // 已 heap 分配，直接移交
+			return;
 		}
 		else
 		{
 			log::warn("LLM API request failed (network or HTTP client error)");
-			*error_detail_out = "LLM API request failed (network or HTTP client error)".copy(app.allocator);
-			return API_ERROR~;
+			resp.error_detail = "LLM API request failed (network or HTTP client error)".copy(heap);
+			return;
 		}
 	};
 }

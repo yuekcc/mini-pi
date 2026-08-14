@@ -19,6 +19,9 @@ import std::collections::list;
 import std::io::path;
 import std::time::datetime;
 import std::core::mem::allocators;
+import std::atomic;
+import std::thread;
+import std::thread::channel;
 
 import cli;
 import skill;
@@ -55,6 +58,15 @@ struct AppContext
 	TokenLedger* token_ledger;
 	TranscriptWriter* transcript;
 	Logger* logger;
+
+	// ---- 运行时信号区（阶段 1 起：三线程拓扑）----
+	UnboundedChannel{UiEvent}* ui_to_agent;     // ui → agent（unbounded）
+	UnboundedChannel{UiOutEvent}* agent_to_ui;  // agent → ui（unbounded）
+	BufferedChannel{ApiRequest}* agent_to_api;  // agent → api（容量 1，天然背压）
+	UnboundedChannel{ApiResponse}* api_to_agent;// api → agent（unbounded）
+	Atomic{bool}* cancel_flag;                  // Ctrl+C 取消信号（阶段 2 起使用）
+	Thread agent_thread;
+	Thread api_thread;
 }
 
 fn AppContext* AppContext.init(
@@ -95,6 +107,13 @@ fn AppContext* AppContext.init(
 	self.transcript.init(allocator, self.config_dir, self.session_id, flag.enable_transcript);
 
 	self.logger = logger;
+
+	// ---- 运行时信号（三线程拓扑）：通道创建 + 取消标志 ----
+	self.ui_to_agent = channel::create_unbounded{UiEvent}(allocator)!!;
+	self.agent_to_ui = channel::create_unbounded{UiOutEvent}(allocator)!!;
+	self.agent_to_api = channel::create_buffered{ApiRequest}(allocator, 1)!!;
+	self.api_to_agent = channel::create_unbounded{ApiResponse}(allocator)!!;
+	self.cancel_flag = alloc::new(allocator, Atomic{bool});
 
 	return self;
 }

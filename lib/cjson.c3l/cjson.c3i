@@ -37,10 +37,12 @@ struct CJsonItem (Printable)
 alias MallocFn = fn void* (usz size);
 alias FreeFn = fn void (void* ptr);
 
+// 注意：c3 的 fn 类型本身就是指针（对应 C 的 void*(*)(size_t)），
+// 字段不能再用 * 修饰（否则成双指针，赋值经局部变量取址会悬垂）。
 struct Hook
 {
-   MallocFn *malloc_fn;
-   FreeFn *free_fn;
+   MallocFn malloc_fn;
+   FreeFn free_fn;
 }
 
 extern fn ZString version() @cname("cJSON_Version");
