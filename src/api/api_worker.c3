@@ -34,7 +34,7 @@ fn int api_worker_main(void* arg)
 			ApiRequest req = maybe;
 
 			ApiResponse* resp = alloc::new(heap, ApiResponse);
-			execute_api_request(&req, heap, resp);
+			execute_api_request(&req, heap, resp, app.cancel_flag);
 			api_request_free(&req, heap);
 
 			(void)app.api_to_agent.push(*resp);

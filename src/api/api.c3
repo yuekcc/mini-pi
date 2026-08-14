@@ -3,8 +3,11 @@ module api;
 import std::io;
 import std::collections::list;
 import std::time::datetime;
+import std::time::clock;
+import std::atomic;
 
 import cjson;
+import curl;
 import context;
 import app;
 import util;
@@ -373,10 +376,12 @@ fn void api_response_free(ApiResponse* resp, Allocator heap)
 	if (resp.error_detail.len > 0) resp.error_detail.free(heap);
 }
 
-// API worker 线程：执行一次 HTTP 请求并解析为 Message（blocking easy_perform，
-// 阶段 2 换 curl multi 事件循环 + cancel_flag）。
+// API worker 线程：执行一次 HTTP 请求并解析为 Message。
+// 阶段 2：curl multi 事件循环（每请求独立 easy handle，multi_poll 100ms 轮询窗口 +
+// multi_perform + multi_info_read 收 CURLMSG_DONE），每轮检查 cancel_flag——
+// 取消延迟上限 100ms（实测约 30ms）。SSE 解析逻辑原样（read_stream_to_message）。
 // 结果（message / finish_reason / error_detail）全部 heap 分配，随 ApiResponse 移交 Agent。
-fn void execute_api_request(ApiRequest* req, Allocator heap, ApiResponse* resp)
+fn void execute_api_request(ApiRequest* req, Allocator heap, ApiResponse* resp, Atomic{bool}* cancel_flag)
 {
 	resp.request_id = req.request_id.copy(heap);
 	resp.message = null;
@@ -385,51 +390,99 @@ fn void execute_api_request(ApiRequest* req, Allocator heap, ApiResponse* resp)
 	resp.finish_reason = "";
 	resp.error_detail = "";
 	resp.cancelled = false;
+	resp.latency_ms = 0;
 
 	@pool()
 	{
+		DString response_buffer = dstring::new(tmem);
+
+		Curl* easy = curl::easy_init();
+		// 传入 curl 的字符串必须 NUL 结尾（build_api_request 产物均为堆分配 + NUL 安全）。
+		curl::easy_setopt(easy, (curl::CurlOption)10002, req.url);                    // URL
+		curl::easy_setopt(easy, (curl::CurlOption)20011, &write_callback);            // WRITEFUNCTION
+		curl::easy_setopt(easy, (curl::CurlOption)10001, &response_buffer);           // WRITEDATA
+		curl::easy_setopt(easy, (curl::CurlOption)47, 1);                             // POST
+		curl::easy_setopt(easy, (curl::CurlOption)10015, req.body_json);              // POSTFIELDS
+
+		CurlSlist* header_list = null;
+		foreach (String header : req.headers)
+		{
+			header_list = curl::slist_append(header_list, header);
+		}
+		if (header_list) curl::easy_setopt(easy, (curl::CurlOption)10023, header_list); // HTTPHEADER
+
+		CurlM* multi = curl::multi_init();
+		(void)curl::multi_add_handle(multi, easy);
+
+		Clock started = clock::now();
+		bool cancelled = false;
+		while (true)
+		{
+			int running = 0;
+			(void)curl::multi_poll(multi, null, 0, 100, &running); // 100ms 取消检查窗口
+			(void)curl::multi_perform(multi, &running);
+
+			if (cancel_flag != null && cancel_flag.load())
+			{
+				cancelled = true;
+				break;
+			}
+			if (running == 0) break;
+		}
+
+		// 收集结果消息（CURLMSG_DONE → easy_getinfo 取状态码）
+		int response_code = 0;
+		int msgs = 0;
+		while (CurlMsg* msg = curl::multi_info_read(multi, &msgs))
+		{
+			if (msg.msg == curl::CurlMsgType.DONE)
+			{
+				int code = 0;
+				curl::easy_getinfo(easy, (curl::CurlInfoType)2097154, &code); // RESPONSE_CODE
+				response_code = code;
+			}
+		}
+
+		resp.latency_ms = started.to_now().to_ms();
+
+		(void)curl::multi_remove_handle(multi, easy);
+		if (header_list) curl::slist_free_all(header_list);
+		curl::easy_cleanup(easy);
+		(void)curl::multi_cleanup(multi);
+
+		if (cancelled)
+		{
+			log::debug("API request cancelled (request_id = %s, elapsed = %dms)", req.request_id, resp.latency_ms);
+			resp.cancelled = true;
+			return;
+		}
+
+		log::debug("> Remote reply: status = %d", response_code);
+		if (response_code != 200)
+		{
+			log::warn("LLM API HTTP error: status=%d", response_code);
+			resp.error_detail = string::format(heap, "LLM API HTTP error: status=%d", response_code);
+			return;
+		}
+
 		ApiMeta meta;
 		meta.finish_reason = "";
 		meta.usage = {};
 		meta.has_usage = false;
 
-		log::debug("streaming completions request: model=%s -> %s", req.url);
-
-		HttpClient client;
-		client.init();
-		defer client.free();
-
-		if (try Response response = client.post(req.url, req.body_json, &req.headers))
+		Message? parsed = read_stream_to_message(heap, response_buffer.str_view(), &meta);
+		if (catch parsed)
 		{
-			log::debug("> Remote reply: status = %d", response.status_code);
-			if (response.status_code != 200)
-			{
-				log::warn("LLM API HTTP error: status=%d", response.status_code);
-				resp.error_detail = string::format(heap, "LLM API HTTP error: status=%d", response.status_code);
-				return;
-			}
-
-			Message? parsed = read_stream_to_message(heap, response.body, &meta);
-			if (catch parsed)
-			{
-				// 响应解析失败：无法获得 usage，由 Agent 记 api_error 而非零值 api_usage。
-				resp.error_detail = "LLM API response parse failed".copy(heap);
-				return;
-			}
-			// parsed 的字符串已由 read_stream_to_message 分配在 heap，直接移交（浅拷贝结构体）。
-			resp.message = alloc::new(heap, Message);
-			*resp.message = parsed;
-			resp.usage = meta.usage;
-			resp.has_usage = meta.has_usage;
-			resp.finish_reason = meta.finish_reason; // 已 heap 分配，直接移交
+			// 响应解析失败：无法获得 usage，由 Agent 记 api_error 而非零值 api_usage。
+			resp.error_detail = "LLM API response parse failed".copy(heap);
 			return;
 		}
-		else
-		{
-			log::warn("LLM API request failed (network or HTTP client error)");
-			resp.error_detail = "LLM API request failed (network or HTTP client error)".copy(heap);
-			return;
-		}
+		// parsed 的字符串已由 read_stream_to_message 分配在 heap，直接移交（浅拷贝结构体）。
+		resp.message = alloc::new(heap, Message);
+		*resp.message = parsed;
+		resp.usage = meta.usage;
+		resp.has_usage = meta.has_usage;
+		resp.finish_reason = meta.finish_reason; // 已 heap 分配，直接移交
 	};
 }
 

@@ -68,5 +68,6 @@ struct ApiResponse
 	bool has_usage;
 	String finish_reason;     // heap
 	String error_detail;      // heap；非空表示请求失败
-	bool cancelled;           // 阶段 2 起：请求被取消
+	bool cancelled;           // 请求被取消（cancel_flag，L1 中断）
+	long latency_ms;          // 请求耗时（worker 计时，api_usage/request_cancelled 用）
 }

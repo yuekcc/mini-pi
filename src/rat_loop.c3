@@ -176,7 +176,6 @@ fn void dispatch_api_request(AppContext* app, String turn_id, String* request_id
 // api_usage 先于 assistant_message，golden diff 护栏）+ 渲染 + 入消息列表。
 fn void handle_api_success(AppContext* app, String turn_id, String request_id, ApiResponse* resp)
 {
-	long latency_ms = 0; // 阶段 2 起由 worker 计时回报
 	Message* message = resp.message;
 
 	if (resp.has_usage)
@@ -191,7 +190,7 @@ fn void handle_api_success(AppContext* app, String turn_id, String request_id, A
 		);
 		app.transcript.write_api_usage(
 			turn_id, request_id,
-			resp.usage, latency_ms, app.flag.model, resp.finish_reason
+			resp.usage, resp.latency_ms, app.flag.model, resp.finish_reason
 		);
 	}
 
@@ -413,8 +412,31 @@ fn void agent_loop(AppContext* app)
 
 				if (resp.cancelled)
 				{
-					// 阶段 2：写 system_event(request_cancelled) + 丢弃半成品 turn
-					state = AgentState.CANCELLING;
+					// L1 请求中断：写 system_event(request_cancelled)（additive），
+					// 丢弃半成品 turn（不 add assistant 消息、不写 tool_result），
+					// 与「未收尾 turn」语义一致——resume 尾部丢弃逻辑天然兼容。
+					CJsonItem* detail = cjson::new_object(tmem);
+					detail.set("request_id", request_id);
+					detail.set("latency_ms", resp.latency_ms);
+					detail.set("has_partial_content", false);
+					app.transcript.write_system_event(
+						turn_id, request_id,
+						transcript::SUBTYPE_REQUEST_CANCELLED, "info",
+						detail
+					);
+					if (app.flag.enable_headless)
+					{
+						app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
+						session_ended = true;
+						push_shutdown(app, 1);
+						state = AgentState.SHUTDOWN;
+					}
+					else
+					{
+						push_notice(app, "interrupted");
+						push_ready(app);
+						state = AgentState.IDLE;
+					}
 				}
 				else if (resp.error_detail.len > 0)
 				{
