@@ -358,11 +358,12 @@ fn ApiRequest* build_api_request(AppContext* app, Allocator heap, String request
 }
 
 // 释放 build_api_request 的负载（worker 处理完请求后调用；结构体本身为通道值，不在此释放）。
+// len 守卫与 api_response_free 一致：build_api_request 保证非空，防御性防未来路径注入空串。
 fn void api_request_free(ApiRequest* req, Allocator heap)
 {
-	req.request_id.free(heap);
-	req.body_json.free(heap);
-	req.url.free(heap);
+	if (req.request_id.len > 0) req.request_id.free(heap);
+	if (req.body_json.len > 0) req.body_json.free(heap);
+	if (req.url.len > 0) req.url.free(heap);
 	foreach (h : req.headers) h.free(heap);
 	req.headers.free();
 }

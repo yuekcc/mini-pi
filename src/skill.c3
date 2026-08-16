@@ -40,7 +40,7 @@ fn Skill* Skill.init(&self, Allocator allocator, Path dir)
 
 	String text = (String)file::load_path(tmem, skill_file)!!;
 
-	Markdown* markdown = util::parse_markdown(text);
+	Markdown* markdown = util::parse_markdown(tmem, text);
 
 	// 记录 SKILL.md 的正文
 	self.content = markdown.body.copy(allocator);

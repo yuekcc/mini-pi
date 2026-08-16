@@ -85,7 +85,8 @@ fn void push_render(AppContext* app, Message* msg, String tool_name)
 	UiOutEvent ev = {
 		.kind = UiOutKind.RENDER_MESSAGE,
 		.msg = context::message_clone(app.allocator, msg),
-		.tool_name = tool_name.copy(app.allocator),
+		// 空串不拷贝（保持静态 ""），与释放端 len 守卫配对。
+		.tool_name = tool_name.len > 0 ? tool_name.copy(app.allocator) : "",
 	};
 	(void)app.agent_to_ui.push(ev);
 }
@@ -107,8 +108,10 @@ fn void push_ready(AppContext* app)
 // ---- Agent 状态机 -----------------------------------------------------------
 
 // 一轮用户输入的公共起点：生成 turn_id、累计轮次、写 user_message 事件、开启新轮记账。
+// turn_id 为 heap 分配：覆盖旧值前先释放（跨轮唯一泄漏点之一，与 request_id 同模式）。
 fn void start_user_turn(AppContext* app, String* turn_id, String content, bool is_command)
 {
+	if (turn_id.len > 0) turn_id.free(app.allocator);
 	*turn_id = util::timestamp_id(app.allocator);
 	app.turns_total++;
 	app.token_ledger.begin_turn();
@@ -173,9 +176,20 @@ fn AgentState headless_error_shutdown(AppContext* app, String turn_id, bool* ses
 	return AgentState.SHUTDOWN;
 }
 
+// headless 中断收尾：session_end(interrupted) + SHUTDOWN(exit 1)（FR-8 语义）。
+// L2 工具中断与 L1 CANCELLING 共用。
+fn AgentState headless_interrupted_shutdown(AppContext* app, String turn_id, bool* session_ended)
+{
+	app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
+	*session_ended = true;
+	push_shutdown(app, 1);
+	return AgentState.SHUTDOWN;
+}
+
 // 弹出下标 > keep_before 的全部消息（释放字符串负载；列表内嵌结构体由 List 持有）。
-// L2 丢弃半成品 turn：keep_before = 本轮 user 消息下标（user 保留，同 L1 语义）；
-// EXCEEDED 拒绝：keep_before = user 下标 - 1（连 user 消息一起丢弃）。
+// L2 丢弃半成品 turn / EXCEEDED 拒绝：keep_before = 本轮 user 消息下标
+//（user 保留，同 L1 语义；transcript 已写 user_message 事件，内存删除会造成
+// resume 幽灵消息，故一律保留 user）。
 fn void discard_messages_after(AppContext* app, sz keep_before)
 {
 	while (app.messages.len() > keep_before)
@@ -375,9 +389,11 @@ fn void agent_loop(AppContext* app)
 						// （request_id 传空 → 事件中为 null）。
 						if (!check_token_budget(app, turn_id, ""))
 						{
-							// EXCEEDED：拒绝继续请求，丢弃刚加入的 user 消息
-							//（不留半截 turn；headless 收尾退出，交互回输入态）。
-							discard_messages_after(app, turn_start_idx - 1);
+							// EXCEEDED：拒绝继续请求，但保留本轮 user 消息（与 L1/L2 语义统一）。
+							// 不能连 user 一起丢弃：user_message 事件已写盘，内存删除会在
+							// transcript 留下幽灵 user 消息，resume 重建后上下文不一致。
+							// （headless 收尾退出；交互回输入态，用户自行 /clear。）
+							discard_messages_after(app, turn_start_idx);
 							if (app.flag.enable_headless)
 							{
 								state = headless_error_shutdown(app, turn_id, &session_ended);
@@ -399,6 +415,7 @@ fn void agent_loop(AppContext* app)
 						app.transcript.write_user_message(ensure_turn_id(heap, &turn_id), ev.text, true);
 						app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
 						app.start_new_session();
+						if (turn_id.len > 0) turn_id.free(heap);
 						turn_id = "";
 						push_notice(app, string::tformat("Start new session, session ID is %s", app.session_id));
 						if (!app.flag.enable_headless) push_ready(app);
@@ -556,10 +573,7 @@ fn void agent_loop(AppContext* app)
 						discard_messages_after(app, turn_start_idx);
 						if (app.flag.enable_headless)
 						{
-							app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
-							session_ended = true;
-							push_shutdown(app, 1);
-							state = AgentState.SHUTDOWN;
+							state = headless_interrupted_shutdown(app, turn_id, &session_ended);
 						}
 						else
 						{
@@ -616,10 +630,7 @@ fn void agent_loop(AppContext* app)
 				}
 				if (app.flag.enable_headless)
 				{
-					app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
-					session_ended = true;
-					push_shutdown(app, 1);
-					state = AgentState.SHUTDOWN;
+					state = headless_interrupted_shutdown(app, turn_id, &session_ended);
 				}
 				else
 				{
@@ -634,6 +645,10 @@ fn void agent_loop(AppContext* app)
 				break;
 		}
 	}
+
+	// 线程收尾：释放 turn 状态 heap（request_id 各次 dispatch 已释放，末轮可能残留）。
+	if (turn_id.len > 0) turn_id.free(heap);
+	if (request_id.len > 0) request_id.free(heap);
 }
 
 fn int agent_main(void* arg)

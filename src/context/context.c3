@@ -39,24 +39,25 @@ fn void message_init(Message* m, Allocator allocator, String role)
 }
 
 // 深拷贝一个 Message 到 allocator（跨线程通道负载用；调用方负责最终释放）。
+// 空串不拷贝（保持静态 ""，不占堆），与释放端 len 守卫配对——堆上只存在非空字符串。
 fn Message* message_clone(Allocator allocator, Message* src)
 {
 	Message* m = alloc::new(allocator, Message);
-	m.id = src.id.copy(allocator);
-	m.role = src.role.copy(allocator);
-	m.content = src.content.copy(allocator);
-	m.reasoning_content = src.reasoning_content.copy(allocator);
-	m.tool_call_id = src.tool_call_id.copy(allocator);
+	m.id = src.id.len > 0 ? src.id.copy(allocator) : "";
+	m.role = src.role.len > 0 ? src.role.copy(allocator) : "";
+	m.content = src.content.len > 0 ? src.content.copy(allocator) : "";
+	m.reasoning_content = src.reasoning_content.len > 0 ? src.reasoning_content.copy(allocator) : "";
+	m.tool_call_id = src.tool_call_id.len > 0 ? src.tool_call_id.copy(allocator) : "";
 	m.timestamp = src.timestamp;
 	m.tool_calls.init(allocator);
 	foreach (&tc : src.tool_calls)
 	{
 		m.tool_calls.push(
 			{
-				.id = tc.id.copy(allocator),
+				.id = tc.id.len > 0 ? tc.id.copy(allocator) : "",
 				.index = tc.index,
-				.name = tc.name.copy(allocator),
-				.arguments = tc.arguments.copy(allocator),
+				.name = tc.name.len > 0 ? tc.name.copy(allocator) : "",
+				.arguments = tc.arguments.len > 0 ? tc.arguments.copy(allocator) : "",
 			}
 		);
 	}

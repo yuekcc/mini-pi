@@ -102,6 +102,9 @@ fn int ui_loop_interactive(AppContext* app)
 				}
 			}
 			(void)app.ui_to_agent.push(ev);
+			// 本轮不再读 stdin：Ctrl+C 时缓冲可能残留字符，同轮再读会投出第二条
+			// 事件与取消事件竞态（L3 时尤为危险——先 /exit 后 USER_INPUT）。
+			continue;
 		}
 
 		// 等输入（Agent 空闲）：stdin 就绪即读取并投递
