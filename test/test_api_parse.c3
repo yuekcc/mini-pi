@@ -2,7 +2,7 @@ import std::io;
 import std::io::file;
 
 import api;
-import context;
+import message;
 
 // 验证单次流式响应中包含多个 tool_call 时，解析逻辑能按 index 正确拆分并识别。
 // 参考示例：logs/req_20260711_092017_200.json（一次返回 git diff 与 git status --short 两个 Bash 调用）

@@ -6,7 +6,7 @@ import std::os::process;
 import std::thread;
 
 import cjson;
-import context;
+import message;
 import transcript;
 import util;
 import util::cmd;
@@ -61,7 +61,7 @@ fn void test_transcript_serialization() @test
 	w.write_user_message("turn_1", "hello", false);
 
 	Message msg;
-	context::message_init(&msg, tmem, "assistant");
+	message::message_init(&msg, tmem, "assistant");
 	msg.content = "hi there";
 	msg.reasoning_content = "think step";
 	msg.tool_calls.push({ .id = "call_1", .index = 0, .name = "Bash", .arguments = "{\"command\":\"ls\"}" });
@@ -202,13 +202,13 @@ fn void test_transcript_resume_drops_tail() @test
 	w.write_user_message("turn_a", "question", false);
 
 	Message a1;
-	context::message_init(&a1, tmem, "assistant");
+	message::message_init(&a1, tmem, "assistant");
 	a1.tool_calls.push({ .id = "call_1", .index = 0, .name = "Bash", .arguments = "{\"command\":\"ls\"}" });
 	w.write_assistant_message("turn_a", "req_a", &a1);
 	w.write_tool_result("turn_a", "req_a", "call_1", "Bash", "{\"command\":\"ls\"}", "result content", "", 5, 0, true);
 
 	Message a2;
-	context::message_init(&a2, tmem, "assistant");
+	message::message_init(&a2, tmem, "assistant");
 	a2.tool_calls.push({ .id = "call_2", .index = 0, .name = "Grep", .arguments = "{}" });
 	w.write_assistant_message("turn_a", "req_b", &a2);
 
@@ -254,7 +254,7 @@ fn void test_transcript_resume_keeps_complete() @test
 	w.write_user_message("turn_a", "question", false);
 
 	Message a1;
-	context::message_init(&a1, tmem, "assistant");
+	message::message_init(&a1, tmem, "assistant");
 	a1.content = "final answer";
 	w.write_assistant_message("turn_a", "req_a", &a1);
 	w.write_session_end("turn_a", "exit", 1);

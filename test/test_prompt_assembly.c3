@@ -2,7 +2,7 @@ import std::io;
 import std::io::path;
 import std::io::file;
 
-import context;
+import app;
 import skill;
 import tool;
 import util;
@@ -21,7 +21,7 @@ fn void test_prompt_assembly_basic() @test
 	Path config_dir = path::new(tmem, "testdata/tmp_pa_cfg")!!;
 	Path cwd = path::cwd(tmem)!!;
 
-	String prompt = context::build_system_prompt(tmem, config_dir, cwd, &tool_hub, &skill_hub);
+	String prompt = app::build_system_prompt(tmem, config_dir, cwd, &tool_hub, &skill_hub);
 
 	// {{cwd}} 模板渲染
 	assert(prompt.contains(cwd), "cwd rendered into prompt");
@@ -51,7 +51,7 @@ fn void test_prompt_assembly_user_template() @test
 	tool_hub.init(tmem, {});
 	defer tool_hub.free();
 
-	String prompt = context::build_system_prompt(tmem, path::new(tmem, cfg)!!, path::cwd(tmem)!!, &tool_hub, null);
+	String prompt = app::build_system_prompt(tmem, path::new(tmem, cfg)!!, path::cwd(tmem)!!, &tool_hub, null);
 	assert(prompt.starts_with("CUSTOM SYSTEM TEMPLATE"), "user SYSTEM.md wins over embedded template");
 }
 
@@ -62,6 +62,6 @@ fn void test_prompt_assembly_no_tools() @test
 	tool_hub.init(tmem, {});
 	defer tool_hub.free();
 
-	String prompt = context::build_system_prompt(tmem, path::new(tmem, "testdata/tmp_pa_cfg")!!, path::cwd(tmem)!!, &tool_hub, null);
+	String prompt = app::build_system_prompt(tmem, path::new(tmem, "testdata/tmp_pa_cfg")!!, path::cwd(tmem)!!, &tool_hub, null);
 	assert(!prompt.contains("## Available Tools"), "no tools section when no tools enabled");
 }

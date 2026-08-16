@@ -1,10 +1,13 @@
-module context;
+module app;
 
-// 系统提示词装配（PromptAssembly）：从 Context.reset() 抽出的可重入纯函数。
+// 系统提示词装配（PromptAssembly）：从 AppContext.reset() 抽出的可重入纯函数。
 // 产物 = 模板渲染（{{cwd}}/{{date}}/{{os}}）+ behavioral guideline + tools 列表
 //        + tools_memo + AGENTS.md（<project_instructions>）+ 已安装 skill 列表。
 // 调用点：AppContext.reset()（新会话与 /clear 时重新装配）；--resume 用 transcript
 // 快照不重装。产物存入 AppContext.system_prompt_snapshot，session_start 直接引用。
+//
+// 历史：曾为独立 context 模块，重构后并入 app 模块（唯一调用方是 AppContext）。
+// 模板 $embed 路径相对源文件，3 个 .md 模板随本文件放在 src/app/。
 
 import std::io::path;
 import std::io::file;

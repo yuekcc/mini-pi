@@ -58,6 +58,7 @@ src/
   main.c3                   # 入口：Flag 解析、AppContext 初始化、线程创建、UI 事件循环、shutdown
   cli.c3                    # Flag 结构体与命令行解析（默认值、帮助文本）
   rat_loop.c3               # Agent 线程主循环（显式状态机 + 工具游标调度 + transcript 事件写入点）
+  message.c3                # Message/ToolCall 类型与生命周期（叶子模块，无项目依赖）
   skill.c3                  # SkillHub：扫描 ~/.agents/skills 与 .agents/skills
   transcript.c3             # TranscriptWriter：对象化，全部事件只在 Agent 线程写
   log.c3                    # Logger 对象化（mutex + 文件 sink + 控制台 sink 转发）
@@ -66,10 +67,8 @@ src/
   app/
     app.c3                  # AppContext：定义、init、所有权分区、reset/start_new_session
     event.c3                # 事件类型与通道负载（UiEvent / UiOutEvent / ApiRequest / ApiResponse）
+    prompt_assembly.c3      # 系统提示词装配（纯函数，并入 app 模块）
     token_ledger.c3         # TokenLedger（新增）：累计 + 预算判定
-  context/
-    context.c3              # Message/ToolCall 类型、message_init/clone/free、build_system_prompt()
-    prompt_assembly.c3      # 系统提示词装配（从 context 抽出的可重入函数）
     system_prompt_template.md      # {{cwd}}/{{date}}/{{os}} 占位模板
     behavioral_guideline_template.md  # 行为准则注入
     tools_memo_template.md      # 注入系统提示词的工具使用规范
@@ -239,9 +238,9 @@ fn BudgetVerdict check_budget(&self);  // OK / WARN / EXCEEDED
 - `TaskTool` 的父 request_id 从 `AppContext.active_request_id` 读取（Agent 线程持有，无 tlocal）；`skill.c3` 预留的全局变量已删除。
 - hub 初始化后只读访问、schema 预计算，无锁。
 
-#### PromptAssembly（`src/context/prompt_assembly.c3`）
+#### PromptAssembly（`src/app/prompt_assembly.c3`）
 
-- 系统提示词装配抽出为可重入函数：`/clear` 时重新装配；`--resume` 时用快照不重装；产物存入 `system_prompt_snapshot`。`Context` 结构体本身合并进 `AppContext`（`Message`/`ToolCall` 类型保留在 `context` 模块）。
+- 系统提示词装配抽出为可重入函数：`/clear` 时重新装配；`--resume` 时用快照不重装；产物存入 `system_prompt_snapshot`。`Context` 结构体本身合并进 `AppContext`；`Message`/`ToolCall` 类型独立为叶子模块 `src/message.c3`（避免 app↔transcript 循环 import）。
 
 ### 4.4 跨线程内存规则
 

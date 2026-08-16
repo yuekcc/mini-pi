@@ -1,7 +1,11 @@
-module context;
+module message;
 
-// 会话消息类型（Message/ToolCall）——v2 中 AppContext 持有 messages 列表，
-// 类型本身保留在本模块（context 模块现只承载类型与提示词装配纯函数）。
+// 会话消息类型（Message/ToolCall）与生命周期函数——独立叶子模块。
+//
+// 历史：类型曾位于 context 模块（与 PromptAssembly 同住）。v2 中 AppContext 持有
+// messages 列表，但类型若搬进 app 模块会与 transcript 形成循环 import（app import
+// transcript，transcript 需要 message_init），故独立成无依赖的叶子模块，任何人可 import。
+// 模块内只依赖 std，不 import 任何项目模块。
 
 import std::collections::list;
 import std::time::datetime;

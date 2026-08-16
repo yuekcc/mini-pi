@@ -8,7 +8,7 @@ module app;
 
 import std::collections::list;
 
-import context;
+import message;
 import transcript;
 
 // ---- ui → agent ------------------------------------------------------------

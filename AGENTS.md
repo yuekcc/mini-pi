@@ -5,10 +5,10 @@
 ```sh
 /src
     /api          # LLM API（请求构造、SSE 解析、curl multi 执行）与 API worker 线程
-    /app          # AppContext（统一全局状态）+ TokenLedger + 事件类型/通道
-    /context      # 消息类型与系统提示词装配（含 3 个 prompt 模板）
+    /app          # AppContext（统一全局状态）+ TokenLedger + 事件类型/通道 + 提示词装配（含 3 个 prompt 模板）
     /tool         # 工具系统（ToolHub + 工具实现 + JSON Schema）
     /util         # 通用工具（子进程、哈希、ID、输入轮询、Ctrl+C、Markdown 解析）
+    message.c3    # 会话消息类型（Message/ToolCall）与生命周期（叶子模块）
     transcript.c3 # TranscriptWriter（会话 JSONL 落盘，支撑 --resume，schema v1）
     main.c3 / cli.c3 / rat_loop.c3 / skill.c3 / log.c3 / ui.c3 / version.c3
 /test             # 单元测试（80 个，含进程级集成与中断注入）

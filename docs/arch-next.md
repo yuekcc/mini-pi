@@ -223,7 +223,7 @@ struct Logger
 
 - 现状：`Context.reset()` 内联装配 system prompt。
 - 目标：`PromptAssembly` 可重入函数（`/clear` 时重新装配；`--resume` 时用快照），产物存入 `AppContext.system_prompt_snapshot`，`session_start` 事件直接引用。
-- `Context` 结构体本身合并进 `AppContext`（`Message`/`ToolCall` 类型保留在 `context` 模块或并入 `app`）。
+- `Context` 结构体本身合并进 `AppContext`；`Message`/`ToolCall` 类型独立为叶子模块 `src/message.c3`（并入 `app` 会与 `transcript` 循环 import，故独立）。
 
 ### 4.4 tmem 与跨线程内存规则（NFR-1 落地）
 
@@ -530,9 +530,8 @@ src/
     app.c3              # AppContext：定义、init、所有权分区（取代 global.c3 的大部分）
     token_ledger.c3     # TokenLedger（新增）
     event.c3            # 事件类型定义 + 通道封装（新增）
-  context/
-    prompt_assembly.c3  # 系统提示词装配（从 context.c3 抽出）
-    message.c3          # Message/ToolCall 类型（从 context.c3 抽出）
+    prompt_assembly.c3  # 系统提示词装配（并入 app 模块；模板 .md 同目录）
+  message.c3            # Message/ToolCall 类型与生命周期（独立叶子模块）
   api/
     api.c3              # 请求体构造 + SSE 解析（纯函数化，去除 global/transcript 依赖）
     api_worker.c3       # worker 主循环 + curl multi（新增）

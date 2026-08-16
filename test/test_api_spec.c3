@@ -8,7 +8,7 @@ import std::io;
 import std::io::file;
 
 import api;
-import context;
+import message;
 import cjson;
 import cli;
 import tool;
@@ -387,20 +387,20 @@ fn AppContext* fixture_ctx_full(Allocator allocator, bool with_tool_calls, bool 
 
 	// system message
 	Message sys;
-	context::message_init(&sys, allocator, "system");
+	message::message_init(&sys, allocator, "system");
 	sys.content = "You are a test assistant.";
 	ctx.add_message(&sys);
 
 	// user message
 	Message user;
-	context::message_init(&user, allocator, "user");
+	message::message_init(&user, allocator, "user");
 	user.content = "Hello";
 	ctx.add_message(&user);
 
 	if (with_reasoning)
 	{
 		Message asst;
-		context::message_init(&asst, allocator, "assistant");
+		message::message_init(&asst, allocator, "assistant");
 		asst.reasoning_content = "I should greet back";
 		asst.content = "Hi there!";
 		ctx.add_message(&asst);
@@ -409,7 +409,7 @@ fn AppContext* fixture_ctx_full(Allocator allocator, bool with_tool_calls, bool 
 	if (with_tool_calls)
 	{
 		Message asst;
-		context::message_init(&asst, allocator, "assistant");
+		message::message_init(&asst, allocator, "assistant");
 		asst.content = "";
 		ToolCall tc;
 		tc.id = "call_test1";
@@ -420,7 +420,7 @@ fn AppContext* fixture_ctx_full(Allocator allocator, bool with_tool_calls, bool 
 		ctx.add_message(&asst);
 
 		Message tool_msg;
-		context::message_init(&tool_msg, allocator, "tool");
+		message::message_init(&tool_msg, allocator, "tool");
 		tool_msg.content = "file1\nfile2";
 		tool_msg.tool_call_id = "call_test1";
 		ctx.add_message(&tool_msg);

@@ -3,7 +3,7 @@ import std::collections::object;
 import std::collections::list;
 import std::encoding::json;
 import api;
-import context;
+import message;
 
 fn void test_http_request() @test
 {

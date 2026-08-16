@@ -1,6 +1,6 @@
 import std::io;
 
-import context;
+import message;
 import skill;
 import tool;
 import util;

@@ -10,7 +10,7 @@ import cli;
 import curl;
 import tool;
 import skill;
-import context;
+import message;
 import rat_loop;
 import api;
 import app;
@@ -44,7 +44,7 @@ fn int drain_and_render(AppContext* app, bool* ready_seen)
 		// 释放事件负载
 		if (ev.kind == UiOutKind.RENDER_MESSAGE)
 		{
-			if (ev.msg) context::message_free(app.allocator, ev.msg);
+			if (ev.msg) message::message_free(app.allocator, ev.msg);
 			if (ev.tool_name.len > 0) ev.tool_name.free(app.allocator);
 		}
 		else if (ev.text.len > 0)
