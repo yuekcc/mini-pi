@@ -20,7 +20,7 @@
           "description": "A short description for the task"
         }
       },
-      "required": ["command", "prompt", "description"],
+      "required": ["agent", "prompt", "description"],
       "additionalProperties": false
     }
   }
