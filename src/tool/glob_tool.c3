@@ -26,6 +26,12 @@ fn void? find(Allocator allocator, DString* out, String pattern, String file_pat
 		final_command.push(file_path);
 	}
 
+	if (limit > 0)
+	{
+		final_command.push("--max-results");
+		final_command.push(string::format(tmem, "%d", limit));
+	}
+
 	CommandResult result = cmd::execute(allocator, final_command.to_array(tmem))!;
 	if (result.code == 0)
 	{
@@ -50,7 +56,7 @@ fn String GlobTool.name(&self) @dynamic
 
 fn String GlobTool.description(&self) @dynamic
 {
-	return "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to 500 results.";
+	return "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to at most `limit` results (default: 500).";
 }
 
 fn String GlobTool.schema(&self) @dynamic
@@ -62,5 +68,6 @@ fn void? GlobTool.execute(&self, ToolContext* ctx, Allocator allocator, DString*
 {
 	String pattern   = args.get_key_string("pattern", tmem) ?? "";
 	String file_path = args.get_key_string("path", tmem) ?? "";
-	find(allocator, out, pattern, file_path)!;
+	int limit = args.get_key_int("limit") ?? 500;
+	find(allocator, out, pattern, file_path, limit)!;
 }

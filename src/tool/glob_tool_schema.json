@@ -3,7 +3,7 @@
   "function": {
     "name": "Glob",
     "strict": true,
-    "description": "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to 500 results.",
+    "description": "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore. Output is truncated to at most `limit` results (default: 500).",
     "parameters": {
       "type": "object",
       "properties": {
@@ -17,7 +17,7 @@
         },
         "limit": {
           "type": "number",
-          "description": "Maximum number of results (default: 1000)"
+          "description": "Maximum number of results (default: 500)"
         }
       },
       "required": ["pattern"],

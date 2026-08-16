@@ -72,7 +72,7 @@ fn String BashTool.name(&self) @dynamic
 
 fn String BashTool.description(&self) @dynamic
 {
-	return "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines. If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.";
+	return "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines. If truncated, full output is saved to a temp file.";
 }
 
 fn String BashTool.schema(&self) @dynamic
