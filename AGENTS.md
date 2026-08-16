@@ -38,6 +38,7 @@ project.json      # 项目定义（version 2.0.0）
 - **tool ↔ app 循环 import**：c3 0.8.3 不支持循环 import，工具接口收 `ToolContext*` 而非 `AppContext*`。
 - **c3 0.8.3 不支持模块级 `$if`**：平台条件编译只能写在函数体内；平台 extern 声明一律无条件声明（未使用平台不引用，不参与链接）。
 - **杀子进程必须整树击杀**（Windows `taskkill /F /T`，且 spawn 必须 `INHERIT_ENV`，否则 taskkill 报「module could not be found」）：孙进程继承 stdout 管道写端，只杀 sh 管道不 EOF、read_stdout 挂到孙进程退出。
+- **已知限制**：POSIX 平台 L2 中断只 `kill(pid, SIGKILL)` 单进程（c3 std `SpawnOptions` 无 setpgid，进程组击杀待支持后改进）——sh 被杀而孙进程残留时管道不 EOF，`read_stdout` 可能挂到孙进程退出。
 - **版本号**：非 RELEASE 硬编码 `2.0.0`；RELEASE 构建由 `scripts/version.sh` 注入 `2.0.0-<commit>`。
 - **外部运行时依赖**：`rg`(ripgrep)、`fd`、`sh`，分别被 Grep / Glob / Bash 调用，需系统已安装。`ListDir` 是纯 c3 实现（用 `std::io::path::ls`），无外部命令依赖。
 

@@ -49,7 +49,7 @@ flowchart LR
     w_req --> w_http
 ```
 
-> 关键点：`AppContext` 是**单写者多读者**结构——可变状态（messages、token、turns、active_request_id、transcript 事件）只有 Agent 线程写；UI 与 API worker 只通过通道收发**消息副本**。只有两处共享可变原语：`atomic cancel_flag` 与 `Logger` 内部 mutex（保护文件句柄）。
+> 关键点：`AppContext` 是**单写者多读者**结构——可变状态（messages、token、turns、active_request_id、transcript 事件）只有 Agent 线程写；UI 与 API worker 只通过通道收发**消息副本**。共享可变原语共四处：`atomic cancel_flag`（请求取消）、`atomic g_current_child_handle`（L2 杀子进程，Agent 单写 / UI 读）、`atomic g_ctrl_c`（Ctrl+C handler 单写 / 主循环读）与 `Logger` 内部 mutex（保护文件句柄）。另有一个写一次后只读的全局 `g_notice_sink/g_notice_ctx`（控制台 sink 回调转发，无竞争）。
 
 ## 2. 目录结构
 
@@ -193,6 +193,9 @@ struct AppContext
 | transcript | Agent | — | 无（写点唯一，见 §8） |
 | logger 文件句柄 | 任意线程 | — | 内部 mutex |
 | cancel_flag | 任意线程 set | API worker / Agent / 主循环轮询 | atomic |
+| g_current_child_handle | Agent（工具执行期） | UI（L2 杀子进程） | atomic |
+| g_ctrl_c | Ctrl+C handler | 主循环 | atomic |
+| g_notice_sink / g_notice_ctx | main（启动期） | 非主线程日志转发 | 无（初始化后只读） |
 
 ### 4.3 子系统对象化明细
 

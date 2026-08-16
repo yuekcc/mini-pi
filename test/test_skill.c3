@@ -6,7 +6,7 @@ import util;
 fn void test_parse_markdown() @test
 {
 	String text = (String)file::load(tmem, "resources/skills/prd/SKILL.md")!!;
-	Markdown* result = util::parse_markdown(text);
+	Markdown* result = util::parse_markdown(tmem, text);
 
 	assert(result.body.starts_with("# Product Requirements Document (PRD)"));
 	assert(result.body.ends_with("- **Pass Rate**: 90% must match expected citations."));

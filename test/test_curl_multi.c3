@@ -310,9 +310,13 @@ struct CancelCtx
 
 fn int cancel_after_300ms(void* arg)
 {
-	CancelCtx* ctx = (CancelCtx*)arg;
-	thread::sleep_ms(300);
-	ctx.flag.store(true);
+	// 新线程必须 @pool_init 包裹才能使用 tmem（本函数未用 tmem，保持规则一致）。
+	@pool_init(&allocators::LIBC_ALLOCATOR, 64 * 1024)
+	{
+		CancelCtx* ctx = (CancelCtx*)arg;
+		thread::sleep_ms(300);
+		ctx.flag.store(true);
+	};
 	return 0;
 }
 
