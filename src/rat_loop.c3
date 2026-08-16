@@ -84,7 +84,7 @@ fn void push_render(AppContext* app, Message* msg, String tool_name)
 {
 	UiOutEvent ev = {
 		.kind = UiOutKind.RENDER_MESSAGE,
-		.msg = message::message_clone(app.allocator, msg),
+		.msg = msg.clone(app.allocator),
 		// 空串不拷贝（保持静态 ""），与释放端 len 守卫配对。
 		.tool_name = tool_name.len > 0 ? tool_name.copy(app.allocator) : "",
 	};
@@ -195,7 +195,7 @@ fn void discard_messages_after(AppContext* app, sz keep_before)
 	while (app.messages.len() > keep_before)
 	{
 		Message* last = app.messages.get_ref(app.messages.len() - 1);
-		message::message_strings_free(app.allocator, last);
+		last.free_strings(app.allocator);
 		(void)app.messages.pop();
 	}
 }
@@ -262,7 +262,7 @@ fn bool execute_one_tool(AppContext* app, String turn_id, String request_id, Mes
 
 	DString buf = dstring::new(tmem);
 	Message reply;
-	message::message_init(&reply, tmem, "tool");
+	reply.init(tmem, "tool");
 	reply.tool_call_id = tc_id.copy(tmem);
 
 	CJsonItem* tool_args = cjson::parse((ZString)tc_args);
@@ -378,11 +378,11 @@ fn void agent_loop(AppContext* app)
 					{
 						start_user_turn(app, &turn_id, ev.text, false);
 						Message* user_msg = alloc::new(heap, Message);
-						message::message_init(user_msg, heap, "user");
+						user_msg.init(heap, "user");
 						user_msg.content = ev.text.copy(heap);
 						push_render(app, user_msg, "");
 						app.add_message(user_msg);
-						message::message_free(heap, user_msg);
+						user_msg.free(heap);
 						turn_start_idx = app.messages.len() - 1;
 
 						// 预算检查在生成 request_id 之前：token_warning 为 turn 级事件

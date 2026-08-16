@@ -372,7 +372,7 @@ fn void api_request_free(ApiRequest* req, Allocator heap)
 fn void api_response_free(ApiResponse* resp, Allocator heap)
 {
 	if (resp.request_id.len > 0) resp.request_id.free(heap);
-	if (resp.message) message::message_free(heap, resp.message);
+	if (resp.message) resp.message.free(heap);
 	if (resp.finish_reason.len > 0) resp.finish_reason.free(heap);
 	if (resp.error_detail.len > 0) resp.error_detail.free(heap);
 }

@@ -406,7 +406,7 @@ fn bool TranscriptWriter.resume_into(&self, List{Message}* messages, int* turns_
 			if (!system_seen && sp.len > 0)
 			{
 				Message sys;
-				message::message_init(&sys, self.allocator, "system");
+				sys.init(self.allocator, "system");
 				sys.content = sp.copy(self.allocator);
 				messages.push(sys);
 				system_seen = true;
@@ -419,7 +419,7 @@ fn bool TranscriptWriter.resume_into(&self, List{Message}* messages, int* turns_
 			{
 				String content_val = event.get_key_string("content", tmem) ?? "";
 				Message user;
-				message::message_init(&user, self.allocator, "user");
+				user.init(self.allocator, "user");
 				user.content = content_val.copy(self.allocator);
 				messages.push(user);
 				last_user_idx = messages.len() - 1;
@@ -432,7 +432,7 @@ fn bool TranscriptWriter.resume_into(&self, List{Message}* messages, int* turns_
 		else if (type == TYPE_ASSISTANT_MESSAGE)
 		{
 			Message asst;
-			message::message_init(&asst, self.allocator, "assistant");
+			asst.init(self.allocator, "assistant");
 			asst.content = (event.get_key_string("content", tmem) ?? "").copy(self.allocator);
 			asst.reasoning_content = (event.get_key_string("reasoning_content", tmem) ?? "").copy(self.allocator);
 			if (CJsonItem* calls = event.get_key("tool_calls"))
@@ -455,7 +455,7 @@ fn bool TranscriptWriter.resume_into(&self, List{Message}* messages, int* turns_
 		else if (type == TYPE_TOOL_RESULT)
 		{
 			Message tool_msg;
-			message::message_init(&tool_msg, self.allocator, "tool");
+			tool_msg.init(self.allocator, "tool");
 			tool_msg.tool_call_id = (event.get_key_string("tool_call_id", tmem) ?? "").copy(self.allocator);
 			tool_msg.content = (event.get_key_string("output", tmem) ?? "").copy(self.allocator);
 			messages.push(tool_msg);

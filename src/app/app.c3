@@ -135,7 +135,7 @@ fn void AppContext.reset(&self)
 	self.system_prompt_snapshot = system_prompt;
 
 	Message system_msg;
-	message::message_init(&system_msg, self.allocator, "system");
+	system_msg.init(self.allocator, "system");
 	system_msg.content = system_prompt.copy(self.allocator);
 	self.messages.push(system_msg);
 	self.updated_at = datetime::now().to_local();
@@ -170,7 +170,7 @@ fn void AppContext.write_session_start_event(&self)
 
 fn void AppContext.add_message(&self, Message* message)
 {
-	Message* cloned = message::message_clone(self.allocator, message);
+	Message* cloned = message.clone(self.allocator);
 	self.messages.push(*cloned);
 	alloc::free(self.allocator, cloned);
 	self.updated_at = datetime::now().to_local();

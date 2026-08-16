@@ -4,7 +4,7 @@ module message;
 //
 // 历史：类型曾位于 context 模块（与 PromptAssembly 同住）。v2 中 AppContext 持有
 // messages 列表，但类型若搬进 app 模块会与 transcript 形成循环 import（app import
-// transcript，transcript 需要 message_init），故独立成无依赖的叶子模块，任何人可 import。
+// transcript，transcript 需要 Message.init），故独立成无依赖的叶子模块，任何人可 import。
 // 模块内只依赖 std，不 import 任何项目模块。
 
 import std::collections::list;
@@ -31,7 +31,7 @@ struct Message
 
 // 初始化一个 Message，role 拷贝进 allocator，tool_calls 列表也用同一 allocator 建立。
 // 其余字段留空，调用方按需填充。
-fn void message_init(Message* m, Allocator allocator, String role)
+fn void Message.init(Message* m, Allocator allocator, String role)
 {
 	m.id = "";
 	m.role = role.copy(allocator);
@@ -44,7 +44,7 @@ fn void message_init(Message* m, Allocator allocator, String role)
 
 // 深拷贝一个 Message 到 allocator（跨线程通道负载用；调用方负责最终释放）。
 // 空串不拷贝（保持静态 ""，不占堆），与释放端 len 守卫配对——堆上只存在非空字符串。
-fn Message* message_clone(Allocator allocator, Message* src)
+fn Message* Message.clone(Message* src, Allocator allocator)
 {
 	Message* m = alloc::new(allocator, Message);
 	m.id = src.id.len > 0 ? src.id.copy(allocator) : "";
@@ -68,16 +68,16 @@ fn Message* message_clone(Allocator allocator, Message* src)
 	return m;
 }
 
-// 释放 message_clone 产物（所有字符串均为 allocator 堆分配；静态 "" 由 len 守卫跳过）。
-fn void message_free(Allocator allocator, Message* m)
+// 释放 clone 产物（所有字符串均为 allocator 堆分配；静态 "" 由 len 守卫跳过）。
+fn void Message.free(Message* m, Allocator allocator)
 {
-	message_strings_free(allocator, m);
+	m.free_strings(allocator);
 	alloc::free(allocator, m);
 }
 
 // 只释放 Message 的字符串负载（列表内嵌的结构体由 List 持有，不能整体 free）。
 // 用于 L2 丢弃半成品 turn 等「弹出列表元素」的场景。
-fn void message_strings_free(Allocator allocator, Message* m)
+fn void Message.free_strings(Message* m, Allocator allocator)
 {
 	if (m.id.len > 0) m.id.free(allocator);
 	if (m.role.len > 0) m.role.free(allocator);
