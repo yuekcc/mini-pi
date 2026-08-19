@@ -68,6 +68,42 @@ struct AppContext
 	Thread api_thread;
 }
 
+// ---- Agent → UI 事件推送辅助（自 rat_loop 移入；文本 heap 分配，UI 释放）----
+
+fn void push_notice(AppContext* app, String text)
+{
+	UiOutEvent ev = {
+		.kind = UiOutKind.NOTICE,
+		.text = text.copy(app.allocator),
+	};
+	(void)app.agent_to_ui.push(ev);
+}
+
+fn void push_render(AppContext* app, Message* msg, String tool_name)
+{
+	UiOutEvent ev = {
+		.kind = UiOutKind.RENDER_MESSAGE,
+		.msg = msg.clone(app.allocator),
+		// 空串不拷贝（保持静态 ""），与释放端 len 守卫配对。
+		.tool_name = tool_name.len > 0 ? tool_name.copy(app.allocator) : "",
+	};
+	(void)app.agent_to_ui.push(ev);
+}
+
+fn void push_shutdown(AppContext* app, int exit_code)
+{
+	UiOutEvent ev = { .kind = UiOutKind.SHUTDOWN, .exit_code = exit_code };
+	(void)app.agent_to_ui.push(ev);
+}
+
+fn void push_ready(AppContext* app)
+{
+	// 回到 IDLE：清除残留取消信号（L1 中断处理完 / 工具阶段遗留），避免污染下一轮请求。
+	app.cancel_flag.store(false);
+	UiOutEvent ev = { .kind = UiOutKind.READY };
+	(void)app.agent_to_ui.push(ev);
+}
+
 fn AppContext* AppContext.init(
 	&self,
 	Flag flag,
@@ -140,7 +176,8 @@ fn void AppContext.reset(&self)
 }
 
 // /clear：收尾旧会话（session_end(interrupted)）→ 新 session_id → 重新装配提示词
-// → 写 session_start。调用方（Agent 线程）负责保证 transcript/ledger 单写。
+// → 写 session_start。调用方（Agent 线程）负责保证 transcript/ledger 单写；
+// 「先收尾旧会话再调用」的顺序由 Session.end_and_start_new 保证（arch review 卡 1）。
 fn void AppContext.start_new_session(&self)
 {
 	self.session_id.free(self.allocator);

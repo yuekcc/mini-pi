@@ -2,8 +2,10 @@ module rat_loop;
 
 // Agent 线程主函数（v2 三线程拓扑，arch-next-spec 决策 8/10）。
 //
-// 职责：turn 管理、工具游标调度、消息装配、请求体快照构造、transcript 全部事件
-// 写入、token 记账、/clear /export 处理。禁止：阻塞等 stdin、直接执行 HTTP。
+// 职责：turn 调度、工具游标调度、消息装配、请求体快照构造、transcript 全部事件
+// 写入、token 记账、/clear /export 处理。turn/会话生命周期已收进 app::Session
+//（arch review 卡 1：session_end 唯一出口、半成品 turn 丢弃、token 预算判定、
+// headless/交互双出口）。禁止：阻塞等 stdin、直接执行 HTTP。
 //
 // 显式状态机（取代 v1 隐式游标状态）：
 //   IDLE           等 UI 输入（阻塞点 1：ui_to_agent.pop）
@@ -13,8 +15,9 @@ module rat_loop;
 //   SHUTDOWN       写 session_end → 线程退出
 // 空闲零 CPU：两个阻塞点都在通道 pop 上。
 //
-// 线程常驻：turn 状态（turn_id / tool_call_cursor / pending_assistant_idx）留在
-// 状态机局部变量，这是「messages/token/transcript 由 Agent 单写、无需锁」的前提。
+// 线程常驻：turn 状态（turn_id / turn_start_idx / session_ended 在 Session，
+// tool_call_cursor / pending_assistant_idx / request_id 在状态机局部变量），
+// 这是「messages/token/transcript 由 Agent 单写、无需锁」的前提。
 
 import std::io;
 import std::os;
@@ -69,136 +72,7 @@ fn String load_init_message(Allocator allocator, Flag* flag)
 	return message.copy(allocator);
 }
 
-// ---- UI 事件推送辅助（Agent → UI 通道；文本 heap 分配，UI 释放）----------------
-
-fn void push_notice(AppContext* app, String text)
-{
-	UiOutEvent ev = {
-		.kind = UiOutKind.NOTICE,
-		.text = text.copy(app.allocator),
-	};
-	(void)app.agent_to_ui.push(ev);
-}
-
-fn void push_render(AppContext* app, Message* msg, String tool_name)
-{
-	UiOutEvent ev = {
-		.kind = UiOutKind.RENDER_MESSAGE,
-		.msg = msg.clone(app.allocator),
-		// 空串不拷贝（保持静态 ""），与释放端 len 守卫配对。
-		.tool_name = tool_name.len > 0 ? tool_name.copy(app.allocator) : "",
-	};
-	(void)app.agent_to_ui.push(ev);
-}
-
-fn void push_shutdown(AppContext* app, int exit_code)
-{
-	UiOutEvent ev = { .kind = UiOutKind.SHUTDOWN, .exit_code = exit_code };
-	(void)app.agent_to_ui.push(ev);
-}
-
-fn void push_ready(AppContext* app)
-{
-	// 回到 IDLE：清除残留取消信号（L1 中断处理完 / 工具阶段遗留），避免污染下一轮请求。
-	app.cancel_flag.store(false);
-	UiOutEvent ev = { .kind = UiOutKind.READY };
-	(void)app.agent_to_ui.push(ev);
-}
-
 // ---- Agent 状态机 -----------------------------------------------------------
-
-// 一轮用户输入的公共起点：生成 turn_id、累计轮次、写 user_message 事件、开启新轮记账。
-// turn_id 为 heap 分配：覆盖旧值前先释放（跨轮唯一泄漏点之一，与 request_id 同模式）。
-fn void start_user_turn(AppContext* app, String* turn_id, String content, bool is_command)
-{
-	if (turn_id.len > 0) turn_id.free(app.allocator);
-	*turn_id = util::timestamp_id(app.allocator);
-	app.turns_total++;
-	app.token_ledger.begin_turn();
-	app.transcript.write_user_message(*turn_id, content, is_command);
-}
-
-// 斜杠命令也需合法 turn_id（会话首命令时为空）。
-fn String ensure_turn_id(Allocator allocator, String* turn_id)
-{
-	if (turn_id.len == 0) *turn_id = util::timestamp_id(allocator);
-	return *turn_id;
-}
-
-// 请求前 token 预算检查（TokenLedger 三态判定）：
-//   OK → 放行；WARN → 写 system_event(token_warning) + UI 提示后放行；
-//   EXCEEDED → 拒绝继续请求并提示（v1 范围只实现 WARN 的落盘与展示，compaction 预留）。
-fn bool check_token_budget(AppContext* app, String turn_id, String request_id)
-{
-	BudgetVerdict verdict = app.token_ledger.check_budget();
-	switch (verdict)
-	{
-		case BudgetVerdict.OK:
-			return true;
-		case BudgetVerdict.WARN:
-		{
-			CJsonItem* detail = cjson::new_object(tmem);
-			detail.set("estimated_tokens", app.token_ledger.estimated_prompt_tokens());
-			detail.set("context_window_limit", app.token_ledger.context_window_limit);
-			detail.set("soft_ratio", app.token_ledger.soft_ratio);
-			app.transcript.write_system_event(turn_id, request_id, transcript::SUBTYPE_TOKEN_WARNING, "warn", detail);
-			push_notice(
-				app,
-				string::tformat(
-					"Token budget warning: ~%d/%d tokens used (soft threshold %.0f%%)",
-					app.token_ledger.estimated_prompt_tokens(),
-					app.token_ledger.context_window_limit,
-					app.token_ledger.soft_ratio * 100
-				)
-			);
-			return true;
-		}
-		case BudgetVerdict.EXCEEDED:
-			push_notice(
-				app,
-				string::tformat(
-					"Token budget exceeded: ~%d/%d tokens (hard threshold %.0f%%). Please /clear or start a new session.",
-					app.token_ledger.estimated_prompt_tokens(),
-					app.token_ledger.context_window_limit,
-					app.token_ledger.hard_ratio * 100
-				)
-			);
-			return false;
-	}
-}
-
-// headless 错误/超限收尾：session_end(error) + SHUTDOWN(exit 1)。
-fn AgentState headless_error_shutdown(AppContext* app, String turn_id, bool* session_ended)
-{
-	app.transcript.write_session_end(turn_id, "error", app.turns_total);
-	*session_ended = true;
-	push_shutdown(app, 1);
-	return AgentState.SHUTDOWN;
-}
-
-// headless 中断收尾：session_end(interrupted) + SHUTDOWN(exit 1)（FR-8 语义）。
-// L2 工具中断与 L1 CANCELLING 共用。
-fn AgentState headless_interrupted_shutdown(AppContext* app, String turn_id, bool* session_ended)
-{
-	app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
-	*session_ended = true;
-	push_shutdown(app, 1);
-	return AgentState.SHUTDOWN;
-}
-
-// 弹出下标 > keep_before 的全部消息（释放字符串负载；列表内嵌结构体由 List 持有）。
-// L2 丢弃半成品 turn / EXCEEDED 拒绝：keep_before = 本轮 user 消息下标
-//（user 保留，同 L1 语义；transcript 已写 user_message 事件，内存删除会造成
-// resume 幽灵消息，故一律保留 user）。
-fn void discard_messages_after(AppContext* app, sz keep_before)
-{
-	while (app.messages.len() > keep_before)
-	{
-		Message* last = app.messages.get_ref(app.messages.len() - 1);
-		last.free_strings(app.allocator);
-		(void)app.messages.pop();
-	}
-}
 
 // 构造请求快照并投递 API worker，进入 AWAITING_API。request_id 由 Agent 生成
 // （heap 分配，跨 turn 存活；旧值先释放）。request_id 以参数传给
@@ -236,7 +110,7 @@ fn void handle_api_success(AppContext* app, String turn_id, String request_id, A
 
 	app.transcript.write_assistant_message(turn_id, request_id, message);
 
-	push_render(app, message, "");
+	app::push_render(app, message, "");
 	app.add_message(message);
 }
 
@@ -306,7 +180,7 @@ fn bool execute_one_tool(AppContext* app, String turn_id, String request_id, Mes
 		meta.output_file, tool_duration_ms, meta.exit_code, meta.has_exit_code
 	);
 
-	push_render(app, &reply, tc_name);
+	app::push_render(app, &reply, tc_name);
 	app.add_message(&reply);
 	return false;
 }
@@ -325,7 +199,7 @@ fn void agent_loop(AppContext* app)
 		if (!app.transcript.resume_into(&app.messages, &app.turns_total))
 		{
 			log::error("Failed to resume session '%s'", app.session_id);
-			push_shutdown(app, 1);
+			app::push_shutdown(app, 1);
 			return;
 		}
 	}
@@ -335,22 +209,23 @@ fn void agent_loop(AppContext* app)
 		app.write_session_start_event();
 	}
 
-	AgentState state = AgentState.IDLE;
-	bool session_ended = false;
+	Session session;
+	session.init(app);
 
-	// turn 状态（状态机局部变量；Agent 单写 messages/token/transcript 的前提）
-	String turn_id = "";
+	AgentState state = AgentState.IDLE;
+
+	// turn 状态（状态机局部变量；Agent 单写 messages/token/transcript 的前提）。
+	// turn_id / turn_start_idx / session_ended 已收进 Session（app 模块，卡 1）。
 	String request_id = "";
 	sz tool_call_cursor = 0;
 	sz pending_assistant_idx = 0;
-	sz turn_start_idx = 0; // 当前 turn 的 user 消息下标（L2 丢弃半成品 turn 的边界）
 	// L1 取消上下文（AWAITING_API → CANCELLING 迁移时携带）
 	bool cancel_pending = false;
 	long cancel_latency = 0;
 	bool cancel_has_partial = false;
 
 	// 交互模式：启动即就绪，UI 打印输入提示
-	if (!app.flag.enable_headless) push_ready(app);
+	if (!app.flag.enable_headless) app::push_ready(app);
 
 	while (state != AgentState.SHUTDOWN)
 	{
@@ -363,11 +238,7 @@ fn void agent_loop(AppContext* app)
 				{
 					// CHANNEL_CLOSED：shutdown 信号（main 关闭输入通道）→ 收尾退出
 					if (e != thread::CHANNEL_CLOSED) break;
-					if (!session_ended)
-					{
-						app.transcript.write_session_end(turn_id, "exit", app.turns_total);
-						session_ended = true;
-					}
+					session.end("exit");
 					state = AgentState.SHUTDOWN;
 					break;
 				}
@@ -376,71 +247,60 @@ fn void agent_loop(AppContext* app)
 				{
 					case UiEventType.USER_INPUT:
 					{
-						start_user_turn(app, &turn_id, ev.text, false);
+						session.start_user_turn(ev.text, false);
 						Message* user_msg = alloc::new(heap, Message);
 						user_msg.init(heap, "user");
 						user_msg.content = ev.text.copy(heap);
-						push_render(app, user_msg, "");
+						app::push_render(app, user_msg, "");
 						app.add_message(user_msg);
 						user_msg.free(heap);
-						turn_start_idx = app.messages.len() - 1;
+						session.turn_start_idx = app.messages.len() - 1;
 
 						// 预算检查在生成 request_id 之前：token_warning 为 turn 级事件
 						// （request_id 传空 → 事件中为 null）。
-						if (!check_token_budget(app, turn_id, ""))
+						if (session.check_budget() == BudgetVerdict.EXCEEDED)
 						{
 							// EXCEEDED：拒绝继续请求，但保留本轮 user 消息（与 L1/L2 语义统一）。
 							// 不能连 user 一起丢弃：user_message 事件已写盘，内存删除会在
 							// transcript 留下幽灵 user 消息，resume 重建后上下文不一致。
 							// （headless 收尾退出；交互回输入态，用户自行 /clear。）
-							discard_messages_after(app, turn_start_idx);
-							if (app.flag.enable_headless)
-							{
-								state = headless_error_shutdown(app, turn_id, &session_ended);
-							}
-							else
-							{
-								push_ready(app);
-								state = AgentState.IDLE;
-							}
+							session.discard_half_turn();
+							state = session.finish_error() ? AgentState.SHUTDOWN : AgentState.IDLE;
 							break;
 						}
-						dispatch_api_request(app, turn_id, &request_id);
+						dispatch_api_request(app, session.turn_id, &request_id);
 						state = AgentState.AWAITING_API;
 						break;
 					}
 					case UiEventType.COMMAND_CLEAR:
 					{
 						// 旧会话收尾（interrupted）→ 新 session_id → 新 transcript 文件
-						app.transcript.write_user_message(ensure_turn_id(heap, &turn_id), ev.text, true);
-						app.transcript.write_session_end(turn_id, "interrupted", app.turns_total);
-						app.start_new_session();
-						if (turn_id.len > 0) turn_id.free(heap);
-						turn_id = "";
-						push_notice(app, string::tformat("Start new session, session ID is %s", app.session_id));
-						if (!app.flag.enable_headless) push_ready(app);
+						//（收尾顺序由 end_and_start_new 保证）
+						session.end_and_start_new(ev.text);
+						app::push_notice(app, string::tformat("Start new session, session ID is %s", app.session_id));
+						if (!app.flag.enable_headless) app::push_ready(app);
 						state = AgentState.IDLE;
 						break;
 					}
 					case UiEventType.COMMAND_EXPORT:
 					{
-						app.transcript.write_user_message(ensure_turn_id(heap, &turn_id), ev.text, true);
+						session.record_command(ev.text);
 						@pool()
 						{
 							String markdown = app.render_to_markdown(tmem);
 							Path output_file = app.cwd.append(tmem, string::format(tmem, "%s.md", app.session_id))!!;
 							file::save(output_file, markdown)!!;
-							push_notice(app, string::tformat("Saved to %s", output_file));
+							app::push_notice(app, string::tformat("Saved to %s", output_file));
 						};
-						if (!app.flag.enable_headless) push_ready(app);
+						if (!app.flag.enable_headless) app::push_ready(app);
 						state = AgentState.IDLE;
 						break;
 					}
 					case UiEventType.COMMAND_USAGE:
 					{
 						// 会话累计 token 用量查询（TokenLedger）
-						app.transcript.write_user_message(ensure_turn_id(heap, &turn_id), ev.text, true);
-						push_notice(
+						session.record_command(ev.text);
+						app::push_notice(
 							app,
 							string::tformat(
 								"Session tokens: %d prompt + %d completion + %d reasoning = %d total (this turn: %d prompt + %d completion + %d reasoning)",
@@ -453,17 +313,16 @@ fn void agent_loop(AppContext* app)
 								app.token_ledger.turn_total.reasoning_tokens
 							)
 						);
-						if (!app.flag.enable_headless) push_ready(app);
+						if (!app.flag.enable_headless) app::push_ready(app);
 						state = AgentState.IDLE;
 						break;
 					}
 					case UiEventType.COMMAND_EXIT:
 					{
-						app.transcript.write_user_message(ensure_turn_id(heap, &turn_id), ev.text, true);
-						app.transcript.write_session_end(turn_id, "exit", app.turns_total);
-						session_ended = true;
-						push_notice(app, string::tformat("Bye, last session ID is %s", app.session_id));
-						push_shutdown(app, 0);
+						session.record_command(ev.text);
+						session.end("exit");
+						app::push_notice(app, string::tformat("Bye, last session ID is %s", app.session_id));
+						app::push_shutdown(app, 0);
 						state = AgentState.SHUTDOWN;
 						break;
 					}
@@ -485,11 +344,7 @@ fn void agent_loop(AppContext* app)
 				{
 					if (e == thread::CHANNEL_CLOSED)
 					{
-						if (!session_ended)
-						{
-							app.transcript.write_session_end(turn_id, "exit", app.turns_total);
-							session_ended = true;
-						}
+						session.end("exit");
 						state = AgentState.SHUTDOWN;
 					}
 					break;
@@ -509,23 +364,15 @@ fn void agent_loop(AppContext* app)
 				{
 					// API 错误：写 system_event(api_error)。headless 直接收尾退出；交互回输入态。
 					app.transcript.write_system_event(
-						turn_id, request_id,
+						session.turn_id, request_id,
 						transcript::SUBTYPE_API_ERROR, "error",
 						api::api_error_detail(resp.error_detail)
 					);
-					if (app.flag.enable_headless)
-					{
-						state = headless_error_shutdown(app, turn_id, &session_ended);
-					}
-					else
-					{
-						push_ready(app);
-						state = AgentState.IDLE;
-					}
+					state = session.finish_error() ? AgentState.SHUTDOWN : AgentState.IDLE;
 				}
 				else
 				{
-					handle_api_success(app, turn_id, request_id, &resp);
+					handle_api_success(app, session.turn_id, request_id, &resp);
 					if (resp.message.tool_calls.len() > 0)
 					{
 						tool_call_cursor = 0;
@@ -534,19 +381,7 @@ fn void agent_loop(AppContext* app)
 					}
 					else
 					{
-						if (app.flag.enable_headless)
-						{
-							app.transcript.write_session_end(turn_id, "exit", app.turns_total);
-							session_ended = true;
-							push_notice(app, "DONE");
-							push_shutdown(app, 0);
-							state = AgentState.SHUTDOWN;
-						}
-						else
-						{
-							push_ready(app);
-							state = AgentState.IDLE;
-						}
+						state = session.finish_done() ? AgentState.SHUTDOWN : AgentState.IDLE;
 					}
 				}
 				api::api_response_free(&resp, heap);
@@ -558,7 +393,7 @@ fn void agent_loop(AppContext* app)
 				if (tool_call_cursor < assistant.tool_calls.len())
 				{
 					String interrupted_name = assistant.tool_calls.get_ref(tool_call_cursor).name.copy(tmem);
-					if (execute_one_tool(app, turn_id, request_id, assistant, tool_call_cursor))
+					if (execute_one_tool(app, session.turn_id, request_id, assistant, tool_call_cursor))
 					{
 						// L2 工具中断：system_event(tool_cancelled) + 丢弃半成品 turn
 						//（保留本轮 user 消息，同 L1 语义；resume 尾部丢弃天然兼容）。
@@ -566,21 +401,12 @@ fn void agent_loop(AppContext* app)
 						detail.set("request_id", request_id);
 						detail.set("tool_name", interrupted_name);
 						app.transcript.write_system_event(
-							turn_id, request_id,
+							session.turn_id, request_id,
 							transcript::SUBTYPE_TOOL_CANCELLED, "info",
 							detail
 						);
-						discard_messages_after(app, turn_start_idx);
-						if (app.flag.enable_headless)
-						{
-							state = headless_interrupted_shutdown(app, turn_id, &session_ended);
-						}
-						else
-						{
-							push_notice(app, "interrupted");
-							push_ready(app);
-							state = AgentState.IDLE;
-						}
+						session.discard_half_turn();
+						state = session.finish_interrupted() ? AgentState.SHUTDOWN : AgentState.IDLE;
 					}
 					else
 					{
@@ -591,20 +417,12 @@ fn void agent_loop(AppContext* app)
 				else
 				{
 					// 全部执行完 → 再请求（预算检查在生成 request_id 之前，事件为 turn 级）
-					if (!check_token_budget(app, turn_id, ""))
+					if (session.check_budget() == BudgetVerdict.EXCEEDED)
 					{
-						if (app.flag.enable_headless)
-						{
-							state = headless_error_shutdown(app, turn_id, &session_ended);
-						}
-						else
-						{
-							push_ready(app);
-							state = AgentState.IDLE;
-						}
+						state = session.finish_error() ? AgentState.SHUTDOWN : AgentState.IDLE;
 						break;
 					}
-					dispatch_api_request(app, turn_id, &request_id);
+					dispatch_api_request(app, session.turn_id, &request_id);
 					state = AgentState.AWAITING_API;
 				}
 				break;
@@ -622,22 +440,13 @@ fn void agent_loop(AppContext* app)
 					detail.set("latency_ms", cancel_latency);
 					detail.set("has_partial_content", cancel_has_partial);
 					app.transcript.write_system_event(
-						turn_id, request_id,
+						session.turn_id, request_id,
 						transcript::SUBTYPE_REQUEST_CANCELLED, "info",
 						detail
 					);
 					cancel_pending = false;
 				}
-				if (app.flag.enable_headless)
-				{
-					state = headless_interrupted_shutdown(app, turn_id, &session_ended);
-				}
-				else
-				{
-					push_notice(app, "interrupted");
-					push_ready(app);
-					state = AgentState.IDLE;
-				}
+				state = session.finish_interrupted() ? AgentState.SHUTDOWN : AgentState.IDLE;
 				break;
 			}
 			case AgentState.SHUTDOWN:
@@ -646,8 +455,9 @@ fn void agent_loop(AppContext* app)
 		}
 	}
 
-	// 线程收尾：释放 turn 状态 heap（request_id 各次 dispatch 已释放，末轮可能残留）。
-	if (turn_id.len > 0) turn_id.free(heap);
+	// 线程收尾：释放 turn 状态 heap（turn_id 由 Session 释放；request_id 各次
+	// dispatch 已释放，末轮可能残留）。
+	session.free();
 	if (request_id.len > 0) request_id.free(heap);
 }
 
