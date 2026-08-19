@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Architecture review — mp</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+</script>
+<style>
+  .seam { stroke-dasharray: 4 4; }
+  .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+  .mermaid pre { font-size: 13px; }
+</style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+  <header class="space-y-4">
+    <div class="flex items-end justify-between gap-6 flex-wrap">
+      <h1 class="font-serif text-4xl font-semibold">Architecture review — <span class="text-indigo-700">mp</span></h1>
+      <p class="text-sm text-slate-500">2026-08-19 · v2.0.0 three-thread core</p>
+    </div>
+    <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-4 py-3">
+      <span class="inline-flex items-center gap-2"><span class="w-3 h-3 border-2 border-slate-800 inline-block"></span> module</span>
+      <span class="inline-flex items-center gap-2"><span class="w-6 border-t-2 border-dashed border-slate-400 inline-block"></span> seam</span>
+      <span class="inline-flex items-center gap-2"><span class="w-6 h-0 border-t-2 border-red-600 inline-block"></span> leakage</span>
+      <span class="inline-flex items-center gap-2"><span class="w-3 h-3 deep rounded-sm inline-block"></span> deep module</span>
+    </div>
+  </header>
+
+  <section id="candidates" class="space-y-10">
+
+    <!-- ════════════ CARD 1 ════════════ -->
+    <article class="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h2 class="font-serif text-2xl font-semibold">1 · Give the state machine a <span class="text-indigo-700">Session</span> module</h2>
+        <div class="flex gap-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">Before</h3>
+          <pre class="mermaid">
+            flowchart LR
+              SM["rat_loop.c3<br/>state machine"]
+              TR["transcript.write_session_end<br/>7 call sites"]
+              RE["reason literals<br/>exit · interrupted · error"]
+              TL["TokenLedger fields<br/>soft ratio · hard ratio"]
+              MS["app.messages<br/>pop · len"]
+              SM --> TR
+              SM --> RE
+              SM --> TL
+              SM --> MS
+              linkStyle 0,1,2,3 stroke:#dc2626,stroke-width:2px
+          </pre>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">After</h3>
+          <pre class="mermaid">
+            flowchart LR
+              SM["rat_loop.c3"]
+              SES["Session<br/>start · end reason · discard turn · budget verdict"]
+              TR["transcript"]
+              TL["token ledger"]
+              MS["messages"]
+              SM -->|"end reason"| SES
+              SES --> TR
+              SES --> TL
+              SES --> MS
+              style SES fill:#0f172a,stroke:#0f172a,color:#ffffff
+          </pre>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Files</dt><dd class="font-mono text-xs text-slate-700">rat_loop.c3 · app/app.c3 · transcript.c3 · token_ledger.c3</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</dt><dd>Session-end written from 7 sites, each hand-coding the reason literal; headless/interactive branching duplicated ×6; <code>discard_messages_after</code> pops index ≥ keep_before — dropping the user message despite its own doc, so L2/EXCEEDED drop the user while L1 keeps it and the "unified semantics" claim is false; <code>start_new_session</code> hides a "write session_end first" ordering protocol.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</dt><dd>One Session module behind the state machine owning start, end(reason), discard-half-done-turn and budget verdict; transcript, token ledger and messages become its internals.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Wins</dt><dd><ul class="list-disc pl-4 space-y-1">
+          <li>Locality: 7 end-sites become one call</li>
+          <li>Discard off-by-one fixed once, structurally</li>
+          <li>Deletes ×6 duplicated branches</li>
+          <li>Transcript ordering assertable at the seam</li>
+          <li>Token verdict stops leaking into the state machine</li>
+        </ul></dd></div>
+      </dl>
+    </article>
+
+    <!-- ════════════ CARD 2 ════════════ -->
+    <article class="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h2 class="font-serif text-2xl font-semibold">2 · Collapse the <span class="text-indigo-700">interrupt</span> path to one mechanism</h2>
+        <div class="flex gap-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">Before</h3>
+          <pre class="mermaid">
+            flowchart LR
+              UI["main.c3 UI loop<br/>decides L1 L2 L3"]
+              FL["cancel flag<br/>atomic"]
+              EV["CANCEL_REQUEST · CANCEL_TOOL<br/>queued events"]
+              WK["api worker<br/>multi poll"]
+              AG["state machine<br/>3 states"]
+              UI --> FL
+              UI --> EV
+              FL --> WK
+              FL --> AG
+              EV -.read only at IDLE.-> AG
+              linkStyle 4 stroke:#dc2626,stroke-width:2px
+          </pre>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">After</h3>
+          <pre class="mermaid">
+            flowchart LR
+              UI["main.c3"]
+              IN["Interrupt<br/>level → flag + kill → unwinding"]
+              WK["api worker"]
+              AG["state machine"]
+              UI -->|"cancel level"| IN
+              IN --> WK
+              IN --> AG
+              style IN fill:#0f172a,stroke:#0f172a,color:#ffffff
+          </pre>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Files</dt><dd class="font-mono text-xs text-slate-700">main.c3 · rat_loop.c3 · api/api.c3 · api/api_worker.c3 · util/cmd.c3 · util/ctrl_c.c3 · app/event.c3</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</dt><dd>Two delivery mechanisms overlap — an atomic flag consumed immediately plus queued CANCEL_REQUEST/CANCEL_TOOL events read only at IDLE, making the event distinction semantically dead; the L1/L2/L3 decision lives in the UI loop while its consequences live in three states; shutdown leaks one ApiResponse per in-flight request.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</dt><dd>One deep Interrupt module owning level decision, flag + child-kill, and turn unwinding; the queued-event mechanism is deleted. Consequences move into the Session module from card 1.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Wins</dt><dd><ul class="list-disc pl-4 space-y-1">
+          <li>One delivery mechanism to reason about</li>
+          <li>Shutdown leak fixed at the seam</li>
+          <li>Cancel path testable without real Ctrl+C</li>
+          <li>CANCEL_TOOL vs CANCEL_REQUEST dead weight gone</li>
+        </ul></dd></div>
+      </dl>
+    </article>
+
+    <!-- ════════════ CARD 3 ════════════ -->
+    <article class="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h2 class="font-serif text-2xl font-semibold">3 · One <span class="text-indigo-700">ToolSpec</span> generates schema and prompt list</h2>
+        <div class="flex gap-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">Before</h3>
+          <pre class="mermaid">
+            flowchart TB
+              D1["description in code"]
+              D2["description in schema"]
+              N1["default in free fn · 1000"]
+              N2["default in execute · 500"]
+              N3["default in schema · 500"]
+              L1["DEFAULT_TOOLS list"]
+              L2["help text list"]
+              D1 -.diverged.-> D2
+              N1 -.diverged.-> N2
+              N2 -.diverged.-> N3
+              linkStyle 0,1,2 stroke:#dc2626,stroke-width:2px
+          </pre>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">After</h3>
+          <pre class="mermaid">
+            flowchart LR
+              SP["ToolSpec<br/>name · description · params · defaults"]
+              J["tools JSON schema"]
+              A["Available Tools list"]
+              S["dispatch switch"]
+              SP --> J
+              SP --> A
+              SP --> S
+              style SP fill:#0f172a,stroke:#0f172a,color:#ffffff
+          </pre>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Files</dt><dd class="font-mono text-xs text-slate-700">tool/tool.c3 · cli.c3 · tool/*_schema.json · tool/*_tool.c3 · app/prompt_assembly.c3</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</dt><dd>Each tool's description exists twice — code and schema — and has already diverged for HashEditFile (schema documents range/insertAfter, the code description omits them); defaults exist in three places and diverge for Glob (1000 / 500 / 500) and ReadFile (schema states no default); the tool-name list lives in four places with order drift between DEFAULT_TOOLS and --help.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</dt><dd>One ToolSpec per tool — name, description, params, defaults — serialized to the JSON schema, the Available Tools list, and the dispatch registry.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Wins</dt><dd><ul class="list-disc pl-4 space-y-1">
+          <li>Drift impossible by construction</li>
+          <li>Model sees one description per tool</li>
+          <li>--help order matches dispatch order</li>
+          <li>Schema↔code agreement testable at one seam</li>
+        </ul></dd></div>
+      </dl>
+    </article>
+
+    <!-- ════════════ CARD 4 ════════════ -->
+    <article class="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h2 class="font-serif text-2xl font-semibold">4 · Deepen the <span class="text-indigo-700">line:hash anchor</span> contract into one module</h2>
+        <div class="flex gap-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-900">✓ implemented (493e575)</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">Before</h3>
+          <pre class="mermaid">
+            flowchart TB
+              R["read_file_tool<br/>load → normalize → split → hash"]
+              H["hash_edit_tool<br/>load → normalize → split → hash"]
+              LH["line_hash"]
+              S["schema re-states contract"]
+              T["memo template re-states"]
+              R --> LH
+              H --> LH
+              H -.pipeline must stay identical.-> R
+              H -.re-stated.-> S
+              H -.re-stated.-> T
+              linkStyle 2,3,4 stroke:#dc2626,stroke-width:2px
+          </pre>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">After</h3>
+          <pre class="mermaid">
+            flowchart LR
+              AN["anchors<br/>file → anchored lines<br/>format: line hash content"]
+              R["read_file_tool"]
+              H["hash_edit_tool"]
+              S["schema"]
+              T["template"]
+              R --> AN
+              H --> AN
+              AN --> S
+              AN --> T
+              style AN fill:#0f172a,stroke:#0f172a,color:#ffffff
+          </pre>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Files</dt><dd class="font-mono text-xs text-slate-700">util/hash.c3 · tool/read_file_tool.c3 · tool/hash_edit_tool.c3 · tool/hash_edit_tool_schema.json · app/tools_memo_template.md</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</dt><dd>The anchor contract is re-stated in six places, and the load→normalize→split pipeline is duplicated verbatim in read_file and hash_edit — the pair must stay byte-identical for anchors to hold; normalization is double-handled (<code>normalize_line_endings</code> plus line_hash's internal trim).</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</dt><dd>One anchors module: file → anchored lines with the format string in exactly one place; both tools consume it.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Wins</dt><dd><ul class="list-disc pl-4 space-y-1">
+          <li>Lockstep between the two tools by construction</li>
+          <li>Format string lives in one place</li>
+          <li>Contract testable at the seam</li>
+          <li>Deletes the duplicated pipeline</li>
+        </ul></dd></div>
+      </dl>
+    </article>
+
+    <!-- ════════════ CARD 5 ════════════ -->
+    <article class="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h2 class="font-serif text-2xl font-semibold">5 · Uniform the <span class="text-indigo-700">tool-call layer</span>: extraction, validation, envelope</h2>
+        <div class="flex gap-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">Worth exploring</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">local-substitutable</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">Before</h3>
+          <pre class="mermaid">
+            flowchart TB
+              C["LLM tool call"]
+              A["execute layer ×8<br/>hand-rolled extraction · defaults"]
+              D1["ReadFile: empty path → deep fault"]
+              D2["Glob: empty pattern → fd"]
+              E["errors: result or fault — no envelope"]
+              C --> A
+              A --> D1
+              A --> D2
+              A --> E
+              linkStyle 1,2 stroke:#dc2626,stroke-width:2px
+          </pre>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">After</h3>
+          <pre class="mermaid">
+            flowchart TB
+              C["LLM tool call"]
+              B["ArgBag<br/>schema-driven extraction + validation"]
+              T["tool core logic only"]
+              E["one error envelope"]
+              C --> B
+              B --> T
+              B --> E
+              style B fill:#0f172a,stroke:#0f172a,color:#ffffff
+          </pre>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Files</dt><dd class="font-mono text-xs text-slate-700">tool/tool.c3 · tool/common.c3 · tool/*_tool.c3 (all 8)</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</dt><dd>Argument extraction is hand-rolled ×8 with divergent defaults and empty-value checks; ReadFile and Glob send empty path/pattern deep into <code>file::load_path!</code>/fd and surface as generic faults; model-visible errors arrive as either a role=tool result or a fault with no uniform envelope; 7 of 8 execute() layers are untested.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</dt><dd>One deep ArgBag helper — schema-driven extraction and validation — plus one error envelope; each tool keeps only its core logic.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Wins</dt><dd><ul class="list-disc pl-4 space-y-1">
+          <li>Interface shrinks; validation in one place</li>
+          <li>No more deep faults from empty args</li>
+          <li>execute() layer testable through one seam</li>
+          <li>Model-visible errors speak one language</li>
+        </ul></dd></div>
+      </dl>
+    </article>
+
+    <!-- ════════════ CARD 6 ════════════ -->
+    <article class="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h2 class="font-serif text-2xl font-semibold">6 · Delete the <span class="text-indigo-700">dead modules</span></h2>
+        <div class="flex gap-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">Before</h3>
+          <div class="space-y-2 text-sm">
+            <div class="border border-red-300 bg-red-50 rounded p-2 font-mono text-xs line-through text-red-700">api/http_client.c3 — get · post · request · Response · 0 callers</div>
+            <div class="border border-red-300 bg-red-50 rounded p-2 font-mono text-xs line-through text-red-700">api.c3:45-130 — read_response_to_message · 0 callers</div>
+            <div class="border border-red-300 bg-red-50 rounded p-2 font-mono text-xs line-through text-red-700">ui.c3:167-171 — read_prompt · 0 callers</div>
+            <div class="border border-red-300 bg-red-50 rounded p-2 font-mono text-xs line-through text-red-700">util/strings.c3 — pad_start · 0 callers</div>
+            <div class="border border-red-300 bg-red-50 rounded p-2 font-mono text-xs line-through text-red-700">util/id.c3 — hash_path · 0 callers</div>
+            <div class="border border-slate-200 bg-white rounded p-2 font-mono text-xs">api.c3:133 comment still describes the replaced architecture</div>
+          </div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">After</h3>
+          <div class="space-y-2 text-sm">
+            <div class="border-2 border-slate-800 rounded p-2 font-mono text-xs">write_callback moves beside its caller (api.c3)</div>
+            <div class="border-2 border-slate-800 rounded p-2 font-mono text-xs">SSE parser read_stream_to_message (~190 lines, the live one) gets a home of its own</div>
+            <div class="border border-emerald-300 bg-emerald-50 rounded p-2 text-xs">Deletion test passes — the complexity vanishes; it does not reappear across callers.</div>
+          </div>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Files</dt><dd class="font-mono text-xs text-slate-700">api/http_client.c3 · api/api.c3 · ui.c3 · util/strings.c3 · util/id.c3</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</dt><dd>HttpClient is entirely dead — only <code>write_callback</code> is consumed — and api.c3:133 still comments about the architecture it replaced; the dead code costs reading time and misdirects new developers.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</dt><dd>Apply the deletion test — delete; relocate the one live line; give the live SSE parser a home of its own.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Wins</dt><dd><ul class="list-disc pl-4 space-y-1">
+          <li>Deletion test passes — complexity vanishes</li>
+          <li>Stale comments stop misreading</li>
+          <li>Reading surface shrinks</li>
+          <li>Tests pinned to dead code repointed</li>
+        </ul></dd></div>
+      </dl>
+    </article>
+
+    <!-- ════════════ CARD 7 ════════════ -->
+    <article class="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h2 class="font-serif text-2xl font-semibold">7 · Seam for the state machine: <span class="text-indigo-700">fake API, slim AppContext</span></h2>
+        <div class="flex gap-2">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-200 text-slate-700">Speculative</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">mock</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">Before</h3>
+          <pre class="mermaid">
+            flowchart TB
+              T["tests"]
+              AC["AppContext<br/>8 init args · service-locator"]
+              SM["agent_loop"]
+              WK["real curl worker"]
+              T -.pays full cost.-> AC
+              SM --> AC
+              SM --> WK
+              linkStyle 0 stroke:#dc2626,stroke-width:2px
+          </pre>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+          <h3 class="text-xs uppercase tracking-wider text-slate-500">After</h3>
+          <pre class="mermaid">
+            flowchart LR
+              SM["agent_loop"]
+              SE["seam"]
+              RW["real worker adapter"]
+              FW["in-memory fake adapter"]
+              SM --> SE
+              SE --> RW
+              SE --> FW
+              style SE fill:#0f172a,stroke:#0f172a,color:#ffffff
+          </pre>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Files</dt><dd class="font-mono text-xs text-slate-700">app/app.c3 · rat_loop.c3 · main.c3 · api/api_worker.c3</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Problem</dt><dd>AppContext is a service-locator bag — most methods are one-line pass-throughs — yet every test pays 8 init args for it; the state machine takes only AppContext*, so AWAITING_API is exercisable only through a real curl round-trip and CANCELLING/L2 only through real Ctrl+C.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Solution</dt><dd>Thread the state machine against a seam with two adapters (real worker, in-memory fake); slim AppContext to the ownership zones.</dd></div>
+        <div><dt class="text-xs uppercase tracking-wider text-slate-500 mb-1">Wins</dt><dd><ul class="list-disc pl-4 space-y-1">
+          <li>AWAITING_API / CANCELLING reachable in tests</li>
+          <li>The interface is the test surface</li>
+          <li>AppContext stops being the one thing every test pays for</li>
+        </ul></dd></div>
+      </dl>
+    </article>
+
+  </section>
+
+  <!-- ════════════ TOP RECOMMENDATION ════════════ -->
+  <section id="top-recommendation" class="bg-slate-900 text-white rounded-xl p-8 space-y-4">
+    <h2 class="font-serif text-2xl font-semibold">Top recommendation</h2>
+    <p class="text-slate-200"><a href="#candidates" class="text-indigo-400 font-semibold underline decoration-dotted">Card 1 — the Session module.</a> rat_loop.c3 is the codebase's hot spot — 665 lines, touched by nearly every commit in the v2 history — and the session-end policy plus discard semantics are where two provable defects live (the off-by-one discard, the hidden start_new_session ordering). It is also the prerequisite for card 2: once Session owns turn unwinding, the interrupt path's consequence-side collapses into it.</p>
+  </section>
+
+  <!-- ════════════ FIELD NOTES ════════════ -->
+  <section class="space-y-4">
+    <h2 class="font-serif text-xl font-semibold">Field notes — small defects found en route</h2>
+    <p class="text-sm text-slate-600">All three fixed in <code class="font-mono">d78ed2a</code>.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+        <p class="font-semibold text-emerald-900 mb-1">Second-resolution task IDs collide <span class="text-emerald-600">· fixed</span></p>
+        <p class="text-emerald-800"><code>timestamp_id</code> now appends a process-local monotonic sequence + pid, so Bash/Task output files, tool-call ids, turn/request ids and session ids are unique even within one second; lexicographic ordering of turn_ids is preserved.</p>
+      </div>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+        <p class="font-semibold text-emerald-900 mb-1">MP_PARENT_SESSION leaks on nested Task <span class="text-emerald-600">· fixed</span></p>
+        <p class="text-emerald-800">Restore is now decoupled from set: the old value is captured first, set/clear happens per id-availability, and the environment is unconditionally restored after the child exits — a grandchild can no longer inherit a stale outer link.</p>
+      </div>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+        <p class="font-semibold text-emerald-900 mb-1">request_id lifetime fixed by parameter passing <span class="text-emerald-600">· fixed</span></p>
+        <p class="text-emerald-800">The borrowed request_id alias field was removed from AppContext; <code>execute_one_tool</code> builds the ToolContext from its own <code>request_id</code> parameter instead of reading shared state.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>
