@@ -5,7 +5,7 @@ module app;
 // 取代 v1 散落的五处状态（tlocal GlobalStore、Context、tlocal 日志文件、无状态
 // transcript 函数、skill 预留全局变量）。字段按所有权分为四区：
 //   - 配置区（初始化后只读）：Flag 拷贝、allocator、cwd、config_dir；
-//   - 会话状态区（仅 Agent 线程写）：session_id、active_request_id、messages、
+//   - 会话状态区（仅 Agent 线程写）：session_id、messages、
 //     turns_total、started_at/updated_at、resumed 标记；
 //   - 资源区（初始化后只读）：ToolHub/SkillHub 指针、system_prompt_snapshot、
 //     tools_schema_json（schema_cache 预计算产物）；
@@ -41,7 +41,6 @@ struct AppContext
 
 	// ---- 会话状态区（仅 Agent 线程写）----
 	String session_id;
-	String active_request_id; // Task 工具的父 request_id 来源（Agent 单写）
 	List{Message} messages;
 	int turns_total;
 	DateTime started_at;
@@ -86,7 +85,6 @@ fn AppContext* AppContext.init(
 	self.config_dir = flag.config_dir;
 
 	self.session_id = session_id.copy(allocator);
-	self.active_request_id = "";
 	self.messages.init(allocator);
 	self.turns_total = 0;
 	DateTime now = datetime::now().to_local();

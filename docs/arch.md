@@ -49,7 +49,7 @@ flowchart LR
     w_req --> w_http
 ```
 
-> 关键点：`AppContext` 是**单写者多读者**结构——可变状态（messages、token、turns、active_request_id、transcript 事件）只有 Agent 线程写；UI 与 API worker 只通过通道收发**消息副本**。共享可变原语共四处：`atomic cancel_flag`（请求取消）、`atomic g_current_child_handle`（L2 杀子进程，Agent 单写 / UI 读）、`atomic g_ctrl_c`（Ctrl+C handler 单写 / 主循环读）与 `Logger` 内部 mutex（保护文件句柄）。另有一个写一次后只读的全局 `g_notice_sink/g_notice_ctx`（控制台 sink 回调转发，无竞争）。
+> 关键点：`AppContext` 是**单写者多读者**结构——可变状态（messages、token、turns、transcript 事件）只有 Agent 线程写；UI 与 API worker 只通过通道收发**消息副本**。共享可变原语共四处：`atomic cancel_flag`（请求取消）、`atomic g_current_child_handle`（L2 杀子进程，Agent 单写 / UI 读）、`atomic g_ctrl_c`（Ctrl+C handler 单写 / 主循环读）与 `Logger` 内部 mutex（保护文件句柄）。另有一个写一次后只读的全局 `g_notice_sink/g_notice_ctx`（控制台 sink 回调转发，无竞争）。
 
 ## 2. 目录结构
 
@@ -134,7 +134,7 @@ sequenceDiagram
 
 要点：
 
-- `session_id` 由 `util::timestamp_id()`（本地时间 `YYYYMMDD_HHMMSS`）生成，前缀 `ses_`；`--resume` 时沿用被恢复会话的 id，transcript 继续追加同一文件。
+- `session_id` 由 `util::timestamp_id()`（本地时间 `YYYYMMDD_HHMMSS` + 进程内单调序号 + pid，保证同秒内多个 id 唯一且字典序递增）生成，前缀 `ses_`；`--resume` 时沿用被恢复会话的 id，transcript 继续追加同一文件。
 - `curl_global_init(CurlGlobal.ALL)` 必须在创建任何线程前、在 main 显式调用一次（多线程下 libcurl 硬要求）。
 - 系统提示词由 `context::build_system_prompt()` 装配（原 `Context.reset()` 职责，已抽出为可重入函数）：`system_prompt_template.md` 渲染（替换 `{{cwd}}/{{date}}/{{os}}`）→ 追加 `behavioral_guideline_template.md` → 追加工具列表与 `tools_memo_template.md` → 追加 `AGENTS.md`（`<project_instructions>`）→ 追加已安装 skill 列表。产物存入 `AppContext.system_prompt_snapshot`，`session_start` 事件直接引用。
 
@@ -153,7 +153,6 @@ struct AppContext
 
     // ---- 会话状态区（仅 Agent 线程写）----
     String session_id;
-    String active_request_id;     // Task 父 request_id 来源（Agent 单写）
     List{Message} messages;
     int turns_total;
     DateTime started_at;
@@ -187,7 +186,7 @@ struct AppContext
 | 字段组 | 写者 | 读者 | 同步机制 |
 | --- | --- | --- | --- |
 | flag / hubs / schema / system_prompt_snapshot | main（启动期） | 所有线程 | 无（初始化后只读） |
-| messages / turns_total / session_id / active_request_id | Agent | Agent（API 请求构造也在 Agent 内做快照） | 无 |
+| messages / turns_total / session_id | Agent | Agent（API 请求构造也在 Agent 内做快照） | 无 |
 | token_ledger | Agent | UI（经事件） | 无（UI 只读事件携带的副本） |
 | transcript | Agent | — | 无（写点唯一，见 §8） |
 | logger 文件句柄 | 任意线程 | — | 内部 mutex |
@@ -235,7 +234,7 @@ fn BudgetVerdict check_budget(&self);  // OK / WARN / EXCEEDED
 #### ToolHub / SkillHub
 
 - `ToolHub.init()` 时预计算 `schema_cache`（`tools_schema_json`，写入 `AppContext`）与工具名列表；`do_dispatch()` 仍在 Agent 线程内**串行**执行（永久串行，OQ-2 已定）。
-- `TaskTool` 的父 request_id 从 `AppContext.active_request_id` 读取（Agent 线程持有，无 tlocal）；`skill.c3` 预留的全局变量已删除。
+- `TaskTool` 的父 request_id 由 `execute_one_tool` 的参数传入 `ToolContext`（Agent 线程持有，无 tlocal）；`skill.c3` 预留的全局变量已删除。
 - hub 初始化后只读访问、schema 预计算，无锁。
 
 #### PromptAssembly（`src/app/prompt_assembly.c3`）
@@ -461,7 +460,7 @@ sequenceDiagram
 
 ### 8.2 子代理关联
 
-`TaskTool` spawn 子进程时注入环境变量 `MP_PARENT_SESSION`（格式 `父session_id:父request_id`，父 request_id 取自 `AppContext.active_request_id`），子进程的 `session_start` 事件据此写入 `parent_session_id` / `parent_request_id`，还原整棵子代理树；`--no-transcript` 语义也通过命令行透传继承。
+`TaskTool` spawn 子进程时注入环境变量 `MP_PARENT_SESSION`（格式 `父session_id:父request_id`，父 request_id 由 Agent 线程以参数传入 `ToolContext`），子进程的 `session_start` 事件据此写入 `parent_session_id` / `parent_request_id`，还原整棵子代理树；`--no-transcript` 语义也通过命令行透传继承。子进程返回后无条件恢复父进程环境（嵌套 Task 时防止外层变量泄漏给孙进程）。
 
 ### 8.3 resume 重建（`resume_into()`）
 
@@ -566,7 +565,7 @@ sequenceDiagram
 
 ## 13. 全局状态、日志与 UI
 
-- **AppContext**：取代 v1 的 tlocal 单例，统一挂载点。`active_request_id` 供 Task 工具注入父 request。
+- **AppContext**：取代 v1 的 tlocal 单例，统一挂载点。Task 工具注入父 request 的 `ToolContext` 由 `execute_one_tool` 参数构建（不存 AppContext 共享字段）。
 - **Logger**：`log.c3`，debug 受 `flag.enable_debug` 控制；info/warn/error 始终输出。文件 sink 追加 `<config_dir>/log/<session_id>.log`（mutex 保护，纯文本无 ANSI）；控制台 sink 经 `forward_log_event` → UI 事件 → 主线程打印（不交错）。
 - **UI 事件循环**（`src/main.c3`）：`drain_and_render()` 排空 `agent_to_ui` 通道并渲染（事件负载 heap 分配，渲染后释放）；交互模式用 `util::input::stdin_has_data()` 非阻塞轮询（替代 readline，配合 Ctrl+C 分流入 L1/L2/L3）；颜色集中在 UI 层，遵循 [NO_COLOR](https://no-color.org)（环境变量存在且非空即禁用）；`render_event` 模式无关（交互/headless 共用）。
 

@@ -23,11 +23,16 @@ fn void? execute_task(ToolContext* ctx, Allocator allocator, DString* out, Strin
 
 	// 注入父会话信息（格式 父session_id:父request_id），子进程 session_start 据此关联。
 	// 父会话状态来自 AppContext 的轻量视图（Agent 线程单写，无 tlocal 全局）。
-	String parent_value = "";
+	// 先捕获旧值，结束后无条件恢复：嵌套 Task 时若中间层 ids 为空（设置分支被跳过），
+	// 必须主动 clear，防止外层 MP_PARENT_SESSION 泄漏给孙进程导致 mislink。
+	String? old_parent = env::tget_var(transcript::ENV_PARENT_SESSION);
 	if (ctx.session_id != "" && ctx.request_id != "")
 	{
-		parent_value = string::tformat("%s:%s", ctx.session_id, ctx.request_id);
-		env::set_var(transcript::ENV_PARENT_SESSION, parent_value);
+		env::set_var(transcript::ENV_PARENT_SESSION, string::tformat("%s:%s", ctx.session_id, ctx.request_id));
+	}
+	else
+	{
+		env::clear_var(transcript::ENV_PARENT_SESSION);
 	}
 
 	// 子进程继承 transcript 关闭语义（--no-transcript），并保持 headless 续跑。
@@ -46,8 +51,15 @@ fn void? execute_task(ToolContext* ctx, Allocator allocator, DString* out, Strin
 
 	CommandResult result = cmd::execute(allocator, final_command)!;
 
-	// 恢复父进程环境（若原本无该变量则清除）
-	if (parent_value != "") env::clear_var(transcript::ENV_PARENT_SESSION);
+	// 无条件恢复父进程环境（无论是否设置过，均恢复到执行前的原值）。
+	if (try old_parent)
+	{
+		env::set_var(transcript::ENV_PARENT_SESSION, old_parent);
+	}
+	else
+	{
+		env::clear_var(transcript::ENV_PARENT_SESSION);
+	}
 
 	if (meta)
 	{

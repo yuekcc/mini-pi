@@ -201,8 +201,8 @@ fn void discard_messages_after(AppContext* app, sz keep_before)
 }
 
 // 构造请求快照并投递 API worker，进入 AWAITING_API。request_id 由 Agent 生成
-// （heap 分配，跨 turn 存活；旧值先释放——active_request_id 只是其视图，
-// 仅在 EXECUTING_TOOLS 期间被工具读取，此后再无引用）。
+// （heap 分配，跨 turn 存活；旧值先释放）。request_id 以参数传给
+// execute_one_tool，由其构建 ToolContext（参数传递，不存 AppContext 共享字段）。
 fn void dispatch_api_request(AppContext* app, String turn_id, String* request_id)
 {
 	if (request_id.len > 0) request_id.free(app.allocator);
@@ -235,7 +235,6 @@ fn void handle_api_success(AppContext* app, String turn_id, String request_id, A
 	}
 
 	app.transcript.write_assistant_message(turn_id, request_id, message);
-	app.active_request_id = request_id;
 
 	push_render(app, message, "");
 	app.add_message(message);
@@ -274,9 +273,10 @@ fn bool execute_one_tool(AppContext* app, String turn_id, String request_id, Mes
 	{
 		defer tool_args.free();
 		// ToolContext：从 AppContext 构建的轻量只读视图（父会话信息/中间产物目录）。
+		// request_id 直接用本函数参数（与 AppContext 无共享字段，天然无悬挂引用）。
 		ToolContext tctx = {
 			.session_id = app.session_id,
-			.request_id = app.active_request_id,
+			.request_id = request_id,
 			.config_dir = app.config_dir,
 			.transcript_enabled = app.transcript.enabled,
 		};
