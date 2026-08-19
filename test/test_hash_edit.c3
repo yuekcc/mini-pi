@@ -344,3 +344,59 @@ fn void test_hash_edit_success_report() @test
 	assert(content.count("BETA") == 1);
 	assert(content.count("GAMMA2") == 1);
 }
+
+// 锚点契约回归（arch review 卡 4）：read() 产出的 hashline 必须能被 hash_edit()
+// 原样接受；文件变更后旧锚点必须被整体拒绝。两工具共用的行管线由
+// util::load_lines 单一入口保证字节一致。
+fn void test_anchor_lockstep_read_to_edit() @test
+{
+	// 刁钻内容：结构相同的行（位置折叠）、空行、纯符号行、行尾空白、CRLF
+	String data = "{\n\n}\nplain\ndup\ndup  \nlast\r\n";
+	write_test_file("testdata/th_lockstep.txt", data);
+
+	// 1) read() 产出 hashline 输出
+	DString out = dstring::new(tmem);
+	tool::read(tmem, &out, "testdata/th_lockstep.txt")!!;
+
+	// 2) 解析 `line:hash|content`，收集 (line, hash) 作为编辑锚点
+	List{tool::EditOp} ops;
+	ops.init(tmem);
+	foreach (l : out.str_view().split(tmem, "\n"))
+	{
+		sz colon = l.index_of_char(':') ?? 0;
+		sz bar = l.index_of_char('|') ?? 0;
+		if (colon == 0 || bar <= colon) continue; // 跳过页脚等非 hashline
+		// c3 切片：s[a..b] 为含端区间 [a,b]；s[i:n] 为从 i 起长度 n（见 c3 MANUAL §range）
+		int ln = (int)(l[0..colon - 1].to_long() ?? 0);
+		if (ln < 1) continue;
+		tool::EditOp op;
+		op.line = ln;
+		op.hash = l[colon + 1..bar - 1].copy(tmem);
+		op.content = "replaced".copy(tmem);
+		op.end_line = 0;
+		op.end_hash = "".copy(tmem);
+		op.insert_after = false;
+		ops.push(op);
+	}
+	assert(ops.len() >= 4, "hashline output parsed");
+
+	// 3) hash_edit 接受这批锚点（全部替换，无 stale）
+	DString out2 = dstring::new(tmem);
+	tool::hash_edit(tmem, &out2, "testdata/th_lockstep.txt", ops.to_array(tmem))!!;
+	String edited = (String)file::load(tmem, "testdata/th_lockstep.txt")!!;
+	assert(edited.count("replaced") == ops.len(), "all edits applied");
+
+	// 4) 原锚点已 stale → 再次 hash_edit 必须整体拒绝（不写文件）
+	DString out3 = dstring::new(tmem);
+	bool rejected = false;
+	if (catch ex = tool::hash_edit(tmem, &out3, "testdata/th_lockstep.txt", ops.to_array(tmem)))
+	{
+		(void)ex;
+		rejected = true;
+	}
+	else
+	{
+		rejected = out3.str_view().contains("HashEdit rejected");
+	}
+	assert(rejected, "stale anchors rejected");
+}

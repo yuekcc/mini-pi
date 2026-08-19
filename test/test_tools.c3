@@ -70,7 +70,9 @@ fn void test_find_tool() @test
 fn void test_grep_tool() @test
 {
 	DString out = dstring::new(tmem);
-	tool::grep(tmem, &out, "main", "src", "*.c3", true, false, 10)!!;
+	// pattern 收窄为唯一命中集：宽 pattern（如 "main"）会命中远超 limit=10 的行，
+	// main.c3 是否落在前 10 取决于 rg 文件枚举顺序 → 断言偶发失败。
+	tool::grep(tmem, &out, "fn int main", "src", "*.c3", true, false, 10)!!;
 	String result = out.str_view().copy(tmem);
 	io::printfn("result -> \n%s", result);
 	assert(result.count("fn int main(String[] args)") == 1);

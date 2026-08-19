@@ -1,11 +1,29 @@
 module util;
 
+import std::io::file;
+import std::io::path;
+
 // FNV-1a 32 位哈希参数
 const uint FNV_OFFSET_32 = 0x811c9dc5; // 2166136261
 const uint FNV_PRIME_32  = 0x01000193; // 16777619
 
 // 锚点字母表（对齐 oh-my-pi）：最低字节拆成两个 4-bit nibble 后映射
 const String HASH_ALPHABET = "ZPMQVRWSNKTXJBYH";
+
+// hashline 输出格式（read() 产出、hash_edit() 消费的契约，单一来源）：
+//   行号:哈希|内容
+const String HASH_LINE_FORMAT = "%d:%s|%s\n";
+
+// 锚点契约的基础管线：加载文件 → 归一化行尾 → 按 \n 切行。
+// read() 与 hash_edit() 必须对同一文件得到字节一致的行数组，锚点才成立——
+// 本函数是唯一入口，避免两处管线漂移（arch review 卡 4）。
+fn String[]? load_lines(Allocator allocator, String file_path)
+{
+	Path path_obj = path::new(tmem, file_path)!;
+	String content = (String)file::load_path(tmem, path_obj)!;
+	String normalized_content = normalize_line_endings(tmem, content);
+	return normalized_content.split(allocator, "\n");
+}
 
 // 判断一行是否含有字母或数字
 fn bool has_alnum(String s)

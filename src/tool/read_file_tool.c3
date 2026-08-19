@@ -1,7 +1,6 @@
 module tool;
 
 import std::io;
-import std::io::path;
 import std::collections::list;
 
 import cjson;
@@ -10,11 +9,7 @@ import util;
 
 fn void? read(Allocator allocator, DString* out, String file_path, int offset = -1, int limit = -1)
 {
-	Path path_obj = path::new(tmem, file_path)!;
-	String content = (String)file::load_path(tmem, path_obj)!;
-	String normalized_content = util::normalize_line_endings(tmem, content);
-
-	String[] all_lines = normalized_content.split(tmem, "\n");
+	String[] all_lines = util::load_lines(tmem, file_path)!;
 	usz total_lines = all_lines.len;
 
 	// 处理 offset (1-indexed, -1 表示不使用)
@@ -45,7 +40,7 @@ fn void? read(Allocator allocator, DString* out, String file_path, int offset = 
 	{
 		int line_num = (int)(i + 1); // 1-indexed
 		String h = util::line_hash(tmem, all_lines[i], i + 1);
-		out.appendf("%d:%s|%s\n", line_num, h, all_lines[i]);
+		out.appendf(util::HASH_LINE_FORMAT, line_num, h, all_lines[i]);
 	}
 
 	out.appendf(

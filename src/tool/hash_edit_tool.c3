@@ -44,9 +44,8 @@ fn void? hash_edit(Allocator allocator, DString* out, String file_path, EditOp[]
 {
 	Path path_obj = path::new(tmem, file_path)!;
 
-	String content = (String)file::load_path(tmem, path_obj)!;
-	String normalized_content = util::normalize_line_endings(tmem, content);
-	String[] lines = normalized_content.split(tmem, "\n");
+	// 行数组来自唯一管线 load_lines：与 read() 字节一致，锚点契约才成立
+	String[] lines = util::load_lines(tmem, file_path)!;
 	usz total = lines.len;
 
 	// ---- 1) 应用前：原子校验所有锚点 ----
