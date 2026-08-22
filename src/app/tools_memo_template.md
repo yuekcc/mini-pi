@@ -26,6 +26,7 @@ Executes a command via `bash -c`.
 - Always quote paths that contain spaces: `cd "path with spaces/file.txt"`.
 - Prefer absolute paths and avoid `cd`. If you must change directory, do it in the same command: `cd "dir" && command`.
 - Before creating new directories or files, verify the parent directory exists using `ListDir`.
+- Use `rg` (ripgrep) instead of `grep`
 - Parallelism:
   - Independent commands: issue multiple Bash tool calls in a single assistant turn.
   - Dependent commands: chain with `&&`, e.g. `cd repo && npm install && npm test`.
