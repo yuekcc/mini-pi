@@ -7,7 +7,7 @@ import std::collections::list;
 import cjson;
 import util::cmd;
 
-fn void? find(Allocator allocator, DString* out, String pattern, String file_path = "", int limit = 1000)
+fn void? find(Allocator allocator, DString* out, String pattern, String file_path = "", int limit = 500)
 {
 	List{String} final_command;
 	final_command.init(tmem);
